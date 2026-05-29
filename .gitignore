@@ -60,3 +60,5 @@ windows/build/*
 *.c.d
 *.c.o
 android/android/app/src/main/assets/*
+android/app/src/main/assets/HW_comp.vce
+android/app/src/main/assets/HW_Music.wxd
