@@ -3038,6 +3038,24 @@ void mrMenuDisplay(udword actionMask, TypeOfFormation currentFormation, udword t
         }
         newScreen->atoms[0].height -= gap[index].height;//decrease height of screen
     }
+    //scale the popup to match the enlarged UI font (fontDrawScale) so the bigger
+    //right-click-menu text fits its boxes. Atoms here are menu-relative (feMenuStart
+    //adds the cursor offset via feMenuRegionsAdd), and this runs after the gap
+    //removal above, so a uniform x/y/width/height scale simply enlarges the menu.
+    {
+        extern real32 fontDrawScale;
+        if (fontDrawScale != 1.0f)
+        {
+            for (index = 0; index < newScreen->nAtoms; index++)
+            {
+                newScreen->atoms[index].x      = (sdword)(newScreen->atoms[index].x      * fontDrawScale);
+                newScreen->atoms[index].y      = (sdword)(newScreen->atoms[index].y      * fontDrawScale);
+                newScreen->atoms[index].width  = (sdword)(newScreen->atoms[index].width  * fontDrawScale);
+                newScreen->atoms[index].height = (sdword)(newScreen->atoms[index].height * fontDrawScale);
+            }
+        }
+    }
+
     //start the actual menu
     feMenuStart(ghMainRegion, newScreen, mouseCursorX(), mouseCursorY());
     feTempMenuScreen = newScreen;
