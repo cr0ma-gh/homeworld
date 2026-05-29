@@ -10,6 +10,13 @@
         android:required="false" />
 
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- LAN multiplayer: sockets + UDP-broadcast game discovery. Android filters
+         inbound broadcast/multicast unless the app holds a WifiManager
+         MulticastLock, which needs CHANGE_WIFI_MULTICAST_STATE. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <application
         android:label="@string/app_name"

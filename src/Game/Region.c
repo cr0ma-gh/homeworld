@@ -129,7 +129,9 @@ sdword regFunctionCall(regionhandle reg, udword event, udword data, udword *mask
     {
         return(FALSE);
     }
-    returnValue = reg->processFunction(reg, reg->userID, event, data);
+    returnValue = (reg->processFunction != NULL)
+                ? reg->processFunction(reg, reg->userID, event, data)
+                : 0;
     if (bitTest(returnValue, RPR_Redraw))
     {
 #ifdef DEBUG_STOMP
@@ -1091,7 +1093,11 @@ void regFunctionsDraw(void)
 
     for (regNumberDraws--; regNumberDraws >= 0; regNumberDraws--)
     {
-        regRenderEvent[regNumberDraws].function(regRenderEvent[regNumberDraws].reg);
+        /* Defensive: never call a NULL draw function. A region whose
+           drawFunction was left/resolved NULL (seen on the LAN lobby screens)
+           would otherwise jump to address 0 -> SIGSEGV. */
+        if (regRenderEvent[regNumberDraws].function != NULL)
+            regRenderEvent[regNumberDraws].function(regRenderEvent[regNumberDraws].reg);
     }
     regRegionFrameDrawCount++;
 }

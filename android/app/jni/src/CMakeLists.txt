@@ -32,8 +32,19 @@ set(TP_SRC
     ${GAME_ROOT}/ThirdParty/LZSS/BitIO.c
     ${GAME_ROOT}/ThirdParty/LZSS/LZSS.c)
 
+# SDL2_net (vendored at jni/SDL_net, release-2.2.0): UDP broadcast + TCP that the
+# engine's LAN multiplayer layer (NetworkInterface.c, gated by HW_ENABLE_NETWORK)
+# is written against. Only the 4 library sources -- the chat*/showinterfaces are
+# standalone demo programs with their own main().
+set(SDL_NET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../SDL_net)
+set(SDL_NET_SRC
+    ${SDL_NET_DIR}/SDLnet.c
+    ${SDL_NET_DIR}/SDLnetTCP.c
+    ${SDL_NET_DIR}/SDLnetUDP.c
+    ${SDL_NET_DIR}/SDLnetselect.c)
+
 # libmain.so — SDLActivity loads "main" and calls SDL_main (from src/SDL/main.c).
-add_library(main SHARED ${GAME_SRC} ${SHIPS_SRC} ${SDL_SRC} ${TP_SRC} ${MISSION_SRC})
+add_library(main SHARED ${GAME_SRC} ${SHIPS_SRC} ${SDL_SRC} ${TP_SRC} ${MISSION_SRC} ${SDL_NET_SRC})
 
 target_include_directories(main PRIVATE
     ${GAME_ROOT}/Game
@@ -47,6 +58,7 @@ target_include_directories(main PRIVATE
     ${GAME_ROOT}/Missions/Tutorials
     ${GEN_MISSIONS}
     ${COMPAT_INC}
+    ${SDL_NET_DIR}
     ${GL4ES_INC})
 
 target_compile_definitions(main PRIVATE
@@ -63,7 +75,10 @@ target_compile_definitions(main PRIVATE
     _GNU_SOURCE
     HAVE_CONFIG_H
     _REENTRANT
-    HW_BUILD_FOR_DISTRIBUTION)
+    HW_BUILD_FOR_DISTRIBUTION
+    # Enable the LAN multiplayer networking layer (NetworkInterface.c /
+    # TitanInterfaceC.c). Without this the engine's net code is compiled out.
+    HW_ENABLE_NETWORK)
 
 # Old codebase + modern Clang (NDK r27): silence warnings, signed char (x86
 # semantics), and disable the legacy-C diagnostics Clang promotes to errors.

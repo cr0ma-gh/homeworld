@@ -27,6 +27,15 @@ unsigned long HomeworldCRC[4];
 wchar_t GameWereInterestedIn[MAX_TITAN_GAME_NAME_LEN];
 void *GameWereInterestedInMutex = 0;
 
+/* The original WON/Titan game-creation state machine lived as a member of the
+   C++ TitanInterface class (TitanInterface.h). This C bridge needs its own copy
+   so the LAN paths below can gate behaviour: GAME_NOT_STARTED while the lobby is
+   open (accept joins, broadcast game-data to all players), GAME_STARTED once the
+   match launches (deny late joins). Driven by HandleGameStart / the host-start
+   hook below. */
+enum { GAME_NOT_STARTED, GAME_STARTING, GAME_STARTED };
+int mGameCreationState = GAME_NOT_STARTED;
+
 
 /*----------------------------------------------------------------------------
  * Functions
@@ -42,11 +51,17 @@ unsigned long titanStart(unsigned long isLan, unsigned long isIP)
 {
 	dbgMessagef("\ntitanStart");
 #ifdef HW_ENABLE_NETWORK
-	initNetwork();
+	mGameCreationState = GAME_NOT_STARTED;   /* fresh session: lobby open */
+	if (!initNetwork())
+	{
+		/* Graceful: returning 0 makes the LAN launch path show its
+		   "can't network" message box instead of the app dying. */
+		return 0;
+	}
 	myAddress.AddrPart.IP = getMyAddress();
 	myAddress.Port = TCPPORT;
 	dbgMessagef("\nmyAddress Ip : %d",myAddress.AddrPart.IP);
-	return 1; 
+	return 1;
 #else
 	return 0;
 #endif
@@ -195,8 +210,9 @@ void titanConnectToClient(Address *address)
 {
 	dbgMessagef("\ntitanConnectToClient");
 #ifdef HW_ENABLE_NETWORK
+	SDL_Log("hwnet: titanConnectToClient -> connecting to host");
 	myAddress.AddrPart.IP = connectToServer(address->AddrPart.IP);
-	dbgMessagef("\nmyAddress Ip : %d",myAddress.AddrPart.IP);
+	SDL_Log("hwnet: titanConnectToClient done, myAddress.IP set");
 #endif
 }
 
@@ -383,7 +399,11 @@ void HandleJoinGame(Uint32 address, const void* data, unsigned short len)
 		requestResult = titanRequestReceivedCB(&anAddress, data, len);
 	else
 		requestResult = REQUEST_RECV_CB_JUSTDENY;
-	
+
+	SDL_Log("hwnet: host got JOIN request from %u.%u.%u.%u -> %s",
+	        (address)&0xff,(address>>8)&0xff,(address>>16)&0xff,(address>>24)&0xff,
+	        requestResult == REQUEST_RECV_CB_ACCEPT ? "ACCEPT" : "REJECT");
+
 	if (requestResult == REQUEST_RECV_CB_ACCEPT)
         {
             titanSendPacketTo(&anAddress, TITANMSGTYPE_JOINGAMECONFIRM, NULL, 0);
@@ -401,6 +421,7 @@ void HandleJoinConfirm(Uint32 address, const void* data, unsigned short len)
 	anAddress.AddrPart.IP = address;
 	anAddress.Port = TCPPORT;
 
+	SDL_Log("hwnet: client got JOIN CONFIRM from host -> entering lobby");
         titanConfirmReceivedCB(&anAddress, data, len);
 }
 
@@ -420,6 +441,7 @@ void HandleGameData(const void* data, unsigned short len)
 
 void HandleGameStart(const void* data, unsigned short len)
 {
+	mGameCreationState = GAME_STARTED;   /* match launched: deny further joins */
 	mgGameStartReceivedCB(data,len);
 }
 

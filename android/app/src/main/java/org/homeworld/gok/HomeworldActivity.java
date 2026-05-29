@@ -1,8 +1,10 @@
 package org.homeworld.gok;
 
+import android.content.Context;
 import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -64,6 +66,13 @@ public class HomeworldActivity extends SDLActivity {
     private LinearLayout overlayStack = null;
     private Button       overlayToggleBtn = null;
     private boolean      overlayVisible = true;
+
+    /* LAN multiplayer: Android drops inbound UDP broadcast/multicast frames
+       unless a MulticastLock is held, which would make Homeworld's broadcast-
+       based LAN game discovery (NetworkInterface.c) never see any hosts. Held
+       for the whole activity lifetime -- cheap enough for a game and avoids
+       races with the engine's network threads starting on their own schedule. */
+    private WifiManager.MulticastLock multicastLock = null;
 
     @Override
     protected String[] getLibraries() {
@@ -147,6 +156,34 @@ public class HomeworldActivity extends SDLActivity {
             }
             addControlOverlay();
         }
+
+        acquireMulticastLock();
+    }
+
+    /** Grab a WifiManager MulticastLock so the kernel delivers inbound UDP
+     *  broadcast/multicast packets to us (needed for LAN game discovery). Safe
+     *  no-op if Wi-Fi is off; released in onDestroy. */
+    private void acquireMulticastLock() {
+        try {
+            WifiManager wifi = (WifiManager)
+                getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wifi != null) {
+                multicastLock = wifi.createMulticastLock("gok-lan");
+                multicastLock.setReferenceCounted(false);
+                multicastLock.acquire();
+                Log.i("GoK", "MulticastLock acquired for LAN discovery");
+            }
+        } catch (Exception e) {
+            Log.e("GoK", "Failed to acquire MulticastLock", e);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (multicastLock != null && multicastLock.isHeld()) {
+            multicastLock.release();
+        }
+        super.onDestroy();
     }
 
     /** Copy each entry in BUNDLED_GAME_DATA from the APK assets into the

@@ -4,6 +4,12 @@
 #include <SDL2/SDL_thread.h>
 #ifdef HW_ENABLE_NETWORK
 #include <SDL2/SDL_net.h>
+/* POSIX sockets for getMyAddress()'s connect()+getsockname() local-IP probe.
+   Available on Android/Linux; this whole file is only built with networking. */
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 #endif
 #include "NetworkInterface.h"
 
@@ -17,7 +23,12 @@ static TCPsocket clientSock;
 static int endNetwork, clientActive, numTCPClientConnected;
 static SDL_sem *semList;
 
-void initNetwork()
+/* Returns 1 on success, 0 on failure. The original code called exit() on every
+   socket error, which on Android killed the whole game the instant the user
+   opened the LAN menu (e.g. when socket() returns EACCES because the INTERNET
+   permission isn't granted). Now we log via SDL_Log (which reaches logcat) and
+   fail gracefully so titanStart() can show the engine's "can't network" box. */
+int initNetwork()
 {
 	Uint32 sdl_flags;
 	IPaddress broadcastIp;
@@ -35,57 +46,70 @@ void initNetwork()
 	{
 		if(SDL_Init(0) == -1)
 		{
-			exit(0);
+			SDL_Log("hwnet: SDL_Init failed: %s", SDL_GetError());
+			return 0;
 		}
 	}
 
 	if(SDLNet_Init() == -1)
 	{
-		exit(1);
+		SDL_Log("hwnet: SDLNet_Init failed: %s", SDLNet_GetError());
+		return 0;
 	}
 
 	// Initialisation of Broadcast Sockets
 
-	// Open Udp Port to send Broadcast Packet
+	// Open Udp Port to receive Broadcast Packets
 	if(!(broadcastRecvSock = SDLNet_UDP_Open(UDPPORT)))
 	{
-		exit(3);
+		SDL_Log("hwnet: UDP_Open(recv port %d) failed: %s -- is the INTERNET permission granted?",
+		        UDPPORT, SDLNet_GetError());
+		SDLNet_Quit();
+		return 0;
 	}
 
 	// open udp client socket
 	if(!(broadcastSendSock=SDLNet_UDP_Open(0)))
 	{
-		exit(5);
+		SDL_Log("hwnet: UDP_Open(send) failed: %s", SDLNet_GetError());
+		SDLNet_UDP_Close(broadcastRecvSock); broadcastRecvSock = NULL;
+		SDLNet_Quit();
+		return 0;
 	}
 
 	// Create Thread to listen to Broadcast Packet on UDP
-	listenBroadcast = SDL_CreateThread(broadcastStartThread,broadcastSendSock);
+	listenBroadcast = SDL_CreateThread(broadcastStartThread,"hwLanBroadcast",broadcastSendSock);
 	if(!listenBroadcast)
 	{
-		exit(4);
+		SDL_Log("hwnet: create broadcast thread failed: %s", SDL_GetError());
+		return 0;
 	}
 
         if(SDLNet_ResolveHost(&broadcastIp,"255.255.255.255",UDPPORT)==-1)
 	{
-		printf("can't resolv IP given\n");
-		exit(2);
+		SDL_Log("hwnet: ResolveHost(255.255.255.255) failed: %s", SDLNet_GetError());
+		return 0;
 	}
 
 	// bind server address to channel 0
 	if(SDLNet_UDP_Bind(broadcastSendSock, 0, &broadcastIp)==-1)
 	{
-	 	exit(6);
+		SDL_Log("hwnet: UDP_Bind(broadcast) failed: %s", SDLNet_GetError());
+		return 0;
 	}
 
 
 	// Initialisation of TCP Server Thread
 
-	listenTCP = SDL_CreateThread(TCPServerStartThread,NULL);
-	if(!listenBroadcast)
+	listenTCP = SDL_CreateThread(TCPServerStartThread,"hwLanTCPServer",NULL);
+	if(!listenTCP)
 	{
-		exit(4);
+		SDL_Log("hwnet: create TCP server thread failed: %s", SDL_GetError());
+		return 0;
 	}
 
+	SDL_Log("hwnet: initNetwork OK (UDP discovery %d, TCP %d)", UDPPORT, TCPPORT);
+	return 1;
 }
 
 void sendBroadcastPacket(const void* packet, int len)
@@ -95,7 +119,12 @@ void sendBroadcastPacket(const void* packet, int len)
 	out->len=len;
 	if(!SDLNet_UDP_Send(broadcastSendSock, 0, out))
 	{
-		exit(10);
+		/* Was exit(10) -- a failed advert send would kill the host. Log + skip. */
+		SDL_Log("hwnet: broadcast send failed: %s", SDLNet_GetError());
+	}
+	else
+	{
+		SDL_Log("hwnet: -> broadcast advert sent (%d bytes)", len);
 	}
 	SDLNet_FreePacket(out);
 }
@@ -145,6 +174,11 @@ int broadcastStartThread(void *data)
 					printf("binding last ip received, channel %d\n",number);
 			}
 //			printf("packet recu taille : %d\n",packet->len);
+			{
+				Uint32 be = SDL_SwapBE32(packet->address.host);
+				SDL_Log("hwnet: <- broadcast advert RECEIVED from %u.%u.%u.%u (%d bytes) -> game list",
+				        (be>>24)&0xff,(be>>16)&0xff,(be>>8)&0xff,be&0xff, packet->len);
+			}
 			titanReceivedLanBroadcastCB(packet->data, packet->len);
 		}
 		else
@@ -182,41 +216,47 @@ IpList addList(IPaddress newIp, IpList list)
 }
 
 
-// TODO : Sometimes bad packet is received, which will make the connection hang
+/* Discover this host's LAN IP (network byte order, matching SDL_net's
+   IPaddress.host). The original implementation broadcast a "ping" to
+   255.255.255.255 and blocked in `while(SDLNet_UDP_Recv()<=0);` waiting to
+   receive its own packet -- which on Android can hang forever (broadcast does
+   not reliably loop back to the sender) and called exit() on socket failure.
 
+   Instead use the standard, non-blocking trick: open a UDP socket and connect()
+   it toward an off-link address. No packets are sent by a UDP connect; the
+   kernel just picks the source interface/IP from the routing table, which
+   getsockname() then reports. Falls back to a loopback-resolve if that fails. */
 Uint32 getMyAddress()
 {
-        UDPsocket recvSock;
-        UDPpacket *packet = SDLNet_AllocPacket(512);
-	Uint32 ipAdd;
+	int s;
+	struct sockaddr_in remote, local;
+	socklen_t len = sizeof(local);
+	Uint32 ipAdd = 0;
 
-        printf("thread created\n");
+	s = socket(AF_INET, SOCK_DGRAM, 0);
+	if (s < 0)
+	{
+		SDL_Log("hwnet: getMyAddress socket() failed: %d", s);
+		return 0;
+	}
 
-        if(!(recvSock=SDLNet_UDP_Open(45268)))
-        {
-                printf("socket not open\n");
-                exit(5);
-        }
+	memset(&remote, 0, sizeof(remote));
+	remote.sin_family = AF_INET;
+	remote.sin_port   = htons(53);              /* arbitrary; nothing is sent */
+	remote.sin_addr.s_addr = inet_addr("8.8.8.8"); /* route hint only         */
 
-        SDL_Thread *pingRecv = SDL_CreateThread(pingSendThread,NULL);
+	if (connect(s, (struct sockaddr *)&remote, sizeof(remote)) == 0 &&
+	    getsockname(s, (struct sockaddr *)&local, &len) == 0)
+	{
+		ipAdd = local.sin_addr.s_addr;          /* already network byte order */
+	}
+	close(s);
 
-        while(SDLNet_UDP_Recv(recvSock,packet)<=0);
-
-
-        printf("Packet received, length: %d id: %s port: %d\n", packet->len, packet->data,packet->address.port);
-        Uint32 ipaddr=SDL_SwapBE32(packet->address.host);
-        printf("IP Address : %d.%d.%d.%d\n",
-                                        ipaddr>>24,
-                                        (ipaddr>>16)&0xff,
-                                        (ipaddr>>8)&0xff,
-                                        ipaddr&0xff);
-	printf("IP Address : %d\n",packet->address.host);
-	ipAdd = packet->address.host;
-        SDLNet_FreePacket(packet);
-
-        SDL_WaitThread(pingRecv,NULL);
-        SDLNet_UDP_Close(recvSock);
-	printf("ipAdd : %d\n",ipAdd);
+	{
+		Uint32 be = SDL_SwapBE32(ipAdd);
+		SDL_Log("hwnet: my LAN IP = %u.%u.%u.%u",
+		        (be>>24)&0xff, (be>>16)&0xff, (be>>8)&0xff, be&0xff);
+	}
 	return ipAdd;
 }
 
@@ -269,20 +309,26 @@ Uint32 connectToServer(Uint32 serverIP)
 	IPaddress ipToConnect;
 	Uint32 ipViewed;
 	int numrdy, result;
-	
+	Uint32 be = SDL_SwapBE32(serverIP);
+
+	SDL_Log("hwnet: -> connecting (TCP) to host %u.%u.%u.%u:%d",
+	        (be>>24)&0xff,(be>>16)&0xff,(be>>8)&0xff,be&0xff, TCPPORT);
+
 	if(SDLNet_ResolveHost(&ipToConnect,NULL,TCPPORT)==-1)
 	{
-		exit(2);
+		SDL_Log("hwnet: connectToServer ResolveHost failed: %s", SDLNet_GetError());
+		return 0;
 	}
 
-	printf("addresse recu en paramètre %d\n",serverIP);
 	ipToConnect.host = serverIP;
 
 	if(!(clientSock = SDLNet_TCP_Open(&ipToConnect)))
 	{
-		printf("can't create TCP socket to connect to server\n");
-		exit(3);
+		/* Was exit(3): a failed connect would crash the joining client. */
+		SDL_Log("hwnet: TCP connect to host failed: %s", SDLNet_GetError());
+		return 0;
 	}
+	SDL_Log("hwnet: TCP connected to host OK");
 
 	SDLNet_SocketSet set;
 	set = SDLNet_AllocSocketSet(1);
@@ -329,23 +375,26 @@ int TCPServerStartThread(void *data)
 	// Resolve the argument into an IPaddress type
 	if(SDLNet_ResolveHost(&ip,NULL,TCPPORT)==-1)
 	{
-		exit(2);
+		SDL_Log("hwnet: TCP server ResolveHost failed: %s", SDLNet_GetError());
+		return 0;
 	}
 
 	if(!(serverTCPSock = SDLNet_TCP_Open(&ip)))
 	{
-		printf("can't create Server TCP socket \n");
-		exit(3);
-	}	
+		/* Was exit(3): a failed listen would crash the host at init. */
+		SDL_Log("hwnet: TCP server listen on %d failed: %s", TCPPORT, SDLNet_GetError());
+		return 0;
+	}
+	SDL_Log("hwnet: TCP server listening on port %d", TCPPORT);
 
 
 	clientSet = SDLNet_AllocSocketSet(1);
 	if(!clientSet)
-		exit(1);
+		return 0;
 
 	setSock = SDLNet_AllocSocketSet(100);
 	if(!setSock)
-		exit(1);
+		return 0;
 
 	SDLNet_TCP_AddSocket(setSock, serverTCPSock);
 
@@ -376,7 +425,10 @@ int TCPServerStartThread(void *data)
 				sock=SDLNet_TCP_Accept(serverTCPSock);
 				if(sock)
 				{
-					printf("New connection\n");
+					IPaddress *pa = SDLNet_TCP_GetPeerAddress(sock);
+					Uint32 be = pa ? SDL_SwapBE32(pa->host) : 0;
+					SDL_Log("hwnet: <- client CONNECTED (join) from %u.%u.%u.%u",
+					        (be>>24)&0xff,(be>>16)&0xff,(be>>8)&0xff,be&0xff);
 					SDLNet_TCP_AddSocket(setSock, sock);
 					addSockToList(sock);
 					fromIp = SDLNet_TCP_GetPeerAddress(sock);
@@ -520,6 +572,18 @@ void putPacket(Uint32 address, unsigned char msgType, const void* data, unsigned
 //		printf("envoie en tant que serveur\n",dataLen);
 		SDL_SemWait(semList);
 		sock = findSockInList(address);
+		if(sock == NULL)
+		{
+			/* No connected socket for this peer IP. Was an unconditional
+			   SDLNet_TCP_Send(NULL,..) -> NULL-deref crash in the host when
+			   broadcasting (e.g. lgStartGame's GAMEISSTARTING to all players).
+			   Skip rather than crash. */
+			Uint32 be = SDL_SwapBE32(address);
+			SDL_Log("hwnet: putPacket: no connected socket for %u.%u.%u.%u (msgType %d) -- skipping",
+			        (be>>24)&0xff,(be>>16)&0xff,(be>>8)&0xff,be&0xff, msgType);
+			SDL_SemPost(semList);
+			return;
+		}
 		result = SDLNet_TCP_Send(sock,&msgType,sizeof(unsigned char));
 		if(result<sizeof(unsigned char)) {
 			printf("SDLNet_TCP_Send: %s\n", SDLNet_GetError());
@@ -544,6 +608,11 @@ void putPacket(Uint32 address, unsigned char msgType, const void* data, unsigned
 //		printf("envoie en tant que client\n",dataLen);
 //		printf("message type %d\n",msgType);
 		sock = clientSock;
+		if(sock == NULL)
+		{
+			SDL_Log("hwnet: putPacket: client socket is NULL (msgType %d) -- skipping", msgType);
+			return;
+		}
 		result = SDLNet_TCP_Send(sock,&msgType,sizeof(unsigned char));
 		if(result<sizeof(unsigned char)) {
 			printf("SDLNet_TCP_Send: %s\n", SDLNet_GetError());
