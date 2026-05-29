@@ -1,22 +1,59 @@
+# =============================================================================
+#  Gardens of Kadesh / Homeworld — .gitignore
+# =============================================================================
+
+# ── Copyrighted Homeworld game data — NEVER commit/distribute ────────────────
+# Retail + demo .big archives, music (.wxd) and speech (.vce) data blobs.
+# (Homeworld.big, HomeworldDL.big, HW_Music.wxd, DL_Music.wxd, HW_comp.vce,
+#  DL_Demo.vce, Update.big, ...)
+*.big
+*.wxd
+*.vce
 HomeworldSDL.big
+android/assets-staging/
+android/app/src/main/assets/
 
-Mac/build
-Mac/Homeworld.xcodeproj/*.mode*
-Mac/Homeworld.xcodeproj/*.pbxuser
+# ── Signing keys / secrets — NEVER commit ────────────────────────────────────
+*.keystore
+*.jks
+android/keystore.properties
+android/local.properties
 
+# ── Android build outputs (Gradle / CMake / NDK) ─────────────────────────────
+android/.gradle/
+android/build/
+android/app/build/
+android/app/.cxx/
+android/app/.externalNativeBuild/
+*.apk
+*.aab
+
+# Native symbol cache (copies of unstripped .so used for ndk-stack)
+symcache/
+
+# ── Desktop / engine build outputs ───────────────────────────────────────────
+build
+*.c.d
+*.c.o
+*.o
 src/Missions/Generated
 
+# Generated codegen tools/output
 tools/biggie/biggie
-
 tools/kas2c/kas2c
 tools/kas2c/kas2c.exe
 tools/kas2c/lexer.c
 tools/kas2c/parser.c
 tools/kas2c/parser.h
-
 tools/x86_64/*.o
 tools/x86_64/*.exe
 
+# ── Mac / Xcode ──────────────────────────────────────────────────────────────
+Mac/build
+Mac/Homeworld.xcodeproj/*.mode*
+Mac/Homeworld.xcodeproj/*.pbxuser
+
+# ── Linux autotools ──────────────────────────────────────────────────────────
 Linux/Makefile
 Linux/config.h
 Linux/config.log
@@ -25,7 +62,6 @@ Linux/libtool
 Linux/src
 Linux/stamp-h1
 Linux/tools
-
 Makefile.am
 Makefile.in
 aclocal.m4
@@ -38,27 +74,18 @@ configure
 configure~
 configure.ac
 
-cscope.files
-cscope.out
-
-.direnv/
-*.DS_Store
-
-build
-
-# Required by clangd to properly discover headers
-compile_commands.json
-# Clangd's cache
-.cache/
-
+# ── mingw / windows desktop ──────────────────────────────────────────────────
 mingw/*.res
 mingw/bin/*
 mingw/build/*
 mingw/cv2pdb/*
 windows/bin/*
 windows/build/*
-*.c.d
-*.c.o
-android/android/app/src/main/assets/*
-android/app/src/main/assets/HW_comp.vce
-android/app/src/main/assets/HW_Music.wxd
+
+# ── Editor / tooling ─────────────────────────────────────────────────────────
+cscope.files
+cscope.out
+.direnv/
+*.DS_Store
+compile_commands.json
+.cache/
