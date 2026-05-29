@@ -48,6 +48,16 @@ udword fontRedBrightFactor =    FONT_RedBrightFactor;
 udword fontGreenBrightFactor =  FONT_GreenBrightFactor;
 udword fontBlueBrightFactor =   FONT_BlueBrightFactor;
 
+/* Uniform enlargement of the bitmap UI fonts. Applied consistently to glyph
+   quads, the pen advance, and the width/height measurement helpers so text
+   stays centred/positioned correctly while rendering larger. 1.0 = original.
+   Bumped on Android so menus/HUD text is comfortably readable on a phone. */
+#ifdef __ANDROID__
+real32 fontDrawScale = 1.30f;
+#else
+real32 fontDrawScale = 1.0f;
+#endif
+
 //current font
 fontheader *fontCurrentFont = NULL;
 fonthandle  fontCurrent=0;
@@ -519,18 +529,20 @@ bool32 glfontDisplayCharacter(fontheader* font, char ch, sdword x, sdword y, col
     glColor3ub(colRed(c), colGreen(c), colBlue(c));
     glBegin(GL_TRIANGLE_STRIP);
 
-    VERT(sBegin, tEnd,
-         x + fcharacter->offsetX,
-         y + fcharacter->offsetY);
-    VERT(sBegin, tBegin,
-         x + fcharacter->offsetX,
-         y + fcharacter->offsetY + fcharacter->height);
-    VERT(sEnd, tEnd,
-         x + fcharacter->offsetX + fcharacter->width,
-         y + fcharacter->offsetY);
-    VERT(sEnd, tBegin,
-         x + fcharacter->offsetX + fcharacter->width,
-         y + fcharacter->offsetY + fcharacter->height);
+    /* Enlarge the glyph quad by fontDrawScale about the pen (x,y). The atlas
+       UVs (sBegin..sEnd) are unchanged, so the same glyph bitmap is drawn into
+       a larger quad (LINEAR-filtered -> smooth). The pen advance and the
+       width/height helpers scale by the same factor to stay consistent. */
+    {
+    sdword ox = (sdword)(fcharacter->offsetX * fontDrawScale);
+    sdword oy = (sdword)(fcharacter->offsetY * fontDrawScale);
+    sdword gw = (sdword)(fcharacter->width   * fontDrawScale);
+    sdword gh = (sdword)(fcharacter->height  * fontDrawScale);
+    VERT(sBegin, tEnd,   x + ox,      y + oy);
+    VERT(sBegin, tBegin, x + ox,      y + oy + gh);
+    VERT(sEnd,   tEnd,   x + ox + gw, y + oy);
+    VERT(sEnd,   tBegin, x + ox + gw, y + oy + gh);
+    }
 
     glEnd();
 
@@ -606,7 +618,7 @@ bool32 glfontDisplayString(fontheader* font, char* string, sdword x, sdword y, c
         if (character->page == NULL)
         {
             //this character doesn't exist
-            sx += fontCurrentFont->spacing;
+            sx += (sdword)(fontCurrentFont->spacing * fontDrawScale);
             continue;
         }
         //test for highlight escape sequence
@@ -638,8 +650,8 @@ bool32 glfontDisplayString(fontheader* font, char* string, sdword x, sdword y, c
         fcharacter = font->character[(ubyte)*charp];
         //display the character
         (void)glfontDisplayCharacter(font, *charp, sx, sy, colour);
-        //advance screen location
-        sx += fcharacter->width + fontCurrentFont->spacing;
+        //advance screen location (scaled to match the enlarged glyphs)
+        sx += (sdword)((fcharacter->width + fontCurrentFont->spacing) * fontDrawScale);
     }
 
     //reset state
@@ -1304,7 +1316,7 @@ sdword fontWidthN(char *string, sdword maxCharacters)
         string++;                                           //and character pointer
         maxCharacters--;
     }
-    return(width);
+    return((sdword)(width * fontDrawScale));   //scaled to match the enlarged glyph rendering
 }
 
 /*-----------------------------------------------------------------------------
@@ -1347,10 +1359,10 @@ sdword fontWidthf(char *format, ...)
 ----------------------------------------------------------------------------*/
 sdword fontHeight(char *string)
 {
-    return(fontCurrentFont->fullHeight);
+    return((sdword)(fontCurrentFont->fullHeight * fontDrawScale));
 }
 sdword fontHeightf(char *format, ...)
 {
-    return(fontCurrentFont->fullHeight);
+    return((sdword)(fontCurrentFont->fullHeight * fontDrawScale));
 }
 
