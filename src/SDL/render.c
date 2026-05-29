@@ -1043,13 +1043,29 @@ bool32 setupPixelFormat()
     // query actual resolution we render into (e.g. in fullscreen desktop mode it may be different from requested)
     SDL_GL_GetDrawableSize(sdlwindow, &MAIN_WindowWidthActual, &MAIN_WindowHeightActual);
 #ifdef __ANDROID__
-    /* Render the engine into a smaller logical canvas (2/3 of the device drawable)
-       and let GL upscale it to fill the screen. This makes the UI/menus ~1.5x
-       larger and easier to tap on a high-density phone, at the cost of slightly
-       softer 3D. The viewport stays at MAIN_WindowWidthActual so the picture
-       still fills edge-to-edge. */
-    MAIN_WindowWidth  = MAIN_WindowWidthActual  / 2;
-    MAIN_WindowHeight = MAIN_WindowHeightActual / 2;
+    /* Render the engine into a smaller logical canvas and let GL upscale it to
+       fill the physical drawable (the viewport stays at the actual size). The
+       front-end UI is a fixed 640x480 laid out in this logical canvas, so the
+       smaller the canvas, the larger the menus/HUD and the easier they are to
+       tap on a high-density phone.
+
+       Scale ADAPTIVELY by device height instead of a fixed /2: a fixed divisor
+       made the logical canvas device-dependent and, on lower-res tablets (e.g.
+       1280x800 -> 640x400), shorter than the 480-tall UI, clipping the menus.
+       Here we target a logical height of ~504 px so the 480-tall UI fills ~95%
+       of the screen on ANY device, keep the device aspect ratio (no distortion),
+       and clamp so the canvas is never smaller than the 640x480 UI. */
+    {
+        const sdword FE_UI_WIDTH  = 640;
+        const sdword FE_UI_HEIGHT = 480;
+        const real32 targetLogicalHeight = 504.0f;   /* UI ~= 95% of screen height */
+        real32 s = (real32)MAIN_WindowHeightActual / targetLogicalHeight;
+        if (s < 1.0f) s = 1.0f;                       /* never make logical > actual */
+        MAIN_WindowWidth  = (sdword)((real32)MAIN_WindowWidthActual  / s);
+        MAIN_WindowHeight = (sdword)((real32)MAIN_WindowHeightActual / s);
+        if (MAIN_WindowWidth  < FE_UI_WIDTH)  MAIN_WindowWidth  = FE_UI_WIDTH;
+        if (MAIN_WindowHeight < FE_UI_HEIGHT) MAIN_WindowHeight = FE_UI_HEIGHT;
+    }
 #endif
     printf("UI resolution: %dx%d\n", MAIN_WindowWidth, MAIN_WindowHeight);
     printf("Render resolution: %dx%d\n", MAIN_WindowWidthActual, MAIN_WindowHeightActual);
