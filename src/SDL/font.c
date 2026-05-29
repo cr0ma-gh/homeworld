@@ -347,8 +347,13 @@ glfontheader* glfontCreate(fontheader* header, fontheader* newHeader)
                 }
 #endif
 
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                /* LINEAR (was NEAREST): the whole 2D UI is GL-upscaled ~2x from
+                   the logical canvas, so NEAREST made the bitmap fonts blocky.
+                   The atlas packs glyphs with a 4px transparent gap (GLFONT_*_SPACING)
+                   so bilinear sampling at glyph edges reaches only that gap, giving
+                   smooth anti-aliased text with no neighbour-glyph bleed. */
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -396,8 +401,13 @@ glfontheader* glfontCreate(fontheader* header, fontheader* newHeader)
                     glfontWritePage(header, glfont->numPages, page, data);
                 }
 #endif
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                /* LINEAR (was NEAREST): the whole 2D UI is GL-upscaled ~2x from
+                   the logical canvas, so NEAREST made the bitmap fonts blocky.
+                   The atlas packs glyphs with a 4px transparent gap (GLFONT_*_SPACING)
+                   so bilinear sampling at glyph edges reaches only that gap, giving
+                   smooth anti-aliased text with no neighbour-glyph bleed. */
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
