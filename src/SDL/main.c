@@ -1735,6 +1735,7 @@ static float        gokFinger0DownX = 0.0f;
 static float        gokFinger0DownY = 0.0f;
 static bool32       gokLongPressFired = FALSE;
 static bool32       gokFinger0LmbDown = FALSE;  /* LMB held for a drag-band-select */
+static bool32       gokMenuPointer    = FALSE;  /* TRUE while a menu touch holds LMB (direct-pointer mode) */
 static bool32       gokAtkMode        = FALSE;  /* set from Java via nativeSetAtkMode */
 static bool32       gokAtkBandHeld    = FALSE;  /* TRUE while CTRL+SHIFT held for band-attack */
 static sdword       gokAtkReleaseDelay = 0;     /* frames remaining before releasing CTRL+SHIFT */
@@ -1875,6 +1876,17 @@ Java_org_homeworld_gok_HomeworldActivity_nativeSetAtkMode(
     gokAtkMode = on ? TRUE : FALSE;
 }
 
+/* True when NOT in live gameplay (no mission running, or a front-end menu is
+   layered on top). Polled by the Java overlay so the on-screen control buttons
+   are shown only in-game and hidden in menus (where they just clutter/overlap
+   the menu and aren't needed -- menus are tapped directly, see FINGERUP). */
+JNIEXPORT jboolean JNICALL
+Java_org_homeworld_gok_HomeworldActivity_nativeIsInMenu(JNIEnv *env, jobject obj)
+{
+    (void)env; (void)obj;
+    return (gameIsRunning && feMenuLevel == 0) ? JNI_FALSE : JNI_TRUE;
+}
+
 /* Called every frame from render.c rndFlush(). After a band-attack drag the
    engine needs a couple of frames with CTRL still held so its RPE_ReleaseLeft
    dispatch sees the modifier and takes the CTRL-bandbox attack branch. */
@@ -1930,15 +1942,33 @@ void HandleEvent(SDL_Event const* pEvent) {
                 gokCursorAtDownY  = mouseCursorY();
                 gokLongPressFired = FALSE;
                 gokFinger0LmbDown = FALSE;
-                /* No cursor jump on touch — trackpad behaviour in both menu AND
-                   game. In-game a drag still triggers band-select (see FINGERMOTION)
-                   but anchored at the cursor's pre-touch position. */
+                gokMenuPointer    = FALSE;
+                /* In a menu/front-end: DIRECT-POINTER touch. Jump the cursor
+                   straight to the finger and press LMB now, so tapping a menu
+                   item presses it directly (release on FINGERUP -> a real click
+                   across frames). In-game we keep trackpad behaviour (no jump)
+                   for precise aiming; a drag there still band-selects. */
+                if (!(gameIsRunning && feMenuLevel == 0) && !mouseDisabled)
+                {
+                    sdword cx = (sdword)(pEvent->tfinger.x * (float)MAIN_WindowWidth);
+                    sdword cy = (sdword)(pEvent->tfinger.y * (float)MAIN_WindowHeight);
+                    if (cx < 0) cx = 0; if (cy < 0) cy = 0;
+                    if (cx > MAIN_WindowWidth  - 1) cx = MAIN_WindowWidth  - 1;
+                    if (cy > MAIN_WindowHeight - 1) cy = MAIN_WindowHeight - 1;
+                    mousePositionSet(cx, cy);
+                    mouseCursorShow();
+                    mouseClipToRect(NULL);
+                    mouseLClick();
+                    keyPressDown(LMOUSE_BUTTON);
+                    gokMenuPointer = TRUE;
+                }
             }
             if (gokTouchCount == 2 && !mouseDisabled)
             {
                 gokLongPressFired = TRUE;        /* two fingers -> not a long-press  */
                 keyPressUp(LMOUSE_BUTTON);       /* cancel any single-finger select  */
                 gokFinger0LmbDown = FALSE;
+                gokMenuPointer    = FALSE;       /* cancel a menu tap if 2nd finger lands */
                 keyPressDown(RMOUSE_BUTTON);     /* enter camera orbit/zoom mode     */
                 gokTouchCamera = TRUE;
                 gokGestureMode = 0;
@@ -1967,6 +1997,21 @@ void HandleEvent(SDL_Event const* pEvent) {
                position when the finger landed, then keep tracking. */
             if (gokTouchCount == 1 && !mouseDisabled)
             {
+                if (gokMenuPointer)
+                {
+                    /* Menu direct-pointer: cursor follows the finger absolutely
+                       (LMB held since FINGERDOWN), so you can slide onto an item
+                       and release to click it. Skips the in-game trackpad path. */
+                    sdword mcx = (sdword)(pEvent->tfinger.x * (float)MAIN_WindowWidth);
+                    sdword mcy = (sdword)(pEvent->tfinger.y * (float)MAIN_WindowHeight);
+                    if (mcx < 0) mcx = 0; if (mcy < 0) mcy = 0;
+                    if (mcx > MAIN_WindowWidth  - 1) mcx = MAIN_WindowWidth  - 1;
+                    if (mcy > MAIN_WindowHeight - 1) mcy = MAIN_WindowHeight - 1;
+                    mousePositionSet(mcx, mcy);
+                    mouseCursorShow();
+                    mouseClipToRect(NULL);
+                    break;
+                }
                 /* Re-anchor after a 2->1 finger transition (sentinel set on
                    FINGERUP): use this event's position as the new reference so
                    we don't jump the cursor by a huge stale-finger delta. */
@@ -2121,7 +2166,22 @@ void HandleEvent(SDL_Event const* pEvent) {
             if (gokTouchCount == 0)
             {
                 gokLongPressFired = FALSE;
-                if (gokFinger0LmbDown)
+                if (gokMenuPointer)
+                {
+                    /* Menu direct-pointer release: snap the cursor exactly under
+                       the finger and release LMB -> the engine clicks the item
+                       there (press happened on FINGERDOWN, so it's a real
+                       press->release click across frames). */
+                    sdword cx = (sdword)(pEvent->tfinger.x * (float)MAIN_WindowWidth);
+                    sdword cy = (sdword)(pEvent->tfinger.y * (float)MAIN_WindowHeight);
+                    if (cx < 0) cx = 0; if (cy < 0) cy = 0;
+                    if (cx > MAIN_WindowWidth  - 1) cx = MAIN_WindowWidth  - 1;
+                    if (cy > MAIN_WindowHeight - 1) cy = MAIN_WindowHeight - 1;
+                    mousePositionSet(cx, cy);
+                    keyPressUp(LMOUSE_BUTTON);
+                    gokMenuPointer = FALSE;
+                }
+                else if (gokFinger0LmbDown)
                 {
                     keyPressUp(LMOUSE_BUTTON);   /* close the band-select drag */
                     gokFinger0LmbDown = FALSE;
