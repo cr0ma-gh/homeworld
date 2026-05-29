@@ -1,0 +1,765 @@
+# 0 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+# 0 "<built-in>"
+# 0 "<command-line>"
+# 1 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+# 10 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/Attributes.h" 1
+# 11 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas" 2
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/SoundMusic.h" 1
+# 12 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas" 2
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/SpeechEvent.h" 1
+# 13 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas" 2
+
+
+    LOCALIZATION
+
+            LSTRING_Savegame
+                "06 - Diamond Shoals"
+                "06 - Récifs de Diamant"
+                "06 - Diamantengrund"
+                "06 - Montañas de diamantes"
+    "06 - I diamanti"
+
+            LSTRING_LocationCard
+                "DIAMOND SHOALS"
+                "RECIFS DE DIAMANT"
+                "DIAMANTENGRUND"
+                "MONTAÑAS DE DIAMANTES"
+    "I DIAMANTI"
+
+            LSTRING_FIProtectTASKBAR
+                "Protect the Mothership"
+                "Protection du Vaisseau Mère."
+                "Das Mutterschiff schützen."
+                "Proteger la Nave nodriza"
+    "Proteggi l'Astronave Madre"
+
+            LSTRING_TraderIntro
+                "Welcome."
+                "Bienvenue"
+                "Willkommen."
+                "Bienvenido."
+    "Benvenuto."
+
+            LSTRING_TraderPurchaseMade
+                "Thank you.  Enjoy your purchase."
+                "Merci. Profitez bien de votre acquisition."
+                "Besten Dank. Erfreut euch an eurem Kauf."
+                "Gracias. Que disfrutes de tu compra."
+                "Grazie.  Buon divertimento con il vostro nuovo acquisto."
+
+            LSTRING_Hyperspace
+                "                      HYPERSPACE"
+                "                      HYPERESPACE"
+                "           HYPERRAUMSPRUNG"
+                "                    HIPERESPACIO"
+    "					IPERSPAZIO"
+
+    ENDL
+# 68 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+FSM FleetIntel
+        States FCIntro,
+
+               FIProtectMothershipLBXIn, FIProtectMothershipOpenSensors, FIProtectMothership, FIProtectMothership2, FIProtectMothership3,
+               FIProtectMothershipPING, FIProtectMothershipLBXOut, FIProtectMothershipEND, FIProtectMothershipWAITEND,
+
+               FIResearchCapShipDrive, FIResearchIonCannons,
+
+               FIClearedField, FIBentusiArriving,
+
+               TradersHello, TradersBringUpGUI, TradersFirstWarning, FICeaseFire, TradersTellPlayer,
+
+               FCGiveUsInfo,
+
+               TradersNebulaIsBad,
+
+               FIModuleCharged,
+
+
+
+               FIIdle;
+
+        INIT
+                Jump FIIdle;
+        ENDINIT
+        WATCH
+        ENDWATCH
+
+
+        STATE FCIntro
+            INIT
+                    SpeechEvent ((528 + 0x00000800 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            Jump FIProtectMothershipLBXIn;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FCIntro
+
+
+
+
+
+
+        STATE FIProtectMothershipLBXIn
+            INIT
+                    PauseOtherKAS();
+                    wideScreenIn(90);
+                    Jump FIProtectMothershipOpenSensors;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIProtectMothershipLBXIn
+
+        STATE FIProtectMothershipOpenSensors
+            INIT
+                    TimerCreateSetStart ("FIOpenSensorsTimer", 4);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIOpenSensorsTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FIProtectMothership;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIProtectMothershipOpenSensors
+
+        STATE FIProtectMothership
+            INIT
+                    TimerCreateSetStart ("FIProtectMothershipTimer", 1);
+            ENDINIT
+            WATCH
+
+                    IF (TimerExpiredDestroy ("FIProtectMothershipTimer"))
+                            Jump FIProtectMothership2;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIProtectMothership
+
+        STATE FIProtectMothership2
+            INIT
+                    SpeechEvent ((529 + 0x00001000 + 0x10000000),0);
+
+                    VarCreateSet ("G_ProtectMothershipHasPlayed", TRUE);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FIProtectMothershipEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FIProtectMothership3;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIProtectMothership2
+
+        STATE FIProtectMothership3
+            INIT
+                    SpeechEvent ((530 + 0x00001000 + 0x10000000),0);
+                    Jump FIProtectMothershipPING;
+
+            ENDINIT
+            WATCH
+# 182 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+            ENDWATCH
+        ENDSTATE FIProtectMothership3
+
+        STATE FIProtectMothershipPING
+            INIT
+                    TimerCreateSetStart ("FIProtectMothershipPINGTimer", 2);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FIProtectMothershipEND;
+                    ELSEIF (VarGet("IntelEvent"))
+
+
+
+
+                            Jump FIProtectMothershipWAITEND;
+                    ENDIF
+                    IF (TimerExpiredDestroy ("FIProtectMothershipPINGTimer"))
+                            SoundEvent (267);
+                            TutSetTextDisplayBoxToSubtitleRegion();
+                            TutSetPointerTargetAIVolume("CollisionEnvelopePOINTER", VOLUME_CollisionEnvelope);
+
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIProtectMothershipPING
+
+        STATE FIProtectMothershipLBXOut
+            INIT
+                    TimerCreateSetStart ("FIProtectMothershipLBXOutTimer", 1);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIProtectMothershipLBXOutTimer"))
+                            wideScreenOut(150);
+                            Jump FIProtectMothershipWAITEND;
+                    ENDIF
+                    IF (IntelEventEnded())
+                            wideScreenOut (30);
+                            Jump FIProtectMothershipEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIProtectMothershipLBXOut
+
+        STATE FIProtectMothershipWAITEND
+            INIT
+                    TimerCreateSetStart ("FIProtectMothershipENDTimer", 3);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FIProtectMothershipEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FIProtectMothershipENDTimer"))
+                            wideScreenOut(30);
+                            Jump FIProtectMothershipEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIProtectMothershipWAITEND
+
+        STATE FIProtectMothershipEND
+            INIT
+                    TutRemoveAllPointers ();
+                    UnpauseUniverse();
+                    UnpauseOtherKAS();
+                    CloseSensors (TRUE);
+                    VarDestroy("G_CLICK_ProtectMothership");
+                    Jump FIIdle;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIProtectMothershipEND
+# 270 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        STATE FIResearchCapShipDrive
+            INIT
+                    SpeechEvent ((531 + 0x00001000 + 0x10000000),0);
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIResearchCapShipDrive
+
+        STATE FIResearchIonCannons
+            INIT
+                    SpeechEvent ((763 + 0x00001000 + 0x10000000),0);
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIResearchIonCannons
+# 303 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        STATE FIClearedField
+            INIT
+                    SpeechEvent ((533 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            VarCreateSet ("G_FISaidClearedField", TRUE);
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIClearedField
+# 323 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        STATE FIBentusiArriving
+            INIT
+                    SpeechEvent ((765 + 0x00001000 + 0x10000000),0);
+                    MusicPlay (16);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_PlayTraderNISLet", TRUE);
+                            ENDIFONCE
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIBentusiArriving
+# 350 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        STATE TradersHello
+            INIT
+                    SpeechEvent ((534 + 0x00002000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            TimerCreateSetStart ("G_BringUpTraderGUI", 1);
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE TradersHello
+
+        STATE TradersBringUpGUI
+            INIT
+                    SoundEvent (267);
+                    TraderGUIDisplay();
+                    Jump FIIdle;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE TradersBringUpGUI
+# 383 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        STATE TradersFirstWarning
+            INIT
+                    SpeechEvent ((494 + 0x00002000 + 0x10000000), 0);
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            Jump FICeaseFire;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE TradersFirstWarning
+
+        STATE FICeaseFire
+            INIT
+                    SpeechEvent ((495 + 0x00001000 + 0x10000000), 0);
+                    TimerCreateSetStart ("G_GivePlayerTimeToWithdrawAttack", 12);
+            ENDINIT
+            WATCH
+                    IF ( (VarGet ("G_PlayerHasAttackedTraders") = FALSE) AND (TimerExpiredDestroy ("G_GivePlayerTimeToWithdrawAttack")) )
+                            Jump FIIdle;
+                    ENDIF
+
+                    IF ( (VarGet ("G_PlayerHasAttackedTraders") = TRUE) AND (TimerExpiredDestroy ("G_GivePlayerTimeToWithdrawAttack")) )
+                            Jump TradersTellPlayer;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FICeaseFire
+
+        STATE TradersTellPlayer
+            INIT
+                    SpeechEvent ((496 + 0x00002000 + 0x10000000), 0);
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            VarCreateSet ("G_TradersObliteratePlayer", TRUE);
+                    ENDIF
+            ENDWATCH
+        ENDSTATE TradersTellPlayer
+# 433 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        STATE FCGiveUsInfo
+            INIT
+                    SpeechEvent ((535 + 0x00000800 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+
+                            VarCreateSet ("G_GoToTradersNebulaIsBad", TRUE);
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FCGiveUsInfo
+# 455 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        STATE TradersNebulaIsBad
+            INIT
+
+                    IF (RaceOfHuman () = 0)
+                            SpeechEvent ((536 + 0x00002000 + 0x10000000),0);
+                    ELSEIF (RaceOfHuman () = 1)
+                            SpeechEvent ((537 + 0x00002000 + 0x10000000),0);
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            VarCreateSet ("G_TradersAreDoneTalking", TRUE);
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE TradersNebulaIsBad
+# 480 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        STATE FIModuleCharged
+            INIT
+                    SpeechEvent ((538 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            VarCreateSet ("G_ModuleIsCharged", TRUE);
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIModuleCharged
+# 509 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        STATE FIIdle
+            INIT
+            ENDINIT
+            WATCH
+
+
+
+                    IFONCE (TimerExpiredDestroy ("G_FCHyperspaceSuccessful"))
+                            Jump FCIntro;
+                    ENDIFONCE
+
+
+                    IFONCE (VarGet ("G_PlayIonTechEvent") = TRUE)
+                            Jump FIResearchIonCannons;
+                    ENDIFONCE
+
+
+                    IFONCE (VarGet ("G_PlaySuperCapTechEvent") = TRUE)
+                            Jump FIResearchCapShipDrive;
+                    ENDIFONCE
+
+
+                    IFONCE (TimerExpiredDestroy ("G_PlayFIClearedField"))
+                            Jump FIClearedField;
+                    ENDIFONCE
+
+
+                    IFONCE (TimerExpiredDestroy ("G_PlayTraderArrival"))
+                            Jump FIBentusiArriving;
+                    ENDIFONCE
+
+
+                    IFONCE (TimerExpiredDestroy ("G_TradersAreInPlace"))
+                            Jump TradersHello;
+                    ENDIFONCE
+
+
+                    IFONCE (TimerExpiredDestroy ("G_BringUpTraderGUI"))
+                            Jump TradersBringUpGUI;
+                    ENDIFONCE
+
+
+                    IFONCE ( (TimerExpiredDestroy ("G_PlayFCTalkToTraders")) AND (VarGet ("G_PlayerHasAttackedTraders") = FALSE) )
+                            Jump FCGiveUsInfo;
+                    ENDIFONCE
+
+
+                    IF (VarGet ("G_PlayerHasAttackedTraders") = TRUE)
+                            Jump TradersFirstWarning;
+                    ENDIF
+
+
+                    IFONCE ( (VarGet ("G_GoToTradersNebulaIsBad") = TRUE) AND (VarGet ("G_PlayerHasAttackedTraders") = FALSE) )
+                            Jump TradersNebulaIsBad;
+                    ENDIFONCE
+
+
+                    IFONCE (TimerExpiredDestroy ("G_TradersHaveLeftTheBuilding"))
+                            Jump FIModuleCharged;
+                    ENDIFONCE
+
+
+
+
+
+
+
+                    IF (VarGet ("G_CLICK_ProtectMothership"))
+                            Jump FIProtectMothershipLBXIn;
+                    ENDIF
+
+
+            ENDWATCH
+        ENDSTATE FIIdle
+
+
+ENDFSM FleetIntel
+# 611 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+FSM Traders
+    States Trading, Watching, UnderAttackWatch, TradersObliteratePlayer, HyperspaceOut, NullState;
+
+    INIT
+            TraderGUIDisable (FALSE);
+            TeamAttributesSet(0x0100);
+            Jump Trading;
+    ENDINIT
+    WATCH
+            IF (TeamHealthAverage () < 95)
+                    TeamHealthSet (100);
+            ENDIF
+    ENDWATCH
+
+        STATE Trading
+            INIT
+
+
+
+
+
+
+
+                    TechSetCost ("DDDFDFGFTech", 500);
+                    TechSetPurchase ("DDDFDFGFTech");
+                    TraderGUIDialogSet (0, LSTRING_TraderIntro);
+                    TraderGUIDialogSet (1, LSTRING_TraderIntro);
+                    TraderGUIDialogSet (2, LSTRING_TraderIntro);
+                    TraderGUIDialogSet (3, LSTRING_TraderIntro);
+                    TraderGUIDialogSet (4, LSTRING_TraderPurchaseMade);
+                    TraderGUIDialogSet (5, LSTRING_TraderPurchaseMade);
+                    Jump Watching;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE Trading
+
+
+        STATE Watching
+            INIT
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_TradersAreDoneTalking") = TRUE)
+                            Jump HyperspaceOut;
+                    ENDIF
+
+                    IF (UnderAttack (SHIPS_Null87238923))
+                            VarCreateSet ("G_PlayerHasAttackedTraders", TRUE);
+                            Jump UnderAttackWatch;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Watching
+
+
+        STATE UnderAttackWatch
+            INIT
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_TradersObliteratePlayer") = TRUE)
+                            Jump TradersObliteratePlayer;
+                    ENDIF
+
+                    IF (NOT UnderAttack (SHIPS_Null8723487238))
+                            VarDestroy ("G_PlayerHasAttackedTraders");
+                            Jump Watching;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE UnderAttackWatch
+
+
+        STATE TradersObliteratePlayer
+            INIT
+                    FindEnemiesInside (VOLUME_MothershipSphere, SHIPS_PlayerFleet, 1000);
+                    IF (ShipsSelectClass (SHIPS_TraderTargets, SHIPS_PlayerFleet, "CLASS_Destroyer"))
+                    ELSEIF (ShipsSelectClass (SHIPS_TraderTargets, SHIPS_PlayerFleet, "CLASS_Frigate"))
+                    ELSEIF (ShipsSelectClass (SHIPS_TraderTargets, SHIPS_PlayerFleet, "CLASS_Mothership"))
+                    ELSE
+                            ShipsAdd (SHIPS_TraderTargets, SHIPS_PlayerFleet);
+                    ENDIF
+
+                    IF (ShipsCount (SHIPS_TraderTargets) > 0)
+                            Attack (SHIPS_TraderTargets);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF ( (ShipsCount (SHIPS_TraderTargets) = 0) OR (ShipsOrder (TEAMSHIPS_Traders) != 2) )
+                            Jump TradersObliteratePlayer;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE TradersObliteratePlayer
+
+
+        STATE HyperspaceOut
+            INIT
+                    TimerCreateSetStart ("G_TradersHaveLeftTheBuilding", 15);
+                    TeamHyperspaceOut ();
+                    MusicStop (4);
+                    Jump NullState;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE HyperspaceOut
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+
+
+
+ENDFSM Traders
+
+
+
+
+
+
+
+INIT
+
+
+
+
+
+
+        FSMCreate (FleetIntel, TEAM_FleetIntel);
+# 752 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        TimerCreateSetStart ("G_AsteroidTimer", 840);
+# 767 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        TimerCreateSetStart ("G_GiveTechnology", Random (35, 55));
+
+
+
+
+
+
+        SaveLevel (6, LSTRING_Savegame);
+
+
+ENDINIT
+
+WATCH
+
+
+
+
+
+
+        IFONCE (TRUE)
+                TimerCreateSetStart ("LocationCardTimer", 1);
+        ENDIFONCE
+
+        IF (TimerExpiredDestroy ("LocationCardTimer"))
+                LocationCard (5000, LSTRING_LocationCard);
+        ENDIF
+# 817 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        IFONCE (VarGet ("G_Nislet60Complete"))
+                wideScreenOut (60);
+                FSMCREATE (Traders, TEAM_Traders);
+                TimerCreateSetStart ("G_TradersAreInPlace", 5);
+                TimerCreateSetStart ("G_TradersWaitingToTrade", 90);
+        ENDIFONCE
+# 838 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        IFONCE (TRUE)
+                TimerCreateSetStart ("G_FCHyperspaceSuccessful", 5);
+        ENDIFONCE
+
+
+        IFONCE ( (TechGet ("DDDFDFGFTech")) OR (TimerExpiredDestroy ("G_TradersWaitingToTrade")) )
+                VarCreateSet ("G_TradersAreDone", TRUE);
+                TimerCreateSetStart ("G_PlayFCTalkToTraders", 5);
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_PlayerHasClearedField"))
+                TimerCreateSetStart ("G_PlayFIClearedField", 5);
+        ENDIFONCE
+# 867 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        IFONCE (VarGet ("G_ProtectMothershipHasPlayed") = TRUE)
+                ObjectiveCreate("ProtectMothership",
+                                LSTRING_FIProtectTASKBAR,
+                                LSTRING_FIProtectTASKBAR);
+        ENDIFONCE
+
+
+        IF (TimerExpiredDestroy ("G_AsteroidTimer"))
+                VarCreateSet ("G_PlayerHasClearedField", TRUE);
+        ENDIF
+
+
+        IFONCE (VarGet ("G_FISaidClearedField") = TRUE)
+                ObjectiveSet("ProtectMothership", TRUE);
+        ENDIFONCE
+
+
+
+        IFONCE (VarGet ("G_ModuleIsCharged") = TRUE)
+                ObjectiveCreate ("Hyperspace", LSTRING_Hyperspace, LSTRING_Hyperspace);
+        ENDIFONCE
+# 903 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        IFONCE (VarGet ("G_PlayerHasClearedField") = TRUE)
+                TimerCreateSetStart ("G_PlayTraderArrival", 15);
+        ENDIFONCE
+
+
+
+        IFONCE (VarGet ("G_PlayTraderNISLet") = TRUE)
+                TimerCreateSetStart ("WideScreenInBeforeNISLet", 4);
+                wideScreenIn(90);
+        ENDIFONCE
+
+
+        IFONCE (TimerExpiredDestroy ("WideScreenInBeforeNISLet"))
+                FindEnemiesInside (VOLUME_MothershipSphere, SHIPS_EntireFleet, 100);
+                ShipsSelectClass (SHIPS_PlayerMothership, SHIPS_EntireFleet, "CLASS_Mothership");
+                ShipsAdd(SHIPS_NisCentreShip, SHIPS_PlayerMothership);
+                VarCreateSet ("G_PlayNislet", 60);
+                VarCreateSet ("G_NowPlayingNISLet", TRUE);
+        ENDIFONCE
+# 954 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        IF (VarGet ("G_TechEventHasPlayed") = FALSE)
+                IFONCE ( (TimerExpired ("G_GiveTechnology")) AND (TechGet ("IonWeapons")) )
+                        TechSetResearch ("MassDrive1Mt");
+                        VarCreateSet ("G_PlaySuperCapTechEvent", TRUE);
+                        VarCreateSet ("G_TechEventHasPlayed", TRUE);
+                ENDIFONCE
+        ENDIF
+
+
+        IF (VarGet ("G_TechEventHasPlayed") = FALSE)
+                IFONCE ( (TimerExpired ("G_GiveTechnology")) AND (TechGetResearch ("IonWeapons")) )
+                        TechSetResearch ("MassDrive1Mt");
+                        VarCreateSet ("G_PlaySuperCapTechEvent", TRUE);
+                        VarCreateSet ("G_TechEventHasPlayed", TRUE);
+                ENDIFONCE
+        ENDIF
+
+
+        IF (VarGet ("G_TechEventHasPlayed") = FALSE)
+                IFONCE ( (TimerExpired ("G_GiveTechnology")) AND
+                         (TechGet ("PlasmaWeapons")) AND
+                         (NOT (TechGet ("IonWeapons"))) AND
+                         (NOT (TechGetResearch ("IonWeapons")))
+                       )
+                        TechSetResearch ("IonWeapons");
+                        VarCreateSet ("G_PlayIonTechEvent", TRUE);
+                        VarCreateSet ("G_TechEventHasPlayed", TRUE);
+                ENDIFONCE
+        ENDIF
+
+
+        IF (VarGet ("G_TechEventHasPlayed") = FALSE)
+                IFONCE ( (TimerExpired ("G_GiveTechnology")) AND
+                         (TechGetResearch ("PlasmaWeapons")) AND
+                         (NOT (TechGet ("IonWeapons"))) AND
+                         (NOT (TechGetResearch ("IonWeapons")))
+                       )
+                        TechSetResearch ("IonWeapons");
+                        VarCreateSet ("G_PlayIonTechEvent", TRUE);
+                        VarCreateSet ("G_TechEventHasPlayed", TRUE);
+                ENDIFONCE
+        ENDIF
+# 1005 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission06.kas"
+        IFONCE (TechGet ("MassDrive10Kt"))
+                TechSetResearch ("Chassis2");
+        ENDIFONCE
+
+
+        IF ((TechGet ("Chassis2")) AND (VarGet ("SetMediumGuns") = FALSE))
+                TechSetResearch ("MediumGuns");
+                VarCreateSet ("SetMediumGuns", TRUE);
+        ENDIF
+
+
+
+        IFONCE (TechGet ("Chassis1"))
+                TechSetResearch ("MassDrive10Kt");
+        ENDIFONCE
+
+
+
+ENDWATCH

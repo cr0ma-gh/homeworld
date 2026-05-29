@@ -1,0 +1,3946 @@
+# 0 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+# 0 "<built-in>"
+# 0 "<command-line>"
+# 1 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+
+
+
+
+
+
+
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/SpeechEvent.h" 1
+# 9 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas" 2
+
+
+    LOCALIZATION
+
+            LSTRING_Savegame
+                "14 - Bridge of Sighs"
+                "14 - Pont des Soupirs"
+                "14 – Brücke der Seufzer"
+                "14 - El puente de los suspiros"
+    "14 - Il ponte di Sighs"
+
+            LSTRING_LocationCard
+                "BRIDGE OF SIGHS"
+                "PONT DES SOUPIRS"
+                "BRÜCKE DER SEUFZER"
+                "EL PUENTE DE LOS SUSPIROS"
+    "IL PONTE DI SIGHS"
+
+            LSTRING_FIDestroyGennyTASKBAR
+                "Destroy field generator"
+                "Destruction générateur de champs"
+                "Feldgenerator zerstören."
+                "Destruir generador de campo"
+    "Distruggi il generatore del campo."
+
+            LSTRING_FIDestroyGatesTASKBAR
+                "Destroy hyperspace gates"
+                "Destruction accès à l'hyperespace"
+                "Hyperraumtore zerstören."
+                "Destruir puertas hiperespaciales"
+    "Distruggi i portali dell'Iperspazio."
+
+            LSTRING_Hyperspace
+                "                      HYPERSPACE"
+                "                      HYPERESPACE"
+                "           HYPERRAUMSPRUNG"
+                "                    HIPERESPACIO"
+    "					IPERSPAZIO"
+
+    ENDL
+
+
+
+
+
+FSM FleetIntel
+        States FCIntro,
+
+               FIDestroyGennyLBXIn, FIDestroyGennyOpenSensors, FIDestroyGenny, FIDestroyGennyPING, FIDestroyGennyEND, FIDestroyGennyWAITEND,
+
+               FISensorTech,
+
+               FIDestroyGatesLBXIn, FIDestroyGatesOpenSensors, FIDestroyGates, FIDestroyGatesPING, FIDestroyGatesEND, FIDestroyGatesWAITEND,
+
+               FIHyperdriveOnline,
+
+               FCTakeUsHome,
+
+               FIIdle;
+
+        INIT
+                Jump FIIdle;
+        ENDINIT
+        WATCH
+        ENDWATCH
+
+
+        STATE FCIntro
+            INIT
+                    SpeechEvent ((689 + 0x00000800 + 0x10000000), 0);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            Jump FIDestroyGennyLBXIn;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FCIntro
+
+
+
+
+
+
+
+        STATE FIDestroyGennyLBXIn
+            INIT
+                    PauseOtherKAS();
+                    wideScreenIn(90);
+                    Jump FIDestroyGennyOpenSensors;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIDestroyGennyLBXIn
+
+        STATE FIDestroyGennyOpenSensors
+            INIT
+                    TimerCreateSetStart ("FIOpenSensorsTimer", 5);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIOpenSensorsTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FIDestroyGenny;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDestroyGennyOpenSensors
+
+        STATE FIDestroyGenny
+            INIT
+                    TimerCreateSetStart ("FIDestroyGennyTimer", 1);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIDestroyGennyTimer"))
+
+                            Jump FIDestroyGennyPING;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDestroyGenny
+
+        STATE FIDestroyGennyPING
+            INIT
+                    SpeechEvent ((690 + 0x00001000 + 0x10000000), 0);
+                    TimerCreateSetStart ("FIDestroyGennyPINGTimer", 2);
+                    VarCreateSet ("G_FleetIntelIntroHasPlayed", TRUE);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            IF (VarGet ("NeverCreateGennyPingAgain") = FALSE)
+                                    PingAddShips (TEAMSHIPS_MiningBase, "MiningBasePING");
+                                    VarCreateSet ("NeverCreateGennyPingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FIDestroyGennyEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FIDestroyGennyWAITEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FIDestroyGennyPINGTimer"))
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateGennyPingAgain") = FALSE)
+                                    PingAddShips (TEAMSHIPS_MiningBase, "MiningBasePING");
+                                    VarCreateSet ("NeverCreateGennyPingAgain", TRUE);
+                            ENDIF
+                            TutSetTextDisplayBoxToSubtitleRegion();
+                            TutSetPointerTargetAIVolume ("MiningBasePOINTER", VOLUME_MiningBaseSphere);
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDestroyGennyPING
+
+        STATE FIDestroyGennyWAITEND
+            INIT
+                    TimerCreateSetStart ("FIDestroyGennyENDTimer", 3);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FIDestroyGennyEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FIDestroyGennyENDTimer"))
+                            wideScreenOut (30);
+                            Jump FIDestroyGennyEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDestroyGennyWAITEND
+
+        STATE FIDestroyGennyEND
+            INIT
+                    TutRemoveAllPointers ();
+                    UnpauseUniverse();
+                    UnpauseOtherKAS();
+                    CloseSensors (TRUE);
+                    VarDestroy ("G_CLICK_DestroyGenny");
+                    Jump FIIdle;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIDestroyGennyEND
+# 203 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+        STATE FISensorTech
+            INIT
+                    SpeechEvent ((692 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            VarCreateSet ("G_SensorTechEventHasPlayed", TRUE);
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISensorTech
+# 224 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+        STATE FIDestroyGatesLBXIn
+            INIT
+                    PauseOtherKAS();
+                    wideScreenIn(90);
+                    Jump FIDestroyGatesOpenSensors;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIDestroyGatesLBXIn
+
+        STATE FIDestroyGatesOpenSensors
+            INIT
+                    TimerCreateSetStart ("FIOpenSensorsTimer", 5);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIOpenSensorsTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FIDestroyGates;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDestroyGatesOpenSensors
+
+        STATE FIDestroyGates
+            INIT
+                    TimerCreateSetStart ("FIDestroyGatesTimer", 1);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIDestroyGatesTimer"))
+
+                            Jump FIDestroyGatesPING;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDestroyGates
+
+        STATE FIDestroyGatesPING
+            INIT
+                    SpeechEvent ((693 + 0x00001000 + 0x10000000), 0);
+                    VarCreateSet ("G_FIDestroyGatesHasPlayed", TRUE);
+                    TimerCreateSetStart ("FIDestroyGatesPINGTimer", 2);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            IF (VarGet ("NeverCreateGatesPingAgain") = FALSE)
+                                    PingAddPoint (POINT_GATE1, "GATE1PING");
+                                    PingAddPoint (POINT_GATE2, "GATE2PING");
+                                    PingAddPoint (POINT_GATE3, "GATE3PING");
+                                    VarCreateSet ("NeverCreateGatesPingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FIDestroyGatesEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FIDestroyGatesWAITEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FIDestroyGatesPINGTimer"))
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateGatesPingAgain") = FALSE)
+                                    PingAddPoint (POINT_GATE1, "GATE1PING");
+                                    PingAddPoint (POINT_GATE2, "GATE2PING");
+                                    PingAddPoint (POINT_GATE3, "GATE3PING");
+                                    VarCreateSet ("NeverCreateGatesPingAgain", TRUE);
+                            ENDIF
+                            TutSetTextDisplayBoxToSubtitleRegion();
+                            TutSetPointerTargetAIVolume ("GATE1POINTER", VOLUME_GATE1Sphere);
+                            TutSetPointerTargetAIVolume ("GATE2POINTER", VOLUME_GATE2Sphere);
+                            TutSetPointerTargetAIVolume ("GATE3POINTER", VOLUME_GATE3Sphere);
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDestroyGatesPING
+
+        STATE FIDestroyGatesWAITEND
+            INIT
+                    TimerCreateSetStart ("FIDestroyGatesENDTimer", 3);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FIDestroyGatesEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FIDestroyGatesENDTimer"))
+                            wideScreenOut (30);
+                            Jump FIDestroyGatesEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDestroyGatesWAITEND
+
+        STATE FIDestroyGatesEND
+            INIT
+                    TutRemoveAllPointers ();
+                    UnpauseUniverse();
+                    UnpauseOtherKAS();
+                    CloseSensors (TRUE);
+                    VarDestroy ("G_CLICK_DestroyGates");
+                    Jump FIIdle;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIDestroyGatesEND
+# 339 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+        STATE FIHyperdriveOnline
+            INIT
+                    SpeechEvent ((694 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            VarCreateSet ("G_TakeUsHomeEventHasPlayed", TRUE);
+
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIHyperdriveOnline
+# 362 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+        STATE FCTakeUsHome
+            INIT
+
+
+            ENDINIT
+            WATCH
+
+
+
+
+            ENDWATCH
+        ENDSTATE FCTakeUsHome
+# 383 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+        STATE FIIdle
+            INIT
+            ENDINIT
+            WATCH
+
+
+
+                    IFONCE (TimerExpiredDestroy ("G_FCHyperspaceSuccessful"))
+                            Jump FCIntro;
+                    ENDIFONCE
+
+
+                    IFONCE ( (VarGet ("G_NISPlayingNow") = FALSE) AND (TimerExpiredDestroy ("G_PlaySensorArrayTechEvent")) )
+                            Jump FISensorTech;
+                    ENDIFONCE
+
+
+                    IFONCE ( (VarGet ("G_HyperspaceGateDamaged") = TRUE) OR (TimerExpiredDestroy ("G_PlayHyperspaceGateEvent")) )
+                            Jump FIDestroyGatesLBXIn;
+                    ENDIFONCE
+
+
+                    IFONCE (TimerExpiredDestroy ("G_AllObjectivesComplete"))
+                            Jump FIHyperdriveOnline;
+                    ENDIFONCE
+# 417 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+                    IF (VarGet ("G_CLICK_DestroyGenny"))
+                            Jump FIDestroyGennyLBXIn;
+                    ENDIF
+
+
+                    IF (VarGet ("G_CLICK_DestroyGates"))
+                            Jump FIDestroyGatesLBXIn;
+                    ENDIF
+
+
+            ENDWATCH
+        ENDSTATE FIIdle
+
+
+ENDFSM FleetIntel
+# 449 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+FSM MiningBase
+    States Rotate;
+
+    INIT
+            VarCreateSet ("G_MiningBaseUnderAttack", FALSE);
+            Jump Rotate;
+    ENDINIT
+    WATCH
+            IF (TeamHealthAverage () < 35 AND NOT VarGet("MiningBaseHurt"))
+                    VarCreateSet ("G_MiningBaseHurt", TRUE);
+                    MsgSendAll ("MiningBaseDamaged");
+            ENDIF
+
+            IF (UnderAttack (SHIPS_AttackingMiningBase))
+                    VarSet ("G_MiningBaseUnderAttack", TRUE);
+            ELSE
+                    VarSet ("G_MiningBaseUnderAttack", FALSE);
+            ENDIF
+
+    ENDWATCH
+
+
+    STATE Rotate
+        INIT
+        ENDINIT
+        WATCH
+        ENDWATCH
+    ENDSTATE Rotate
+
+
+
+ENDFSM MiningBase
+# 492 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+FSM AIShips
+    States GiveToAI;
+
+    INIT
+            Jump GiveToAI;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+        STATE GiveToAI
+            INIT
+                    IF (ThisTeamIs (TEAM_CPUCarrier))
+                            ShipsAdd (SHIPS_CPUCarrier, TEAMSHIPS_CPUCarrier);
+                            VarCreateSet ("G_SHIPSCPUCarrier", ShipsCount (SHIPS_CPUCarrier));
+                    ELSEIF (ThisTeamIs (TEAM_CPUCollector))
+                            ShipsAdd (SHIPS_CPUCollector, TEAMSHIPS_CPUCollector);
+                            VarCreateSet ("G_SHIPSCPUCollector", ShipsCount (SHIPS_CPUCollector));
+                    ENDIF
+                    TeamGiveToAI ();
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE GiveToAI
+
+
+ENDFSM AIShips
+# 535 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+FSM IonSphere
+    States WatchForEnemies, Loop, BackInFormation, NullState;
+
+    INIT
+            TeamHealthSet (200);
+            ShipsDamageModifierSet (TEAMSHIPS_IonSphere, 200);
+            TacticsAggressive ();
+            VarCreateSet ("INDEX", 0);
+            VarCreateSet ("G_IonFrigatesUnderAttack", FALSE);
+            Jump WatchForEnemies;
+    ENDINIT
+    WATCH
+            IF (UnderAttack (SHIPS_AttackingIonFrigates))
+                    VarSet ("G_IonFrigatesUnderAttack", TRUE);
+            ELSE
+                    VarSet ("G_IonFrigatesUnderAttack", FALSE);
+            ENDIF
+
+
+            IFONCE (ShipsCount (TEAMSHIPS_IonSPhere) = 0)
+                    Jump NullState;
+            ENDIFONCE
+    ENDWATCH
+
+        STATE WatchForEnemies
+            INIT
+            ENDINIT
+            WATCH
+                    IF (FindEnemiesInside (VOLUME_Layer3Vol, SHIPS_Penetrators, 3000))
+                            Jump Loop;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WatchForEnemies
+
+
+        STATE Loop
+            INIT
+
+
+
+                    BulgeAttack(SHIPS_Penetrators, SHIPS_VolumeShips, SHIPS_Attackers, 55000);
+
+                    IF (ShipsSelectType (SHIPS_IHateYou, SHIPS_Penetrators, "SalCapCorvette") ||
+                        ShipsSelectClass (SHIPS_IHateYou, SHIPS_Penetrators, "CLASS_Destroyer") ||
+                        ShipsSelectClass (SHIPS_IHateYou, SHIPS_Penetrators, "CLASS_Frigate") ||
+                        ShipsSelectClass (SHIPS_IHateYou, SHIPS_Penetrators, "CLASS_Corvette"))
+                            ShipsAttack(SHIPS_IHateYou, SHIPS_ShipTest);
+                    ENDIF
+# 600 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+            ENDINIT
+            WATCH
+                    IF (FindEnemiesInside (VOLUME_Layer3Vol, SHIPS_Penetrators, 3000))
+                            ShipsRemove (SHIPS_Penetrators, SHIPS_VolumeShips);
+                            IF (ShipsCount (SHIPS_Penetrators) > 0)
+                                    Jump Loop;
+                            ENDIF
+                    ENDIF
+
+                    IF (ShipsOrder (SHIPS_Attackers) != 2)
+
+
+
+                                    Jump Loop;
+
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Loop
+
+
+        STATE BackInFormation
+            INIT
+                    UnhideShips (TEAMSHIPS_HiddenDummy);
+                    Guard (TEAMSHIPS_HiddenDummy);
+                    FormationSphere ();
+                    HideShips (TEAMSHIPS_HiddenDummy);
+                    Jump WatchForEnemies;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE BackInFormation
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+ENDFSM IonSphere
+# 654 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+FSM HiddenDummy
+    States NullState;
+
+    INIT
+            HideShips (TEAMSHIPS_HiddenDummy);
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+ENDFSM HiddenDummy
+# 687 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+FSM RoamingMG
+    States Patrol, Decide, Dock, Launch, NullState, CheckIonAttackers, ProtectIons, AttackLayer2Vol;
+
+    INIT
+            Jump Decide;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+        STATE Patrol
+            INIT
+                    TacticsNeutral ();
+                    FormationDelta3D ();
+                    PatrolPath (PATH_RoamingMGPath);
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_RoamingMG) = 0)
+                            Jump NullState;
+                    ENDIF
+                    IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    Jump Dock;
+                            ENDIF
+                    ENDIF
+
+                    IF (VarGet ("G_IonFrigatesUnderAttack") = TRUE)
+                            Jump ProtectIons;
+                    ELSEIF (FindEnemiesInside (VOLUME_Layer2Vol, SHIPS_MGLayer2VolFound, 2000))
+                            Jump AttackLayer2Vol;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Patrol
+
+
+        STATE Dock
+            INIT
+                    TacticsNeutral ();
+                    Stop ();
+                    ShipsDockStay (TEAMSHIPS_RoamingMG , SHIPS_CPUCarrier);
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_RoamingMG) = 0)
+                            Jump NullState;
+                    ENDIF
+
+                    IF (TeamDockedReadyForLaunch ())
+                            Jump Launch;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Dock
+
+
+        STATE Launch
+            INIT
+                    Launch ();
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_RoamingMG) = 0)
+                            Jump NullState;
+                    ENDIF
+
+                    IF (TeamFinishedLaunching ())
+                            Jump Decide;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Launch
+
+
+        STATE Decide
+            INIT
+                    TacticsNeutral ();
+                    IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    Jump Dock;
+                            ENDIF
+                    ELSEIF (VarGet ("G_IonFrigatesUnderAttack") = TRUE)
+                            Jump CheckIonAttackers;
+                    ELSEIF (FindEnemiesInside (VOLUME_Layer2Vol, SHIPS_MGLayer2VolFound, 2000))
+                            Jump AttackLayer2Vol;
+                    ELSE
+                            Jump Patrol;
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_RoamingMG) = 0)
+                            Jump NullState;
+                    ENDIF
+                    IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    Jump Dock;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Decide
+
+
+        STATE CheckIonAttackers
+            INIT
+                    IFONCE (TRUE)
+                            VarCreateSet ("IonIndex", 0);
+                            VarCreateSet ("ShortestDistance", 100000000);
+                            VarCreateSet ("TempDist", 0);
+                    ENDIFONCE
+
+                    ShipsSelectIndex (SHIPS_IonTest, SHIPS_AttackingIonFrigates, VarGet("IonIndex"));
+                    VarSet ("TempDist", FindDistance (SHIPSPOINT_IonTest, THISTEAMSPOINT));
+
+
+
+                    IF (VarGet ("TempDist") < VarGet ("ShortestDistance"))
+                            ShipsClear (SHIPS_Closest);
+                            ShipsAdd (SHIPS_Closest, SHIPS_IonTest);
+                            VarSet ("ShortestDistance", VarGet("TempDist"));
+                    ENDIF
+                    VarInc("IonIndex");
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_RoamingMG) = 0)
+                            Jump NullState;
+                    ENDIF
+                    IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    Jump Dock;
+                            ENDIF
+                    ENDIF
+
+                    IF (VarGet ("IonIndex") < ShipsCount (SHIPS_AttackingIonFrigates))
+                            Jump CheckIonAttackers;
+                    ELSE
+                            Jump ProtectIons;
+                    ENDIF
+
+            ENDWATCH
+        ENDSTATE CheckIonAttackers
+
+
+        STATE ProtectIons
+            INIT
+
+                    FindEnemiesNearby (SHIPS_Closest, 15000);
+                    IF (ShipsSelectType (SHIPS_MGTargets, SHIPS_Closest, "SalCapCorvette"))
+                            TacticsEvasive ();
+                    ELSEIF (ShipsSelectType (SHIPS_MGTargets, SHIPS_Closest, "AttackBomber"))
+                            TacticsEvasive ();
+                    ELSEIF (ShipsSelectType (SHIPS_MGTargets, SHIPS_Closest, "Interceptor"))
+                            TacticsEvasive ();
+                    ELSEIF (ShipsSelectClass (SHIPS_MGTargets, SHIPS_Closest, "CLASS_Fighter"))
+                            TacticsEvasive ();
+                    ELSEIF (ShipsSelectClass (SHIPS_MGTargets, SHIPS_Closest, "CLASS_Corvette"))
+                            TacticsEvasive ();
+                    ELSE
+                            ShipsAdd (SHIPS_MGTargets, SHIPS_Closest);
+                            TacticsNeutral ();
+                    ENDIF
+
+                    IF (ShipsCount (SHIPS_MGTargets) > 0)
+                            Attack (SHIPS_MGTargets);
+                    ELSE
+                            Jump Decide;
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_RoamingMG) = 0)
+                            Jump NullState;
+                    ENDIF
+                    IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    Jump Dock;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ShipsCount (SHIPS_MGTargets) = 0) OR (ShipsOrder (TEAMSHIPS_RoamingMG) != 2) )
+                            Jump ProtectIons;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE ProtectIons
+
+
+        STATE AttackLayer2Vol
+            INIT
+                    ShipsClear (SHIPS_MGTargets);
+                    IF (ShipsSelectType (SHIPS_MGTargets, SHIPS_MGLayer2VolFound, "SalCapCorvette"))
+                    ELSEIF (ShipsSelectType (SHIPS_MGTargets, SHIPS_MGLayer2VolFound, "AttackBomber"))
+                    ELSEIF (ShipsSelectType (SHIPS_MGTargets, SHIPS_MGLayer2VolFound, "Interceptor"))
+                    ELSEIF (ShipsSelectClass (SHIPS_MGTargets, SHIPS_MGLayer2VolFound, "CLASS_Fighter"))
+                    ELSEIF (ShipsSelectClass (SHIPS_MGTargets, SHIPS_MGLayer2VolFound, "CLASS_Corvette"))
+                    ELSE
+                            ShipsAdd (SHIPS_MGTargets, SHIPS_MGLayer2VolFound);
+                    ENDIF
+
+                    IF (ShipsCount (SHIPS_MGTargets) > 0)
+                            TacticsEvasive ();
+                            Attack (SHIPS_MGTargets);
+                    ELSE
+                            Jump Decide;
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_RoamingMG) = 0)
+                            Jump NullState;
+                    ENDIF
+                    IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    Jump Dock;
+                            ENDIF
+                    ENDIF
+
+                    IF (VarGet ("G_IonFrigatesUnderAttack") = TRUE)
+                            Jump Decide;
+                    ENDIF
+
+
+                    IF ( (ShipsCount (SHIPS_MGTargets) = 0) OR (ShipsOrder (TEAMSHIPS_RoamingMG) != 2) )
+                            Jump AttackLayer2Vol;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackLayer2Vol
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+
+
+ENDFSM RoamingMG
+# 938 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+FSM ProxDeath
+    States Decide, Dock, Launch, CheckProx, DIEProxDIE, ScoutSpeedBurst, GuardMiningBase, NullState;
+
+    INIT
+            FormationDelta3D ();
+            Jump Decide;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE Decide
+            INIT
+                    FindEnemiesInside (VOLUME_Layer1Vol, SHIPS_ProxLayer1VolFound, 2000);
+                    FindEnemiesInside (VOLUME_Layer2Vol, SHIPS_ProxLayer2VolFound, 2000);
+
+                    TacticsNeutral ();
+                    IF (TeamFuelLowest () < 25)
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    Jump Dock;
+                            ENDIF
+                    ELSEIF ( (ShipsSelectType (SHIPS_ProximityFound, SHIPS_ProxLayer1VolFound, "ProximitySensor")) OR
+                             (ShipsSelectType (SHIPS_ProximityFound, SHIPS_ProxLayer2VolFound, "ProximitySensor")) )
+                            Jump CheckProx;
+
+
+
+                    ELSEIF ( (ShipsCount (SHIPS_CPUCarrier) > 0) AND (NOT TeamDockedReadyForLaunch ()) )
+                            Jump Dock;
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_ProxScout) = 0)
+                            Jump NullState;
+                    ELSEIF (ShipsCount (TEAMSHIPS_ProxInt) = 0)
+                            Jump NullState;
+                    ENDIF
+                    IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    Jump Dock;
+                            ENDIF
+                    ENDIF
+
+                    IF ( (FindEnemiesInside (VOLUME_Layer1Vol, SHIPS_ProxLayer1VolFound, 2000)) OR
+                         (FindEnemiesInside (VOLUME_Layer2Vol, SHIPS_ProxLayer2VolFound, 2000)) )
+                            VarCreateSet ("SHIPSProxLayer1VolFound", ShipsCount (SHIPS_ProxLayer1VolFound));
+                            VarCreateSet ("SHIPSProxLayer2VolFound", ShipsCount (SHIPS_ProxLayer2VolFound));
+
+                            IF ( (ShipsSelectType (SHIPS_ProximityFound, SHIPS_ProxLayer1VolFound, "ProximitySensor")) OR
+                                 (ShipsSelectType (SHIPS_ProximityFound, SHIPS_ProxLayer2VolFound, "ProximitySensor")) )
+                                    VarCreateSet ("SHIPSProximityFound", ShipsCount (SHIPS_ProximityFound));
+
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Decide
+
+
+        STATE Dock
+            INIT
+                    TacticsNeutral ();
+                    ShipsDockStay (TEAMSHIPS_ProxScout, SHIPS_CPUCarrier);
+                    ShipsDockStay (TEAMSHIPS_ProxInt, SHIPS_CPUCarrier);
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_ProxScout) = 0)
+                            Jump NullState;
+                    ELSEIF (ShipsCount (TEAMSHIPS_ProxInt) = 0)
+                            Jump NullState;
+                    ENDIF
+
+                    IF (TeamDockedReadyForLaunch ())
+                            Jump Decide;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Dock
+
+
+        STATE Launch
+            INIT
+                    Launch ();
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_ProxScout) = 0)
+                            Jump NullState;
+                    ELSEIF (ShipsCount (TEAMSHIPS_ProxInt) = 0)
+                            Jump NullState;
+                    ENDIF
+
+                    IF (TeamFinishedLaunching ())
+                            FormationDelta3D ();
+                            Jump Decide;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Launch
+
+
+        STATE CheckProx
+            INIT
+                    IF (TeamDockedReadyForLaunch ())
+                            Jump Launch;
+                    ENDIF
+
+                    IFONCE (TRUE)
+                            VarCreateSet ("ProxIndex", 0);
+                            VarCreateSet ("ShortestDistance", 100000000);
+                            VarCreateSet ("TempDist", 0);
+                    ENDIFONCE
+
+                    IF (ShipsCount (TEAMSHIPS_ProxScout) > 0)
+                            ShipsSelectIndex (SHIPS_ProxTest, SHIPS_ProximityFound, VarGet ("ProxIndex"));
+                            VarSet ("TempDist", FindDistance (SHIPSPOINT_ProxTest, THISTEAMSPOINT));
+
+
+
+                            IF (VarGet ("TempDist") < VarGet ("ShortestDistance"))
+                                    ShipsClear (SHIPS_ProxClosest);
+                                    ShipsAdd (SHIPS_ProxClosest, SHIPS_ProxTest);
+                                    VarSet ("ShortestDistance", VarGet("TempDist"));
+                            ENDIF
+                            VarInc("ProxIndex");
+                    ELSEIF (ShipsCount (TEAMSHIPS_ProxInt) > 0)
+                            ShipsSelectIndex (SHIPS_ProxTest, SHIPS_ProximityFound, VarGet ("ProxIndex"));
+                            VarSet ("TempDist", FindDistance (SHIPSPOINT_ProxTest, THISTEAMSPOINT));
+
+
+
+                            IF (VarGet ("TempDist") < VarGet ("ShortestDistance"))
+                                    ShipsClear (SHIPS_ProxClosest);
+                                    ShipsAdd (SHIPS_ProxClosest, SHIPS_ProxTest);
+                                    VarSet ("ShortestDistance", VarGet("TempDist"));
+                            ENDIF
+                            VarInc("ProxIndex");
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_ProxScout) = 0)
+                            Jump NullState;
+                    ELSEIF (ShipsCount (TEAMSHIPS_ProxInt) = 0)
+                            Jump NullState;
+                    ENDIF
+                    IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    Jump Dock;
+                            ENDIF
+                    ENDIF
+
+                    IF (VarGet("ProxIndex") < ShipsCount(SHIPS_ProximityFound))
+                            JUMP CheckProx;
+                    ELSE
+                            JUMP DIEProxDIE;
+                    ENDIF
+
+            ENDWATCH
+        ENDSTATE CheckProx
+
+
+        STATE DIEProxDIE
+            INIT
+                    IF (ShipsCount (TEAMSHIPS_ProxScout) > 0)
+                            ShipsAdd (SHIPS_ProxTargets, SHIPS_ProxClosest);
+                    ELSEIF (ShipsCount (TEAMSHIPS_ProxInt) > 0)
+                            ShipsAdd (SHIPS_ProxTargets, SHIPS_ProxClosest);
+                    ENDIF
+                    VarCreateSet ("G_SHIPSProxTargets", ShipsCount (SHIPS_ProxTargets));
+                    IF (ShipsCount (SHIPS_ProxTargets) > 0)
+                            IF (ThisTeamIs (TEAM_ProxScout))
+                                    TacticsEvasive ();
+                            ELSEIF (ThisTeamIs (TEAM_ProxInt))
+                                    TacticsNeutral ();
+                            ENDIF
+                            Attack (SHIPS_ProxTargets);
+                    ELSE
+                            Jump Decide;
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_ProxScout) = 0)
+                            Jump NullState;
+                    ELSEIF (ShipsCount (TEAMSHIPS_ProxInt) = 0)
+                            Jump NullState;
+                    ENDIF
+                    IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    Jump Dock;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ThisTeamIs (TEAM_ProxScout))
+                            IF ( (ShipsCount (SHIPS_ProxTargets) = 0) OR (ShipsOrder (TEAMSHIPS_ProxScout) != 2) )
+                                    Jump DIEProxDIE;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_ProxInt))
+                            IF ( (ShipsCount (SHIPS_ProxTargets) = 0) OR (ShipsOrder (TEAMSHIPS_ProxInt) != 2) )
+                                    Jump DIEProxDIE;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ThisTeamIs (TEAM_ProxScout))
+                            IF (NOT Nearby (SHIPSPOINT_ProxTargets, 14000))
+
+                                    Jump ScoutSpeedBurst;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DIEProxDIE
+
+
+        STATE ScoutSpeedBurst
+            INIT
+                    SpecialToggle ();
+                    TimerCreateSetStart ("SpeedBurstTimer", 9);
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_ProxScout) = 0)
+                            TimerDestroy ("SpeedBurstTimer");
+                            Jump NullState;
+                    ELSEIF (ShipsCount (TEAMSHIPS_ProxInt) = 0)
+                            TimerDestroy ("SpeedBurstTimer");
+                            Jump NullState;
+                    ENDIF
+                    IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    TimerDestroy ("SpeedBurstTimer");
+                                    Jump Dock;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (Nearby (SHIPSPOINT_ProxTargets, 14000))
+                            TimerDestroy ("SpeedBurstTimer");
+                            Jump DIEProxDIE;
+                    ENDIF
+
+
+                    IF (ThisTeamIs (TEAM_ProxScout))
+                            IF ( (ShipsCount (SHIPS_ProxTargets) = 0) OR (ShipsOrder (TEAMSHIPS_ProxScout) != 2) )
+                                    TimerDestroy ("SpeedBurstTimer");
+                                    Jump DIEProxDIE;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_ProxInt))
+                            IF ( (ShipsCount (SHIPS_ProxTargets) = 0) OR (ShipsOrder (TEAMSHIPS_ProxInt) != 2) )
+                                    TimerDestroy ("SpeedBurstTimer");
+                                    Jump DIEProxDIE;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (TimerExpiredDestroy ("SpeedBurstTimer"))
+                            Jump ScoutSpeedBurst;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE ScoutSpeedBurst
+
+
+        STATE GuardMiningBase
+            INIT
+                    IF (TeamDockedReadyForLaunch ())
+                            Jump Launch;
+                    ENDIF
+
+                    Guard (TEAMSHIPS_MiningBase);
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (TEAMSHIPS_ProxScout) = 0)
+                            Jump NullState;
+                    ELSEIF (ShipsCount (TEAMSHIPS_ProxInt) = 0)
+                            Jump NullState;
+                    ENDIF
+                    IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                            IF (ShipsCount (SHIPS_CPUCarrier) > 0)
+                                    Jump Dock;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE GuardMiningBase
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+
+
+ENDFSM ProxDeath
+# 1252 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+FSM InnerDefenseTeam
+    States Decide, Patrol, Attack, ProtectMiningBase, NullState;
+
+    INIT
+            IF (ThisTeamIs (TEAM_InnerDestroyer2))
+                    FormationBroad ();
+            ENDIF
+            Jump Decide;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE Decide
+            INIT
+                    IF (ShipsCount (TEAMSHIPS_InnerCruiser) > 0)
+                            IF (FindEnemiesInside (VOLUME_Layer1Vol, SHIPS_InnerDefenseFound, 2000))
+                                    Jump Attack;
+                            ELSE
+                                    Jump Patrol;
+                            ENDIF
+                    ELSEIF (ShipsCount (TEAMSHIPS_InnerDestroyer1) > 0)
+                            IF (FindEnemiesInside (VOLUME_Layer1Vol, SHIPS_InnerDefenseFound, 2000))
+                                    Jump Attack;
+                            ELSE
+                                    Jump Patrol;
+                            ENDIF
+                    ELSEIF (ShipsCount (TEAMSHIPS_InnerDestroyer2) > 0)
+                            IF (FindEnemiesInside (VOLUME_Layer1Vol, SHIPS_InnerDefenseFound, 2000))
+                                    Jump Attack;
+                            ELSE
+                                    Jump Patrol;
+                            ENDIF
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_InnerDestroyer1)) AND (VarGet ("G_MiningBaseUnderAttack") = TRUE) )
+                            Jump ProtectMiningBase;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Decide
+
+
+        STATE Patrol
+            INIT
+                    Stop ();
+                    IF (ThisTeamIs (TEAM_InnerCruiser))
+                            PatrolPath (PATH_InnerCruiserPath);
+                    ELSEIF (ThisTeamIs (TEAM_InnerDestroyer1))
+                            PatrolPath (PATH_InnerDestroyer1Path);
+                    ELSEIF (ThisTeamIs (TEAM_InnerDestroyer2))
+                            FormationBroad ();
+                            PatrolPath (PATH_InnerDestroyer2Path);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+                    IF (FindEnemiesInside (VOLUME_Layer1Vol, SHIPS_NewGuysFound, 2000))
+                            Jump Decide;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Patrol
+
+
+        STATE Attack
+            INIT
+                    IF (ThisTeamIs (TEAM_InnerDestroyer2))
+                            FormationBroad ();
+                    ENDIF
+                    IF (ThisTeamIs (TEAM_InnerCruiser))
+                            ShipsClear (SHIPS_InnerDefenseTargets);
+                            IF (ShipsSelectType (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectType (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "HeavyCruiser"))
+                            ELSEIF (ShipsSelectClass (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "CLASS_Carrier"))
+                            ELSE
+                                    ShipsAdd (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound);
+                            ENDIF
+
+                            IF (ShipsCount (SHIPS_InnerDefenseTargets) > 0)
+
+
+                                    Attack (SHIPS_InnerDefenseTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_InnerDestroyer1))
+                            ShipsClear (SHIPS_InnerDefenseTargets);
+                            IF (ShipsSelectType (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectType (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "HeavyCruiser"))
+                            ELSEIF (ShipsSelectClass (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "CLASS_Carrier"))
+                            ELSE
+                                    ShipsAdd (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound);
+                            ENDIF
+
+                            IF (ShipsCount (SHIPS_InnerDefenseTargets) > 0)
+
+
+                                    Attack (SHIPS_InnerDefenseTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_InnerDestroyer2))
+                            ShipsClear (SHIPS_InnerDefenseTargets);
+                            IF (ShipsSelectType (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectType (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "HeavyCruiser"))
+                            ELSEIF (ShipsSelectClass (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound, "CLASS_Carrier"))
+                            ELSE
+                                    ShipsAdd (SHIPS_InnerDefenseTargets, SHIPS_InnerDefenseFound);
+                            ENDIF
+
+                            IF (ShipsCount (SHIPS_InnerDefenseTargets) > 0)
+
+
+                                    Attack (SHIPS_InnerDefenseTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+                    IF (ThisTeamIs (TEAM_InnerCruiser))
+                            IF ( (ShipsCount (SHIPS_InnerDefenseTargets) = 0) OR (ShipsOrder (TEAMSHIPS_InnerCruiser) != 2) )
+                                    Jump Attack;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_InnerDestroyer1))
+                            IF ( (ShipsCount (SHIPS_InnerDefenseTargets) = 0) OR (ShipsOrder (TEAMSHIPS_InnerDestroyer1) != 2) )
+                                    Jump Attack;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_InnerDestroyer2))
+                            IF ( (ShipsCount (SHIPS_InnerDefenseTargets) = 0) OR (ShipsOrder (TEAMSHIPS_InnerDestroyer2) != 2) )
+                                    Jump Attack;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_InnerDestroyer1)) AND (VarGet ("G_MiningBaseUnderAttack") = TRUE) )
+                            Jump ProtectMiningBase;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Attack
+
+
+        STATE ProtectMiningBase
+            INIT
+                    ShipsClear (SHIPS_MiningBaseTargets);
+                    IF (ShipsSelectType (SHIPS_MiningBaseTargets, SHIPS_AttackingMiningBase, "SalCapCorvette"))
+                    ELSEIF (ShipsSelectType (SHIPS_MiningBaseTargets, SHIPS_AttackingMiningBase, "HeavyCruiser"))
+                    ELSEIF (ShipsSelectClass (SHIPS_MiningBaseTargets, SHIPS_AttackingMiningBase, "CLASS_Destroyer"))
+                    ELSEIF (ShipsSelectClass (SHIPS_MiningBaseTargets, SHIPS_AttackingMiningBase, "CLASS_Frigate"))
+                    ELSEIF (ShipsSelectClass (SHIPS_MiningBaseTargets, SHIPS_AttackingMiningBase, "CLASS_Carrier"))
+                    ELSE
+                            ShipsAdd (SHIPS_MiningBaseTargets, SHIPS_AttackingMiningBase);
+                    ENDIF
+
+                    IF (ShipsCount (SHIPS_MiningBaseTargets) > 0)
+                            MoveAttack (SHIPS_MiningBaseTargets);
+                    ELSE
+                            Jump Decide;
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+                    IF ( (ShipsCount (SHIPS_MiningBaseTargets) = 0) OR (ShipsOrder (TEAMSHIPS_InnerDestroyer1) != 2) )
+                            Jump Attack;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE ProtectMiningBase
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+ENDFSM InnerDefenseTeam
+# 1473 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+FSM InnerCloakingTeam
+    States Guard, GuardCloakityOn, GuardCloakityOff, NullState;
+
+    INIT
+            Jump Guard;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE Guard
+            INIT
+
+
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_CloakADestroyer1)) OR (ThisTeamIs (TEAM_CloakBDestroyer1)) )
+                            IF (ShipsCount (TEAMSHIPS_InnerDestroyer1) > 0)
+                                    Guard (TEAMSHIPS_InnerDestroyer1);
+                            ELSE
+                                    Guard (TEAMSHIPS_MiningBase);
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakADestroyer2)) OR (ThisTeamIs (TEAM_CloakBDestroyer2)) )
+                            IF (ShipsCount (TEAMSHIPS_InnerDestroyer2) > 0)
+                                    Guard (TEAMSHIPS_InnerDestroyer2);
+                            ELSE
+                                    Guard (TEAMSHIPS_MiningBase);
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakACruiser)) OR (ThisTeamIs (TEAM_CloakBCruiser)) )
+                            IF (ShipsCount (TEAMSHIPS_InnerCruiser) > 0)
+                                    Guard (TEAMSHIPS_InnerCruiser);
+                            ELSE
+                                    Guard (TEAMSHIPS_MiningBase);
+                            ENDIF
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_CloakADestroyer1)) OR (ThisTeamIs (TEAM_CloakBDestroyer1)) )
+                            IF (FindEnemiesNearTeam (SHIPS_CloakDestroyer1Found, 14000))
+                                    Jump GuardCloakityOn;
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakADestroyer2)) OR (ThisTeamIs (TEAM_CloakBDestroyer2)) )
+                            IF (FindEnemiesNearTeam (SHIPS_CloakDestroyer2Found, 14000))
+                                    Jump GuardCloakityOn;
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakACruiser)) OR (ThisTeamIs (TEAM_CloakBCruiser)) )
+                            IF (FindEnemiesNearTeam (SHIPS_CloakCruiserFound, 14000))
+                                    Jump GuardCloakityOn;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Guard
+
+
+        STATE GuardCloakityOn
+            INIT
+
+
+
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_CloakADestroyer1)) OR (ThisTeamIs (TEAM_CloakBDestroyer1)) )
+                            IF (ShipsCount (TEAMSHIPS_InnerDestroyer1) > 0)
+                                    Guard (TEAMSHIPS_InnerDestroyer1);
+                            ELSE
+                                    Guard (TEAMSHIPS_MiningBase);
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakADestroyer2)) OR (ThisTeamIs (TEAM_CloakBDestroyer2)) )
+                            IF (ShipsCount (TEAMSHIPS_InnerDestroyer2) > 0)
+                                    Guard (TEAMSHIPS_InnerDestroyer2);
+                            ELSE
+                                    Guard (TEAMSHIPS_MiningBase);
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakACruiser)) OR (ThisTeamIs (TEAM_CloakBCruiser)) )
+                            IF (ShipsCount (TEAMSHIPS_InnerCruiser) > 0)
+                                    Guard (TEAMSHIPS_InnerCruiser);
+                            ELSE
+                                    Guard (TEAMSHIPS_MiningBase);
+                            ENDIF
+                    ENDIF
+                    SpecialToggle();
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_CloakADestroyer1)) OR (ThisTeamIs (TEAM_CloakBDestroyer1)) )
+                            IF (NOT FindEnemiesNearTeam (SHIPS_CloakDestroyer1Found, 14000))
+                                    Jump GuardCloakityOff;
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakADestroyer2)) OR (ThisTeamIs (TEAM_CloakBDestroyer2)) )
+                            IF (NOT FindEnemiesNearTeam (SHIPS_CloakDestroyer2Found, 14000))
+                                    Jump GuardCloakityOff;
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakACruiser)) OR (ThisTeamIs (TEAM_CloakBCruiser)) )
+                            IF (NOT FindEnemiesNearTeam (SHIPS_CloakCruiserFound, 14000))
+                                    Jump GuardCloakityOff;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE GuardCloakityOn
+
+
+        STATE GuardCloakityOff
+            INIT
+
+
+
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_CloakADestroyer1)) OR (ThisTeamIs (TEAM_CloakBDestroyer1)) )
+                            IF (ShipsCount (TEAMSHIPS_InnerDestroyer1) > 0)
+                                    Guard (TEAMSHIPS_InnerDestroyer1);
+                            ELSE
+                                    Guard (TEAMSHIPS_MiningBase);
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakADestroyer2)) OR (ThisTeamIs (TEAM_CloakBDestroyer2)) )
+                            IF (ShipsCount (TEAMSHIPS_InnerDestroyer2) > 0)
+                                    Guard (TEAMSHIPS_InnerDestroyer2);
+                            ELSE
+                                    Guard (TEAMSHIPS_MiningBase);
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakACruiser)) OR (ThisTeamIs (TEAM_CloakBCruiser)) )
+                            IF (ShipsCount (TEAMSHIPS_InnerCruiser) > 0)
+                                    Guard (TEAMSHIPS_InnerCruiser);
+                            ELSE
+                                    Guard (TEAMSHIPS_MiningBase);
+                            ENDIF
+                    ENDIF
+                    SpecialToggle();
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_CloakADestroyer1)) OR (ThisTeamIs (TEAM_CloakBDestroyer1)) )
+                            IF (FindEnemiesNearTeam (SHIPS_CloakDestroyer1Found, 14000))
+                                    Jump GuardCloakityOn;
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakADestroyer2)) OR (ThisTeamIs (TEAM_CloakBDestroyer2)) )
+                            IF (FindEnemiesNearTeam (SHIPS_CloakDestroyer2Found, 14000))
+                                    Jump GuardCloakityOn;
+                            ENDIF
+                    ELSEIF ( (ThisTeamIs (TEAM_CloakACruiser)) OR (ThisTeamIs (TEAM_CloakBCruiser)) )
+                            IF (FindEnemiesNearTeam (SHIPS_CloakCruiserFound, 14000))
+                                    Jump GuardCloakityOn;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE GuardCloakityOff
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+ENDFSM InnerCloakingTeam
+# 1676 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+FSM HyperspaceGateTeam
+    States HyperspaceOut, HyperspaceIn, Decide, Patrol, AttackBox, AttackSphere, Dock, Launch, NullState;
+
+    INIT
+            Jump HyperspaceOut;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE HyperspaceOut
+            INIT
+                    HideShips (THISTEAMSHIPS);
+                    TeamHyperspaceOut ();
+            ENDINIT
+            WATCH
+
+                    IF (ThisTeamIs (TEAM_G2HC))
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_TOTALWave1Gate2BoxFound", 0);
+                            ENDIFONCE
+                            FindEnemiesInside (VOLUME_Gate2Box, SHIPS_G2Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G2Wave1FighterFound, SHIPS_G2Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G2Wave1CorvetteFound, SHIPS_G2Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G2Wave1FrigateFound, SHIPS_G2Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G2Wave1DestroyerFound, SHIPS_G2Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G2Wave1CarrierFound, SHIPS_G2Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G2Wave1CruiserFound, SHIPS_G2Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate2BoxFound", 62*(ShipsCount (SHIPS_G2Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G2Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G2Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G2Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G2Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G2Wave1Cruiserfound)));
+                            IFONCE ( (VarGet ("G_TOTALWave1Gate2BoxFound") > 2800) OR (VarGet ("G_GATE2") < 39000) )
+                                    VarCreateSet ("G_Gate2Wave1LaunchNow", TRUE);
+                                    TimerCreateSetStart ("G_PlayHyperspaceGateEvent", 1);
+                            ENDIFONCE
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G2Des))
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_TOTALWave2Gate2BoxFound", 0);
+                            ENDIFONCE
+                            FindEnemiesInside (VOLUME_Gate2Box, SHIPS_G2Wave2Found, 100);
+                            ShipsSelectClass (SHIPS_G2Wave2FighterFound, SHIPS_G2Wave2Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G2Wave2CorvetteFound, SHIPS_G2Wave2Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G2Wave2FrigateFound, SHIPS_G2Wave2Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G2Wave2DestroyerFound, SHIPS_G2Wave2Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G2Wave2CarrierFound, SHIPS_G2Wave2Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G2Wave2CruiserFound, SHIPS_G2Wave2Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave2Gate2BoxFound", 62*(ShipsCount (SHIPS_G2Wave2FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G2Wave2CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G2Wave2FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G2Wave2DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G2Wave2CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G2Wave2Cruiserfound)));
+                            IFONCE (VarGet ("G_TOTALWave2Gate2BoxFound") > 4800)
+                                    VarCreateSet ("G_Gate2Wave2LaunchNow", TRUE);
+                            ENDIFONCE
+                    ENDIF
+
+                    IF ( (VarGet ("G_Gate2Wave1LaunchNow")) AND (TimerExpired ("G_Gate2Wave1NowInLevel")) )
+                            IFONCE ( ((ShipsCount (TEAMSHIPS_G2HC) = 0) AND (ShipsCount (TEAMSHIPS_G2Int) = 0) AND (ShipsCount (TEAMSHIPS_G2Bomber) = 0))
+                                   OR (VarGet ("G_TOTALWave2Gate2BoxFound") > 4800) )
+                                    VarCreateSet ("G_Gate2Wave2LaunchNow", TRUE);
+                            ENDIFONCE
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G2HC)) OR (ThisTeamIs (TEAM_G2Int)) OR (ThisTeamIs (TEAM_G2Bomber)) OR (ThisTeamIs (TEAM_G2SF)) )
+                            IF (VarGet ("G_Gate2Wave1LaunchNow") = TRUE)
+                                    Jump HyperspaceIn;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G2Des)) OR (ThisTeamIs (TEAM_G2MDes)) )
+                            IF (VarGet ("G_Gate2Wave2LaunchNow") = TRUE)
+                                    Jump HyperspaceIn;
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G1HC))
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_TOTALWave1Gate1BoxFound", 0);
+                            ENDIFONCE
+                            FindEnemiesInside (VOLUME_Gate1Box, SHIPS_G1Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G1Wave1FighterFound, SHIPS_G1Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G1Wave1CorvetteFound, SHIPS_G1Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G1Wave1FrigateFound, SHIPS_G1Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G1Wave1DestroyerFound, SHIPS_G1Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G1Wave1CarrierFound, SHIPS_G1Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G1Wave1CruiserFound, SHIPS_G1Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate1BoxFound", 62*(ShipsCount (SHIPS_G1Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G1Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G1Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G1Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G1Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G1Wave1Cruiserfound)));
+                            IFONCE ( (VarGet ("G_TOTALWave1Gate1BoxFound") > 2800) OR (VarGet ("G_GATE1") < 39000) )
+                                    VarCreateSet ("G_Gate1Wave1LaunchNow", TRUE);
+                                    TimerCreateSetStart ("G_PlayHyperspaceGateEvent", 1);
+                            ENDIFONCE
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G1Des))
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_TOTALWave2Gate1BoxFound", 0);
+                            ENDIFONCE
+                            FindEnemiesInside (VOLUME_Gate1Box, SHIPS_G1Wave2Found, 100);
+                            ShipsSelectClass (SHIPS_G1Wave2FighterFound, SHIPS_G1Wave2Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G1Wave2CorvetteFound, SHIPS_G1Wave2Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G1Wave2FrigateFound, SHIPS_G1Wave2Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G1Wave2DestroyerFound, SHIPS_G1Wave2Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G1Wave2CarrierFound, SHIPS_G1Wave2Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G1Wave2CruiserFound, SHIPS_G1Wave2Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave2Gate1BoxFound", 62*(ShipsCount (SHIPS_G1Wave2FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G1Wave2CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G1Wave2FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G1Wave2DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G1Wave2CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G1Wave2Cruiserfound)));
+                            IFONCE (VarGet ("G_TOTALWave2Gate1BoxFound") > 4800)
+                                    VarCreateSet ("G_Gate1Wave2LaunchNow", TRUE);
+                            ENDIFONCE
+                    ENDIF
+
+                    IF ( (VarGet ("G_Gate1Wave1LaunchNow")) AND (TimerExpired ("G_Gate1Wave1NowInLevel")) )
+                            IFONCE ( ((ShipsCount (TEAMSHIPS_G1HC) = 0) AND (ShipsCount (TEAMSHIPS_G1Int) = 0) AND (ShipsCount (TEAMSHIPS_G1Bomber) = 0))
+                                   OR (VarGet ("G_TOTALWave2Gate1BoxFound") > 4800) )
+                                    VarCreateSet ("G_Gate1Wave2LaunchNow", TRUE);
+                            ENDIFONCE
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G1HC)) OR (ThisTeamIs (TEAM_G1Int)) OR (ThisTeamIs (TEAM_G1Bomber)) OR (ThisTeamIs (TEAM_G1SF)) )
+                            IF (VarGet ("G_Gate1Wave1LaunchNow") = TRUE)
+                                    Jump HyperspaceIn;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G1Des)) OR (ThisTeamIs (TEAM_G1MDes)) )
+                            IF (VarGet ("G_Gate1Wave2LaunchNow") = TRUE)
+                                    Jump HyperspaceIn;
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G3HC))
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_TOTALWave1Gate3BoxFound", 0);
+                            ENDIFONCE
+                            FindEnemiesInside (VOLUME_Gate3Box, SHIPS_G3Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G3Wave1FighterFound, SHIPS_G3Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G3Wave1CorvetteFound, SHIPS_G3Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G3Wave1FrigateFound, SHIPS_G3Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G3Wave1DestroyerFound, SHIPS_G3Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G3Wave1CarrierFound, SHIPS_G3Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G3Wave1CruiserFound, SHIPS_G3Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate3BoxFound", 62*(ShipsCount (SHIPS_G3Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G3Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G3Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G3Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G3Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G3Wave1Cruiserfound)));
+                            IFONCE ( (VarGet ("G_TOTALWave1Gate3BoxFound") > 2800) OR (VarGet ("G_GATE3") < 39000) )
+                                    VarCreateSet ("G_Gate3Wave1LaunchNow", TRUE);
+                                    TimerCreateSetStart ("G_PlayHyperspaceGateEvent", 1);
+                            ENDIFONCE
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G3Des))
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_TOTALWave2Gate3BoxFound", 0);
+                            ENDIFONCE
+                            FindEnemiesInside (VOLUME_Gate3Box, SHIPS_G3Wave2Found, 100);
+                            ShipsSelectClass (SHIPS_G3Wave2FighterFound, SHIPS_G3Wave2Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G3Wave2CorvetteFound, SHIPS_G3Wave2Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G3Wave2FrigateFound, SHIPS_G3Wave2Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G3Wave2DestroyerFound, SHIPS_G3Wave2Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G3Wave2CarrierFound, SHIPS_G3Wave2Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G3Wave2CruiserFound, SHIPS_G3Wave2Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave2Gate3BoxFound", 62*(ShipsCount (SHIPS_G3Wave2FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G3Wave2CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G3Wave2FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G3Wave2DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G3Wave2CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G3Wave2Cruiserfound)));
+                            IFONCE (VarGet ("G_TOTALWave2Gate3BoxFound") > 4800)
+                                    VarCreateSet ("G_Gate3Wave2LaunchNow", TRUE);
+                            ENDIFONCE
+                    ENDIF
+
+                    IF ( (VarGet ("G_Gate3Wave1LaunchNow")) AND (TimerExpired ("G_Gate3Wave1NowInLevel")) )
+                            IFONCE ( ((ShipsCount (TEAMSHIPS_G3HC) = 0) AND (ShipsCount (TEAMSHIPS_G3Int) = 0) AND (ShipsCount (TEAMSHIPS_G3Bomber) = 0))
+                                   OR (VarGet ("G_TOTALWave2Gate3BoxFound") > 4800) )
+                                    VarCreateSet ("G_Gate3Wave2LaunchNow", TRUE);
+                            ENDIFONCE
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G3HC)) OR (ThisTeamIs (TEAM_G3Int)) OR (ThisTeamIs (TEAM_G3Bomber)) OR (ThisTeamIs (TEAM_G3SF)) )
+                            IF (VarGet ("G_Gate3Wave1LaunchNow") = TRUE)
+                                    Jump HyperspaceIn;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G3Des)) OR (ThisTeamIs (TEAM_G3MDes)) )
+                            IF (VarGet ("G_Gate3Wave2LaunchNow") = TRUE)
+                                    Jump HyperspaceIn;
+                            ENDIF
+                    ENDIF
+
+
+
+            ENDWATCH
+        ENDSTATE HyperspaceOut
+
+
+        STATE HyperspaceIn
+            INIT
+
+                    IF (VarGet ("G_GATE2") > 0)
+                            IF (ThisTeamIs (TEAM_G2HC))
+                                    TimerCreateSetStart ("G_Gate2Wave1NowInLevel", 17);
+                                    GateShipsIn (TEAMSHIPS_G2HC, POINT_GATE2);
+                            ELSEIF (ThisTeamIs (TEAM_G2Int))
+                                    GateShipsIn (TEAMSHIPS_G2Int, POINT_GATE2);
+                            ELSEIF (ThisTeamIs (TEAM_G2Bomber))
+                                    GateShipsIn (TEAMSHIPS_G2Bomber, POINT_GATE2);
+                            ELSEIF (ThisTeamIs (TEAM_G2SF))
+                                    GateShipsIn (TEAMSHIPS_G2SF, POINT_GATE2);
+                            ENDIF
+                    ENDIF
+
+
+                    IF (VarGet ("G_GATE2") > 0)
+                            IF (ThisTeamIs (TEAM_G2Des))
+                                    TimerCreateSetStart ("G_Gate2Wave2NowInLevel", 17);
+                                    GateShipsIn (TEAMSHIPS_G2Des, POINT_GATE2);
+                            ELSEIF (ThisTeamIs (TEAM_G2MDes))
+                                    GateShipsIn (TEAMSHIPS_G2MDes, POINT_GATE2);
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (VarGet ("G_GATE1") > 0)
+                            IF (ThisTeamIs (TEAM_G1HC))
+                                    TimerCreateSetStart ("G_Gate1Wave1NowInLevel", 17);
+                                    GateShipsIn (TEAMSHIPS_G1HC, POINT_Gate1);
+                            ELSEIF (ThisTeamIs (TEAM_G1Int))
+                                    GateShipsIn (TEAMSHIPS_G1Int, POINT_Gate1);
+                            ELSEIF (ThisTeamIs (TEAM_G1Bomber))
+                                    GateShipsIn (TEAMSHIPS_G1Bomber, POINT_Gate1);
+                            ELSEIF (ThisTeamIs (TEAM_G1SF))
+                                    GateShipsIn (TEAMSHIPS_G1SF, POINT_Gate1);
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (VarGet ("G_GATE1") > 0)
+                            IF (ThisTeamIs (TEAM_G1Des))
+                                    TimerCreateSetStart ("G_Gate1Wave2NowInLevel", 17);
+                                    GateShipsIn (TEAMSHIPS_G1Des, POINT_Gate1);
+                            ELSEIF (ThisTeamIs (TEAM_G1MDes))
+                                    GateShipsIn (TEAMSHIPS_G1MDes, POINT_Gate1);
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (VarGet ("G_GATE3") > 0)
+                            IF (ThisTeamIs (TEAM_G3HC))
+                                    TimerCreateSetStart ("G_Gate3Wave1NowInLevel", 17);
+                                    GateShipsIn (TEAMSHIPS_G3HC, POINT_Gate3);
+                            ELSEIF (ThisTeamIs (TEAM_G3Int))
+                                    GateShipsIn (TEAMSHIPS_G3Int, POINT_Gate3);
+                            ELSEIF (ThisTeamIs (TEAM_G3Bomber))
+                                    GateShipsIn (TEAMSHIPS_G3Bomber, POINT_Gate3);
+                            ELSEIF (ThisTeamIs (TEAM_G3SF))
+                                    GateShipsIn (TEAMSHIPS_G3SF, POINT_Gate3);
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (VarGet ("G_GATE3") > 0)
+                            IF (ThisTeamIs (TEAM_G3Des))
+                                    TimerCreateSetStart ("G_Gate3Wave2NowInLevel", 17);
+                                    GateShipsIn (TEAMSHIPS_G3Des, POINT_Gate3);
+                            ELSEIF (ThisTeamIs (TEAM_G3MDes))
+                                    GateShipsIn (TEAMSHIPS_G3MDes, POINT_Gate3);
+                            ENDIF
+                    ENDIF
+
+
+
+
+
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G2HC)) OR (ThisTeamIs (TEAM_G2Int)) OR (ThisTeamIs (TEAM_G2Bomber)) OR (ThisTeamIs (TEAM_G2SF)) )
+                            IF (TimerExpired ("G_Gate2Wave1NowInLevel"))
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G2Des)) OR (ThisTeamIs (TEAM_G2MDes)) )
+                            IF (TimerExpired ("G_Gate2Wave2NowInLevel"))
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G1HC)) OR (ThisTeamIs (TEAM_G1Int)) OR (ThisTeamIs (TEAM_G1Bomber)) OR (ThisTeamIs (TEAM_G1SF)) )
+                            IF (TimerExpired ("G_Gate1Wave1NowInLevel"))
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G1Des)) OR (ThisTeamIs (TEAM_G1MDes)) )
+                            IF (TimerExpired ("G_Gate1Wave2NowInLevel"))
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G3HC)) OR (ThisTeamIs (TEAM_G3Int)) OR (ThisTeamIs (TEAM_G3Bomber)) OR (ThisTeamIs (TEAM_G3SF)) )
+                            IF (TimerExpired ("G_Gate3Wave1NowInLevel"))
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G3Des)) OR (ThisTeamIs (TEAM_G3MDes)) )
+                            IF (TimerExpired ("G_Gate3Wave2NowInLevel"))
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+            ENDWATCH
+        ENDSTATE HyperspaceIn
+
+
+        STATE Decide
+            INIT
+                    IF (ThisTeamIs (TEAM_G2SF))
+                            Jump Patrol;
+                    ENDIF
+
+                    IF (ThisTeamIs (TEAM_G1SF))
+                            Jump Patrol;
+                    ENDIF
+
+                    IF (ThisTeamIs (TEAM_G3SF))
+                            Jump Patrol;
+                    ENDIF
+
+
+                    IF (ShipsCount (TEAMSHIPS_G2HC) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate2Wave1AttackGate2Box", TRUE);
+                                    VarCreateSet ("G_Gate2Wave1AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G2Wave1Found);
+                            ShipsClear (SHIPS_G2Wave1FighterFound);
+                            ShipsClear (SHIPS_G2Wave1CorvetteFound);
+                            ShipsClear (SHIPS_G2Wave1FrigateFound);
+                            ShipsClear (SHIPS_G2Wave1DestroyerFound);
+                            ShipsClear (SHIPS_G2Wave1CarrierFound);
+                            ShipsClear (SHIPS_G2Wave1CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate2Box, SHIPS_G2Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G2Wave1FighterFound, SHIPS_G2Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G2Wave1CorvetteFound, SHIPS_G2Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G2Wave1FrigateFound, SHIPS_G2Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G2Wave1DestroyerFound, SHIPS_G2Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G2Wave1CarrierFound, SHIPS_G2Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G2Wave1CruiserFound, SHIPS_G2Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate2BoxFound", 62*(ShipsCount (SHIPS_G2Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G2Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G2Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G2Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G2Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G2Wave1Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave1Gate2BoxFound") > 2800)
+                                    VarSet ("G_Gate2Wave1AttackGate2Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate2Wave1AttackGate2Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G2Wave1GateFound);
+                            FindEnemiesInside (VOLUME_Gate2NearbySphere, SHIPS_G2Wave1GateFound, 100);
+                            VarCreateSet ("G_SHIPSG2Wave1GateFound", ShipsCount (SHIPS_G2Wave1GateFound));
+
+                            IF (ShipsCount (SHIPS_G2Wave1GateFound) > 0)
+                                    VarSet ("G_Gate2Wave1AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate2Wave1AttackGateSphere", FALSE);
+                            ENDIF
+                    ELSEIF (ShipsCount (TEAMSHIPS_G2Int) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate2Wave1AttackGate2Box", TRUE);
+                                    VarCreateSet ("G_Gate2Wave1AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G2Wave1Found);
+                            ShipsClear (SHIPS_G2Wave1FighterFound);
+                            ShipsClear (SHIPS_G2Wave1CorvetteFound);
+                            ShipsClear (SHIPS_G2Wave1FrigateFound);
+                            ShipsClear (SHIPS_G2Wave1DestroyerFound);
+                            ShipsClear (SHIPS_G2Wave1CarrierFound);
+                            ShipsClear (SHIPS_G2Wave1CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate2Box, SHIPS_G2Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G2Wave1FighterFound, SHIPS_G2Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G2Wave1CorvetteFound, SHIPS_G2Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G2Wave1FrigateFound, SHIPS_G2Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G2Wave1DestroyerFound, SHIPS_G2Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G2Wave1CarrierFound, SHIPS_G2Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G2Wave1CruiserFound, SHIPS_G2Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate2BoxFound", 62*(ShipsCount (SHIPS_G2Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G2Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G2Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G2Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G2Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G2Wave1Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave1Gate2BoxFound") > 2800)
+                                    VarSet ("G_Gate2Wave1AttackGate2Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate2Wave1AttackGate2Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G2Wave1GateFound);
+                            FindEnemiesInside (VOLUME_Gate2NearbySphere, SHIPS_G2Wave1GateFound, 100);
+                            VarCreateSet ("G_SHIPSG2Wave1GateFound", ShipsCount (SHIPS_G2Wave1GateFound));
+
+                            IF (ShipsCount (SHIPS_G2Wave1GateFound) > 0)
+                                    VarSet ("G_Gate2Wave1AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate2Wave1AttackGateSphere", FALSE);
+                            ENDIF
+                    ELSEIF (ShipsCount (TEAMSHIPS_G2Bomber) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate2Wave1AttackGate2Box", TRUE);
+                                    VarCreateSet ("G_Gate2Wave1AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G2Wave1Found);
+                            ShipsClear (SHIPS_G2Wave1FighterFound);
+                            ShipsClear (SHIPS_G2Wave1CorvetteFound);
+                            ShipsClear (SHIPS_G2Wave1FrigateFound);
+                            ShipsClear (SHIPS_G2Wave1DestroyerFound);
+                            ShipsClear (SHIPS_G2Wave1CarrierFound);
+                            ShipsClear (SHIPS_G2Wave1CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate2Box, SHIPS_G2Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G2Wave1FighterFound, SHIPS_G2Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G2Wave1CorvetteFound, SHIPS_G2Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G2Wave1FrigateFound, SHIPS_G2Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G2Wave1DestroyerFound, SHIPS_G2Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G2Wave1CarrierFound, SHIPS_G2Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G2Wave1CruiserFound, SHIPS_G2Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate2BoxFound", 62*(ShipsCount (SHIPS_G2Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G2Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G2Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G2Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G2Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G2Wave1Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave1Gate2BoxFound") > 2800)
+                                    VarSet ("G_Gate2Wave1AttackGate2Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate2Wave1AttackGate2Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G2Wave1GateFound);
+                            FindEnemiesInside (VOLUME_Gate2NearbySphere, SHIPS_G2Wave1GateFound, 100);
+                            VarCreateSet ("G_SHIPSG2Wave1GateFound", ShipsCount (SHIPS_G2Wave1GateFound));
+
+                            IF (ShipsCount (SHIPS_G2Wave1GateFound) > 0)
+                                    VarSet ("G_Gate2Wave1AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate2Wave1AttackGateSphere", FALSE);
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ShipsCount (TEAMSHIPS_G2Des) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate2Wave2AttackGate2Box", TRUE);
+                                    VarCreateSet ("G_Gate2Wave2AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G2Wave2Found);
+                            ShipsClear (SHIPS_G2Wave2FighterFound);
+                            ShipsClear (SHIPS_G2Wave2CorvetteFound);
+                            ShipsClear (SHIPS_G2Wave2FrigateFound);
+                            ShipsClear (SHIPS_G2Wave2DestroyerFound);
+                            ShipsClear (SHIPS_G2Wave2CarrierFound);
+                            ShipsClear (SHIPS_G2Wave2CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate2Box, SHIPS_G2Wave2Found, 100);
+                            ShipsSelectClass (SHIPS_G2Wave2FighterFound, SHIPS_G2Wave2Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G2Wave2CorvetteFound, SHIPS_G2Wave2Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G2Wave2FrigateFound, SHIPS_G2Wave2Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G2Wave2DestroyerFound, SHIPS_G2Wave2Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G2Wave2CarrierFound, SHIPS_G2Wave2Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G2Wave2CruiserFound, SHIPS_G2Wave2Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave2Gate2BoxFound", 62*(ShipsCount (SHIPS_G2Wave2FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G2Wave2CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G2Wave2FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G2Wave2DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G2Wave2CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G2Wave2Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave2Gate2BoxFound") > 2800)
+                                    VarSet ("G_Gate2Wave2AttackGate2Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate2Wave2AttackGate2Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G2Wave2GateFound);
+                            FindEnemiesInside (VOLUME_Gate2NearbySphere, SHIPS_G2Wave2GateFound, 100);
+                            VarCreateSet ("G_SHIPSG2Wave2GateFound", ShipsCount (SHIPS_G2Wave2GateFound));
+
+                            IF (ShipsCount (SHIPS_G2Wave2GateFound) > 0)
+                                    VarSet ("G_Gate2Wave2AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate2Wave2AttackGateSphere", FALSE);
+                            ENDIF
+                    ELSEIF (ShipsCount (TEAMSHIPS_G2MDes) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate2Wave2AttackGate2Box", TRUE);
+                                    VarCreateSet ("G_Gate2Wave2AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G2Wave2Found);
+                            ShipsClear (SHIPS_G2Wave2FighterFound);
+                            ShipsClear (SHIPS_G2Wave2CorvetteFound);
+                            ShipsClear (SHIPS_G2Wave2FrigateFound);
+                            ShipsClear (SHIPS_G2Wave2DestroyerFound);
+                            ShipsClear (SHIPS_G2Wave2CarrierFound);
+                            ShipsClear (SHIPS_G2Wave2CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate2Box, SHIPS_G2Wave2Found, 100);
+                            ShipsSelectClass (SHIPS_G2Wave2FighterFound, SHIPS_G2Wave2Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G2Wave2CorvetteFound, SHIPS_G2Wave2Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G2Wave2FrigateFound, SHIPS_G2Wave2Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G2Wave2DestroyerFound, SHIPS_G2Wave2Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G2Wave2CarrierFound, SHIPS_G2Wave2Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G2Wave2CruiserFound, SHIPS_G2Wave2Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave2Gate2BoxFound", 62*(ShipsCount (SHIPS_G2Wave2FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G2Wave2CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G2Wave2FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G2Wave2DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G2Wave2CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G2Wave2Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave2Gate2BoxFound") > 2800)
+                                    VarSet ("G_Gate2Wave2AttackGate2Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate2Wave2AttackGate2Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G2Wave2GateFound);
+                            FindEnemiesInside (VOLUME_Gate2NearbySphere, SHIPS_G2Wave2GateFound, 100);
+                            VarCreateSet ("G_SHIPSG2Wave2GateFound", ShipsCount (SHIPS_G2Wave2GateFound));
+
+                            IF (ShipsCount (SHIPS_G2Wave2GateFound) > 0)
+                                    VarSet ("G_Gate2Wave2AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate2Wave2AttackGateSphere", FALSE);
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G2HC)) OR (ThisTeamIs (TEAM_G2Int)) OR (ThisTeamIs (TEAM_G2Bomber)) OR (ThisTeamIs (TEAM_G2SF)) )
+                            IF (VarGet ("G_Gate2Wave1AttackGateSphere") = TRUE)
+                                    Jump AttackSphere;
+                            ELSEIF (VarGet ("G_Gate2Wave1AttackGate2Box") = TRUE)
+                                    Jump AttackBox;
+                            ELSE
+                                    Jump Patrol;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G2Des)) OR (ThisTeamIs (TEAM_G2MDes)) )
+                            IF (VarGet ("G_Gate2Wave2AttackGate2Box") = TRUE)
+                                    Jump AttackBox;
+                            ELSEIF (VarGet ("G_Gate2Wave2AttackGateSphere") = TRUE)
+                                    Jump AttackSphere;
+                            ELSE
+                                    Jump Patrol;
+                            ENDIF
+                    ENDIF
+
+
+
+
+
+                    IF (ShipsCount (TEAMSHIPS_G1HC) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate1Wave1AttackGate1Box", TRUE);
+                                    VarCreateSet ("G_Gate1Wave1AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G1Wave1Found);
+                            ShipsClear (SHIPS_G1Wave1FighterFound);
+                            ShipsClear (SHIPS_G1Wave1CorvetteFound);
+                            ShipsClear (SHIPS_G1Wave1FrigateFound);
+                            ShipsClear (SHIPS_G1Wave1DestroyerFound);
+                            ShipsClear (SHIPS_G1Wave1CarrierFound);
+                            ShipsClear (SHIPS_G1Wave1CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate1Box, SHIPS_G1Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G1Wave1FighterFound, SHIPS_G1Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G1Wave1CorvetteFound, SHIPS_G1Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G1Wave1FrigateFound, SHIPS_G1Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G1Wave1DestroyerFound, SHIPS_G1Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G1Wave1CarrierFound, SHIPS_G1Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G1Wave1CruiserFound, SHIPS_G1Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate1BoxFound", 62*(ShipsCount (SHIPS_G1Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G1Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G1Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G1Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G1Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G1Wave1Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave1Gate1BoxFound") > 2800)
+                                    VarSet ("G_Gate1Wave1AttackGate1Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate1Wave1AttackGate1Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G1Wave1GateFound);
+                            FindEnemiesInside (VOLUME_Gate1NearbySphere, SHIPS_G1Wave1GateFound, 100);
+                            VarCreateSet ("G_SHIPSG1Wave1GateFound", ShipsCount (SHIPS_G1Wave1GateFound));
+
+                            IF (ShipsCount (SHIPS_G1Wave1GateFound) > 0)
+                                    VarSet ("G_Gate1Wave1AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate1Wave1AttackGateSphere", FALSE);
+                            ENDIF
+                    ELSEIF (ShipsCount (TEAMSHIPS_G1Int) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate1Wave1AttackGate1Box", TRUE);
+                                    VarCreateSet ("G_Gate1Wave1AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G1Wave1Found);
+                            ShipsClear (SHIPS_G1Wave1FighterFound);
+                            ShipsClear (SHIPS_G1Wave1CorvetteFound);
+                            ShipsClear (SHIPS_G1Wave1FrigateFound);
+                            ShipsClear (SHIPS_G1Wave1DestroyerFound);
+                            ShipsClear (SHIPS_G1Wave1CarrierFound);
+                            ShipsClear (SHIPS_G1Wave1CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate1Box, SHIPS_G1Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G1Wave1FighterFound, SHIPS_G1Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G1Wave1CorvetteFound, SHIPS_G1Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G1Wave1FrigateFound, SHIPS_G1Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G1Wave1DestroyerFound, SHIPS_G1Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G1Wave1CarrierFound, SHIPS_G1Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G1Wave1CruiserFound, SHIPS_G1Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate1BoxFound", 62*(ShipsCount (SHIPS_G1Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G1Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G1Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G1Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G1Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G1Wave1Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave1Gate1BoxFound") > 2800)
+                                    VarSet ("G_Gate1Wave1AttackGate1Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate1Wave1AttackGate1Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G1Wave1GateFound);
+                            FindEnemiesInside (VOLUME_Gate1NearbySphere, SHIPS_G1Wave1GateFound, 100);
+                            VarCreateSet ("G_SHIPSG1Wave1GateFound", ShipsCount (SHIPS_G1Wave1GateFound));
+
+                            IF (ShipsCount (SHIPS_G1Wave1GateFound) > 0)
+                                    VarSet ("G_Gate1Wave1AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate1Wave1AttackGateSphere", FALSE);
+                            ENDIF
+                    ELSEIF (ShipsCount (TEAMSHIPS_G1Bomber) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate1Wave1AttackGate1Box", TRUE);
+                                    VarCreateSet ("G_Gate1Wave1AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G1Wave1Found);
+                            ShipsClear (SHIPS_G1Wave1FighterFound);
+                            ShipsClear (SHIPS_G1Wave1CorvetteFound);
+                            ShipsClear (SHIPS_G1Wave1FrigateFound);
+                            ShipsClear (SHIPS_G1Wave1DestroyerFound);
+                            ShipsClear (SHIPS_G1Wave1CarrierFound);
+                            ShipsClear (SHIPS_G1Wave1CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate1Box, SHIPS_G1Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G1Wave1FighterFound, SHIPS_G1Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G1Wave1CorvetteFound, SHIPS_G1Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G1Wave1FrigateFound, SHIPS_G1Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G1Wave1DestroyerFound, SHIPS_G1Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G1Wave1CarrierFound, SHIPS_G1Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G1Wave1CruiserFound, SHIPS_G1Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate1BoxFound", 62*(ShipsCount (SHIPS_G1Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G1Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G1Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G1Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G1Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G1Wave1Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave1Gate1BoxFound") > 2800)
+                                    VarSet ("G_Gate1Wave1AttackGate1Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate1Wave1AttackGate1Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G1Wave1GateFound);
+                            FindEnemiesInside (VOLUME_Gate1NearbySphere, SHIPS_G1Wave1GateFound, 100);
+                            VarCreateSet ("G_SHIPSG1Wave1GateFound", ShipsCount (SHIPS_G1Wave1GateFound));
+
+                            IF (ShipsCount (SHIPS_G1Wave1GateFound) > 0)
+                                    VarSet ("G_Gate1Wave1AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate1Wave1AttackGateSphere", FALSE);
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ShipsCount (TEAMSHIPS_G1Des) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate1Wave2AttackGate1Box", TRUE);
+                                    VarCreateSet ("G_Gate1Wave2AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G1Wave2Found);
+                            ShipsClear (SHIPS_G1Wave2FighterFound);
+                            ShipsClear (SHIPS_G1Wave2CorvetteFound);
+                            ShipsClear (SHIPS_G1Wave2FrigateFound);
+                            ShipsClear (SHIPS_G1Wave2DestroyerFound);
+                            ShipsClear (SHIPS_G1Wave2CarrierFound);
+                            ShipsClear (SHIPS_G1Wave2CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate1Box, SHIPS_G1Wave2Found, 100);
+                            ShipsSelectClass (SHIPS_G1Wave2FighterFound, SHIPS_G1Wave2Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G1Wave2CorvetteFound, SHIPS_G1Wave2Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G1Wave2FrigateFound, SHIPS_G1Wave2Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G1Wave2DestroyerFound, SHIPS_G1Wave2Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G1Wave2CarrierFound, SHIPS_G1Wave2Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G1Wave2CruiserFound, SHIPS_G1Wave2Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave2Gate1BoxFound", 62*(ShipsCount (SHIPS_G1Wave2FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G1Wave2CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G1Wave2FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G1Wave2DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G1Wave2CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G1Wave2Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave2Gate1BoxFound") > 2800)
+                                    VarSet ("G_Gate1Wave2AttackGate1Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate1Wave2AttackGate1Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G1Wave2GateFound);
+                            FindEnemiesInside (VOLUME_Gate1NearbySphere, SHIPS_G1Wave2GateFound, 100);
+                            VarCreateSet ("G_SHIPSG1Wave2GateFound", ShipsCount (SHIPS_G1Wave2GateFound));
+
+                            IF (ShipsCount (SHIPS_G1Wave2GateFound) > 0)
+                                    VarSet ("G_Gate1Wave2AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate1Wave2AttackGateSphere", FALSE);
+                            ENDIF
+                    ELSEIF (ShipsCount (TEAMSHIPS_G1MDes) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate1Wave2AttackGate1Box", TRUE);
+                                    VarCreateSet ("G_Gate1Wave2AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G1Wave2Found);
+                            ShipsClear (SHIPS_G1Wave2FighterFound);
+                            ShipsClear (SHIPS_G1Wave2CorvetteFound);
+                            ShipsClear (SHIPS_G1Wave2FrigateFound);
+                            ShipsClear (SHIPS_G1Wave2DestroyerFound);
+                            ShipsClear (SHIPS_G1Wave2CarrierFound);
+                            ShipsClear (SHIPS_G1Wave2CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate1Box, SHIPS_G1Wave2Found, 100);
+                            ShipsSelectClass (SHIPS_G1Wave2FighterFound, SHIPS_G1Wave2Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G1Wave2CorvetteFound, SHIPS_G1Wave2Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G1Wave2FrigateFound, SHIPS_G1Wave2Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G1Wave2DestroyerFound, SHIPS_G1Wave2Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G1Wave2CarrierFound, SHIPS_G1Wave2Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G1Wave2CruiserFound, SHIPS_G1Wave2Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave2Gate1BoxFound", 62*(ShipsCount (SHIPS_G1Wave2FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G1Wave2CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G1Wave2FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G1Wave2DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G1Wave2CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G1Wave2Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave2Gate1BoxFound") > 2800)
+                                    VarSet ("G_Gate1Wave2AttackGate1Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate1Wave2AttackGate1Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G1Wave2GateFound);
+                            FindEnemiesInside (VOLUME_Gate1NearbySphere, SHIPS_G1Wave2GateFound, 100);
+                            VarCreateSet ("G_SHIPSG1Wave2GateFound", ShipsCount (SHIPS_G1Wave2GateFound));
+
+                            IF (ShipsCount (SHIPS_G1Wave2GateFound) > 0)
+                                    VarSet ("G_Gate1Wave2AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate1Wave2AttackGateSphere", FALSE);
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G1HC)) OR (ThisTeamIs (TEAM_G1Int)) OR (ThisTeamIs (TEAM_G1Bomber)) OR (ThisTeamIs (TEAM_G1SF)) )
+                            IF (VarGet ("G_Gate1Wave1AttackGateSphere") = TRUE)
+                                    Jump AttackSphere;
+                            ELSEIF (VarGet ("G_Gate1Wave1AttackGate1Box") = TRUE)
+                                    Jump AttackBox;
+                            ELSE
+                                    Jump Patrol;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G1Des)) OR (ThisTeamIs (TEAM_G1MDes)) )
+                            IF (VarGet ("G_Gate1Wave2AttackGate1Box") = TRUE)
+                                    Jump AttackBox;
+                            ELSEIF (VarGet ("G_Gate1Wave2AttackGateSphere") = TRUE)
+                                    Jump AttackSphere;
+                            ELSE
+                                    Jump Patrol;
+                            ENDIF
+                    ENDIF
+
+
+
+
+
+                    IF (ShipsCount (TEAMSHIPS_G3HC) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate3Wave1AttackGate3Box", TRUE);
+                                    VarCreateSet ("G_Gate3Wave1AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G3Wave1Found);
+                            ShipsClear (SHIPS_G3Wave1FighterFound);
+                            ShipsClear (SHIPS_G3Wave1CorvetteFound);
+                            ShipsClear (SHIPS_G3Wave1FrigateFound);
+                            ShipsClear (SHIPS_G3Wave1DestroyerFound);
+                            ShipsClear (SHIPS_G3Wave1CarrierFound);
+                            ShipsClear (SHIPS_G3Wave1CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate3Box, SHIPS_G3Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G3Wave1FighterFound, SHIPS_G3Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G3Wave1CorvetteFound, SHIPS_G3Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G3Wave1FrigateFound, SHIPS_G3Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G3Wave1DestroyerFound, SHIPS_G3Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G3Wave1CarrierFound, SHIPS_G3Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G3Wave1CruiserFound, SHIPS_G3Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate3BoxFound", 62*(ShipsCount (SHIPS_G3Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G3Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G3Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G3Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G3Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G3Wave1Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave1Gate3BoxFound") > 2800)
+                                    VarSet ("G_Gate3Wave1AttackGate3Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate3Wave1AttackGate3Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G3Wave1GateFound);
+                            FindEnemiesInside (VOLUME_Gate3NearbySphere, SHIPS_G3Wave1GateFound, 100);
+                            VarCreateSet ("G_SHIPSG3Wave1GateFound", ShipsCount (SHIPS_G3Wave1GateFound));
+
+                            IF (ShipsCount (SHIPS_G3Wave1GateFound) > 0)
+                                    VarSet ("G_Gate3Wave1AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate3Wave1AttackGateSphere", FALSE);
+                            ENDIF
+                    ELSEIF (ShipsCount (TEAMSHIPS_G3Int) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate3Wave1AttackGate3Box", TRUE);
+                                    VarCreateSet ("G_Gate3Wave1AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G3Wave1Found);
+                            ShipsClear (SHIPS_G3Wave1FighterFound);
+                            ShipsClear (SHIPS_G3Wave1CorvetteFound);
+                            ShipsClear (SHIPS_G3Wave1FrigateFound);
+                            ShipsClear (SHIPS_G3Wave1DestroyerFound);
+                            ShipsClear (SHIPS_G3Wave1CarrierFound);
+                            ShipsClear (SHIPS_G3Wave1CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate3Box, SHIPS_G3Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G3Wave1FighterFound, SHIPS_G3Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G3Wave1CorvetteFound, SHIPS_G3Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G3Wave1FrigateFound, SHIPS_G3Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G3Wave1DestroyerFound, SHIPS_G3Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G3Wave1CarrierFound, SHIPS_G3Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G3Wave1CruiserFound, SHIPS_G3Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate3BoxFound", 62*(ShipsCount (SHIPS_G3Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G3Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G3Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G3Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G3Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G3Wave1Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave1Gate3BoxFound") > 2800)
+                                    VarSet ("G_Gate3Wave1AttackGate3Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate3Wave1AttackGate3Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G3Wave1GateFound);
+                            FindEnemiesInside (VOLUME_Gate3NearbySphere, SHIPS_G3Wave1GateFound, 100);
+                            VarCreateSet ("G_SHIPSG3Wave1GateFound", ShipsCount (SHIPS_G3Wave1GateFound));
+
+                            IF (ShipsCount (SHIPS_G3Wave1GateFound) > 0)
+                                    VarSet ("G_Gate3Wave1AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate3Wave1AttackGateSphere", FALSE);
+                            ENDIF
+                    ELSEIF (ShipsCount (TEAMSHIPS_G3Bomber) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate3Wave1AttackGate3Box", TRUE);
+                                    VarCreateSet ("G_Gate3Wave1AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G3Wave1Found);
+                            ShipsClear (SHIPS_G3Wave1FighterFound);
+                            ShipsClear (SHIPS_G3Wave1CorvetteFound);
+                            ShipsClear (SHIPS_G3Wave1FrigateFound);
+                            ShipsClear (SHIPS_G3Wave1DestroyerFound);
+                            ShipsClear (SHIPS_G3Wave1CarrierFound);
+                            ShipsClear (SHIPS_G3Wave1CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate3Box, SHIPS_G3Wave1Found, 100);
+                            ShipsSelectClass (SHIPS_G3Wave1FighterFound, SHIPS_G3Wave1Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G3Wave1CorvetteFound, SHIPS_G3Wave1Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G3Wave1FrigateFound, SHIPS_G3Wave1Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G3Wave1DestroyerFound, SHIPS_G3Wave1Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G3Wave1CarrierFound, SHIPS_G3Wave1Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G3Wave1CruiserFound, SHIPS_G3Wave1Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave1Gate3BoxFound", 62*(ShipsCount (SHIPS_G3Wave1FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G3Wave1CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G3Wave1FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G3Wave1DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G3Wave1CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G3Wave1Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave1Gate3BoxFound") > 2800)
+                                    VarSet ("G_Gate3Wave1AttackGate3Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate3Wave1AttackGate3Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G3Wave1GateFound);
+                            FindEnemiesInside (VOLUME_Gate3NearbySphere, SHIPS_G3Wave1GateFound, 100);
+                            VarCreateSet ("G_SHIPSG3Wave1GateFound", ShipsCount (SHIPS_G3Wave1GateFound));
+
+                            IF (ShipsCount (SHIPS_G3Wave1GateFound) > 0)
+                                    VarSet ("G_Gate3Wave1AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate3Wave1AttackGateSphere", FALSE);
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ShipsCount (TEAMSHIPS_G3Des) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate3Wave2AttackGate3Box", TRUE);
+                                    VarCreateSet ("G_Gate3Wave2AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G3Wave2Found);
+                            ShipsClear (SHIPS_G3Wave2FighterFound);
+                            ShipsClear (SHIPS_G3Wave2CorvetteFound);
+                            ShipsClear (SHIPS_G3Wave2FrigateFound);
+                            ShipsClear (SHIPS_G3Wave2DestroyerFound);
+                            ShipsClear (SHIPS_G3Wave2CarrierFound);
+                            ShipsClear (SHIPS_G3Wave2CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate3Box, SHIPS_G3Wave2Found, 100);
+                            ShipsSelectClass (SHIPS_G3Wave2FighterFound, SHIPS_G3Wave2Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G3Wave2CorvetteFound, SHIPS_G3Wave2Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G3Wave2FrigateFound, SHIPS_G3Wave2Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G3Wave2DestroyerFound, SHIPS_G3Wave2Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G3Wave2CarrierFound, SHIPS_G3Wave2Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G3Wave2CruiserFound, SHIPS_G3Wave2Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave2Gate3BoxFound", 62*(ShipsCount (SHIPS_G3Wave2FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G3Wave2CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G3Wave2FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G3Wave2DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G3Wave2CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G3Wave2Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave2Gate3BoxFound") > 2800)
+                                    VarSet ("G_Gate3Wave2AttackGate3Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate3Wave2AttackGate3Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G3Wave2GateFound);
+                            FindEnemiesInside (VOLUME_Gate3NearbySphere, SHIPS_G3Wave2GateFound, 100);
+                            VarCreateSet ("G_SHIPSG3Wave2GateFound", ShipsCount (SHIPS_G3Wave2GateFound));
+
+                            IF (ShipsCount (SHIPS_G3Wave2GateFound) > 0)
+                                    VarSet ("G_Gate3Wave2AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate3Wave2AttackGateSphere", FALSE);
+                            ENDIF
+                    ELSEIF (ShipsCount (TEAMSHIPS_G3MDes) > 0)
+
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_Gate3Wave2AttackGate3Box", TRUE);
+                                    VarCreateSet ("G_Gate3Wave2AttackGateSphere", TRUE);
+                            ENDIFONCE
+
+
+                            ShipsClear (SHIPS_G3Wave2Found);
+                            ShipsClear (SHIPS_G3Wave2FighterFound);
+                            ShipsClear (SHIPS_G3Wave2CorvetteFound);
+                            ShipsClear (SHIPS_G3Wave2FrigateFound);
+                            ShipsClear (SHIPS_G3Wave2DestroyerFound);
+                            ShipsClear (SHIPS_G3Wave2CarrierFound);
+                            ShipsClear (SHIPS_G3Wave2CruiserFound);
+                            FindEnemiesInside (VOLUME_Gate3Box, SHIPS_G3Wave2Found, 100);
+                            ShipsSelectClass (SHIPS_G3Wave2FighterFound, SHIPS_G3Wave2Found, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_G3Wave2CorvetteFound, SHIPS_G3Wave2Found, "CLASS_Corvette");
+                            ShipsSelectClass (SHIPS_G3Wave2FrigateFound, SHIPS_G3Wave2Found, "CLASS_Frigate");
+                            ShipsSelectClass (SHIPS_G3Wave2DestroyerFound, SHIPS_G3Wave2Found, "CLASS_Destroyer");
+                            ShipsSelectClass (SHIPS_G3Wave2CarrierFound, SHIPS_G3Wave2Found, "CLASS_Carrier");
+                            ShipsSelectClass (SHIPS_G3Wave2CruiserFound, SHIPS_G3Wave2Found, "CLASS_HeavyCruier");
+
+                            VarSet ("G_TOTALWave2Gate3BoxFound", 62*(ShipsCount (SHIPS_G3Wave2FighterFound))
+                                                               +222*(ShipsCount (SHIPS_G3Wave2CorvetteFound))
+                                                               +612*(ShipsCount (SHIPS_G3Wave2FrigateFound))
+                                                              +1425*(ShipsCount (SHIPS_G3Wave2DestroyerFound))
+                                                              +2000*(ShipsCount (SHIPS_G3Wave2CarrierFound))
+                                                              +3700*(ShipsCount (SHIPS_G3Wave2Cruiserfound)));
+                            IF (VarGet ("G_TOTALWave2Gate3BoxFound") > 2800)
+                                    VarSet ("G_Gate3Wave2AttackGate3Box", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate3Wave2AttackGate3Box", FALSE);
+                            ENDIF
+
+
+
+                            ShipsClear (SHIPS_G3Wave2GateFound);
+                            FindEnemiesInside (VOLUME_Gate3NearbySphere, SHIPS_G3Wave2GateFound, 100);
+                            VarCreateSet ("G_SHIPSG3Wave2GateFound", ShipsCount (SHIPS_G3Wave2GateFound));
+
+                            IF (ShipsCount (SHIPS_G3Wave2GateFound) > 0)
+                                    VarSet ("G_Gate3Wave2AttackGateSphere", TRUE);
+                            ELSE
+                                    VarSet ("G_Gate3Wave2AttackGateSphere", FALSE);
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G3HC)) OR (ThisTeamIs (TEAM_G3Int)) OR (ThisTeamIs (TEAM_G3Bomber)) OR (ThisTeamIs (TEAM_G3SF)) )
+                            IF (VarGet ("G_Gate3Wave1AttackGateSphere") = TRUE)
+                                    Jump AttackSphere;
+                            ELSEIF (VarGet ("G_Gate3Wave1AttackGate3Box") = TRUE)
+                                    Jump AttackBox;
+                            ELSE
+                                    Jump Patrol;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G3Des)) OR (ThisTeamIs (TEAM_G3MDes)) )
+                            IF (VarGet ("G_Gate3Wave2AttackGate3Box") = TRUE)
+                                    Jump AttackBox;
+                            ELSEIF (VarGet ("G_Gate3Wave2AttackGateSphere") = TRUE)
+                                    Jump AttackSphere;
+                            ELSE
+                                    Jump Patrol;
+                            ENDIF
+                    ENDIF
+
+
+
+
+
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G2HC)) OR (ThisTeamIs (TEAM_G2Int)) OR (ThisTeamIs (TEAM_G2Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G2SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G1HC)) OR (ThisTeamIs (TEAM_G1Int)) OR (ThisTeamIs (TEAM_G1Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G1SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G3HC)) OR (ThisTeamIs (TEAM_G3Int)) OR (ThisTeamIs (TEAM_G3Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G3SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+            ENDWATCH
+        ENDSTATE Decide
+
+
+        STATE Patrol
+            INIT
+
+                    IF (ThisTeamIs (TEAM_G2HC))
+                            PatrolPath (PATH_G2HCPath);
+                    ELSEIF (ThisTeamIs (TEAM_G2Int))
+                            PatrolPath (PATH_G2IntPath);
+                    ELSEIF (ThisTeamIs (TEAM_G2Bomber))
+                            PatrolPath (PATH_G2BomberPath);
+                    ELSEIF (ThisTeamIs (TEAM_G2SF))
+                            PatrolPath (PATH_G2SFPath);
+                            Jump NullState;
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G2Des))
+                            PatrolPath (PATH_G2DesPath);
+                    ELSEIF (ThisTeamIs (TEAM_G2MDes))
+                            PatrolPath (PATH_G2MDesPath);
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G1HC))
+                            PatrolPath (PATH_G1HCPath);
+                    ELSEIF (ThisTeamIs (TEAM_G1Int))
+                            PatrolPath (PATH_G1IntPath);
+                    ELSEIF (ThisTeamIs (TEAM_G1Bomber))
+                            PatrolPath (PATH_G1BomberPath);
+                    ELSEIF (ThisTeamIs (TEAM_G1SF))
+                            PatrolPath (PATH_G1SFPath);
+                            Jump NullState;
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G1Des))
+                            PatrolPath (PATH_G1DesPath);
+                    ELSEIF (ThisTeamIs (TEAM_G1MDes))
+                            PatrolPath (PATH_G1MDesPath);
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G3HC))
+                            PatrolPath (PATH_G3HCPath);
+                    ELSEIF (ThisTeamIs (TEAM_G3Int))
+                            PatrolPath (PATH_G3IntPath);
+                    ELSEIF (ThisTeamIs (TEAM_G3Bomber))
+                            PatrolPath (PATH_G3BomberPath);
+                    ELSEIF (ThisTeamIs (TEAM_G3SF))
+                            PatrolPath (PATH_G3SFPath);
+                            Jump NullState;
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G3Des))
+                            PatrolPath (PATH_G3DesPath);
+                    ELSEIF (ThisTeamIs (TEAM_G3MDes))
+                            PatrolPath (PATH_G3MDesPath);
+                    ENDIF
+
+
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G2HC)) OR (ThisTeamIs (TEAM_G2Int)) OR (ThisTeamIs (TEAM_G2Bomber)) OR (ThisTeamIs (TEAM_G2SF)) )
+                            IF ( (FindEnemiesInside (VOLUME_Gate2Box, SHIPS_G2Wave1Found, 100)) OR
+                                 (FindEnemiesInside (VOLUME_Gate2NearbySphere, SHIPS_G2Wave1GateFound, 100)) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G2Des)) OR (ThisTeamIs (TEAM_G2MDes)) )
+                            IF ( (FindEnemiesInside (VOLUME_Gate2Box, SHIPS_G2Wave2Found, 100)) OR
+                                 (FindEnemiesInside (VOLUME_Gate2NearbySphere, SHIPS_G2Wave2GateFound, 100)) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G2HC)) OR (ThisTeamIs (TEAM_G2Int)) OR (ThisTeamIs (TEAM_G2Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G2SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G1HC)) OR (ThisTeamIs (TEAM_G1Int)) OR (ThisTeamIs (TEAM_G1Bomber)) OR (ThisTeamIs (TEAM_G1SF)) )
+                            IF ( (FindEnemiesInside (VOLUME_Gate1Box, SHIPS_G1Wave1Found, 100)) OR
+                                 (FindEnemiesInside (VOLUME_Gate1NearbySphere, SHIPS_G1Wave1GateFound, 100)) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G1Des)) OR (ThisTeamIs (TEAM_G1MDes)) )
+                            IF ( (FindEnemiesInside (VOLUME_Gate1Box, SHIPS_G1Wave2Found, 100)) OR
+                                 (FindEnemiesInside (VOLUME_Gate1NearbySphere, SHIPS_G1Wave2GateFound, 100)) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G1HC)) OR (ThisTeamIs (TEAM_G1Int)) OR (ThisTeamIs (TEAM_G1Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G1SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G3HC)) OR (ThisTeamIs (TEAM_G3Int)) OR (ThisTeamIs (TEAM_G3Bomber)) OR (ThisTeamIs (TEAM_G3SF)) )
+                            IF ( (FindEnemiesInside (VOLUME_Gate3Box, SHIPS_G3Wave1Found, 100)) OR
+                                 (FindEnemiesInside (VOLUME_Gate3NearbySphere, SHIPS_G3Wave1GateFound, 100)) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G3Des)) OR (ThisTeamIs (TEAM_G3MDes)) )
+                            IF ( (FindEnemiesInside (VOLUME_Gate3Box, SHIPS_G3Wave2Found, 100)) OR
+                                 (FindEnemiesInside (VOLUME_Gate3NearbySphere, SHIPS_G3Wave2GateFound, 100)) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G3HC)) OR (ThisTeamIs (TEAM_G3Int)) OR (ThisTeamIs (TEAM_G3Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G3SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+
+
+            ENDWATCH
+        ENDSTATE Patrol
+
+
+        STATE AttackBox
+            INIT
+
+                    IF (ThisTeamIs (TEAM_G2HC))
+                            ShipsClear (SHIPS_Gate2Wave1HCTargets);
+                            VarCreateSet ("G_SHIPSG2Wave1Found", ShipsCount (SHIPS_G2Wave1Found));
+                            IF (ShipsSelectType (SHIPS_Gate2Wave1HCTargets, SHIPS_G2Wave1Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1HCTargets, SHIPS_G2Wave1Found, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1HCTargets, SHIPS_G2Wave1Found, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1HCTargets, SHIPS_G2Wave1Found, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate2Wave1HCTargets, SHIPS_G2Wave1Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate2Wave1HCTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate2Wave1HCTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2Int))
+                            VarCreateSet ("G_SHIPSG2Wave1Found", ShipsCount (SHIPS_G2Wave1Found));
+                            ShipsClear (SHIPS_Gate2Wave1IntTargets);
+                            IF (ShipsSelectType (SHIPS_Gate2Wave1IntTargets, SHIPS_G2Wave1Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1IntTargets, SHIPS_G2Wave1Found, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1IntTargets, SHIPS_G2Wave1Found, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1IntTargets, SHIPS_G2Wave1Found, "CLASS_Destroyer"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate2Wave1IntTargets, SHIPS_G2Wave1Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate2Wave1IntTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate2Wave1IntTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2Bomber))
+                            VarCreateSet ("G_SHIPSG2Wave1Found", ShipsCount (SHIPS_G2Wave1Found));
+                            ShipsClear (SHIPS_Gate2Wave1BomTargets);
+                            IF (ShipsSelectType (SHIPS_Gate2Wave1BomTargets, SHIPS_G2Wave1Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1BomTargets, SHIPS_G2Wave1Found, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1BomTargets, SHIPS_G2Wave1Found, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1BomTargets, SHIPS_G2Wave1Found, "CLASS_HeavyCruiser"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate2Wave1BomTargets, SHIPS_G2Wave1Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate2Wave1BomTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate2Wave1BomTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G2Des))
+                            ShipsClear (SHIPS_Gate2Wave2DesTargets);
+                            VarCreateSet ("G_SHIPSG2Wave2Found", ShipsCount (SHIPS_G2Wave2Found));
+                            IF (ShipsSelectType (SHIPS_Gate2Wave2DesTargets, SHIPS_G2Wave2Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2DesTargets, SHIPS_G2Wave2Found, "CLASS_HeavyCruiser"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2DesTargets, SHIPS_G2Wave2Found, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2DesTargets, SHIPS_G2Wave2Found, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate2Wave2DesTargets, SHIPS_G2Wave2Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate2Wave2DesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate2Wave2DesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2MDes))
+                            VarCreateSet ("G_SHIPSG2Wave2Found", ShipsCount (SHIPS_G2Wave2Found));
+                            ShipsClear (SHIPS_Gate2Wave2MDesTargets);
+                            IF (ShipsSelectType (SHIPS_Gate2Wave2MDesTargets, SHIPS_G2Wave2Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2MDesTargets, SHIPS_G2Wave2Found, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2MDesTargets, SHIPS_G2Wave2Found, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2MDesTargets, SHIPS_G2Wave2Found, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate2Wave2MDesTargets, SHIPS_G2Wave2Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate2Wave2MDesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate2Wave2MDesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G1HC))
+                            ShipsClear (SHIPS_Gate1Wave1HCTargets);
+                            VarCreateSet ("G_SHIPSG1Wave1Found", ShipsCount (SHIPS_G1Wave1Found));
+                            IF (ShipsSelectType (SHIPS_Gate1Wave1HCTargets, SHIPS_G1Wave1Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1HCTargets, SHIPS_G1Wave1Found, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1HCTargets, SHIPS_G1Wave1Found, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1HCTargets, SHIPS_G1Wave1Found, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate1Wave1HCTargets, SHIPS_G1Wave1Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate1Wave1HCTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate1Wave1HCTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1Int))
+                            VarCreateSet ("G_SHIPSG1Wave1Found", ShipsCount (SHIPS_G1Wave1Found));
+                            ShipsClear (SHIPS_Gate1Wave1IntTargets);
+                            IF (ShipsSelectType (SHIPS_Gate1Wave1IntTargets, SHIPS_G1Wave1Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1IntTargets, SHIPS_G1Wave1Found, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1IntTargets, SHIPS_G1Wave1Found, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1IntTargets, SHIPS_G1Wave1Found, "CLASS_Destroyer"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate1Wave1IntTargets, SHIPS_G1Wave1Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate1Wave1IntTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate1Wave1IntTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1Bomber))
+                            VarCreateSet ("G_SHIPSG1Wave1Found", ShipsCount (SHIPS_G1Wave1Found));
+                            ShipsClear (SHIPS_Gate1Wave1BomTargets);
+                            IF (ShipsSelectType (SHIPS_Gate1Wave1BomTargets, SHIPS_G1Wave1Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1BomTargets, SHIPS_G1Wave1Found, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1BomTargets, SHIPS_G1Wave1Found, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1BomTargets, SHIPS_G1Wave1Found, "CLASS_HeavyCruiser"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate1Wave1BomTargets, SHIPS_G1Wave1Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate1Wave1BomTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate1Wave1BomTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G1Des))
+                            ShipsClear (SHIPS_Gate1Wave2DesTargets);
+                            VarCreateSet ("G_SHIPSG1Wave2Found", ShipsCount (SHIPS_G1Wave2Found));
+                            IF (ShipsSelectType (SHIPS_Gate1Wave2DesTargets, SHIPS_G1Wave2Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2DesTargets, SHIPS_G1Wave2Found, "CLASS_HeavyCruiser"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2DesTargets, SHIPS_G1Wave2Found, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2DesTargets, SHIPS_G1Wave2Found, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate1Wave2DesTargets, SHIPS_G1Wave2Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate1Wave2DesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate1Wave2DesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1MDes))
+                            VarCreateSet ("G_SHIPSG1Wave2Found", ShipsCount (SHIPS_G1Wave2Found));
+                            ShipsClear (SHIPS_Gate1Wave2MDesTargets);
+                            IF (ShipsSelectType (SHIPS_Gate1Wave2MDesTargets, SHIPS_G1Wave2Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2MDesTargets, SHIPS_G1Wave2Found, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2MDesTargets, SHIPS_G1Wave2Found, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2MDesTargets, SHIPS_G1Wave2Found, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate1Wave2MDesTargets, SHIPS_G1Wave2Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate1Wave2MDesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate1Wave2MDesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G3HC))
+                            ShipsClear (SHIPS_Gate3Wave1HCTargets);
+                            VarCreateSet ("G_SHIPSG3Wave1Found", ShipsCount (SHIPS_G3Wave1Found));
+                            IF (ShipsSelectType (SHIPS_Gate3Wave1HCTargets, SHIPS_G3Wave1Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1HCTargets, SHIPS_G3Wave1Found, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1HCTargets, SHIPS_G3Wave1Found, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1HCTargets, SHIPS_G3Wave1Found, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate3Wave1HCTargets, SHIPS_G3Wave1Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate3Wave1HCTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate3Wave1HCTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3Int))
+                            VarCreateSet ("G_SHIPSG3Wave1Found", ShipsCount (SHIPS_G3Wave1Found));
+                            ShipsClear (SHIPS_Gate3Wave1IntTargets);
+                            IF (ShipsSelectType (SHIPS_Gate3Wave1IntTargets, SHIPS_G3Wave1Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1IntTargets, SHIPS_G3Wave1Found, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1IntTargets, SHIPS_G3Wave1Found, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1IntTargets, SHIPS_G3Wave1Found, "CLASS_Destroyer"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate3Wave1IntTargets, SHIPS_G3Wave1Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate3Wave1IntTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate3Wave1IntTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3Bomber))
+                            VarCreateSet ("G_SHIPSG3Wave1Found", ShipsCount (SHIPS_G3Wave1Found));
+                            ShipsClear (SHIPS_Gate3Wave1BomTargets);
+                            IF (ShipsSelectType (SHIPS_Gate3Wave1BomTargets, SHIPS_G3Wave1Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1BomTargets, SHIPS_G3Wave1Found, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1BomTargets, SHIPS_G3Wave1Found, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1BomTargets, SHIPS_G3Wave1Found, "CLASS_HeavyCruiser"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate3Wave1BomTargets, SHIPS_G3Wave1Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate3Wave1BomTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate3Wave1BomTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G3Des))
+                            ShipsClear (SHIPS_Gate3Wave2DesTargets);
+                            VarCreateSet ("G_SHIPSG3Wave2Found", ShipsCount (SHIPS_G3Wave2Found));
+                            IF (ShipsSelectType (SHIPS_Gate3Wave2DesTargets, SHIPS_G3Wave2Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2DesTargets, SHIPS_G3Wave2Found, "CLASS_HeavyCruiser"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2DesTargets, SHIPS_G3Wave2Found, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2DesTargets, SHIPS_G3Wave2Found, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate3Wave2DesTargets, SHIPS_G3Wave2Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate3Wave2DesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate3Wave2DesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3MDes))
+                            VarCreateSet ("G_SHIPSG3Wave2Found", ShipsCount (SHIPS_G3Wave2Found));
+                            ShipsClear (SHIPS_Gate3Wave2MDesTargets);
+                            IF (ShipsSelectType (SHIPS_Gate3Wave2MDesTargets, SHIPS_G3Wave2Found, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2MDesTargets, SHIPS_G3Wave2Found, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2MDesTargets, SHIPS_G3Wave2Found, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2MDesTargets, SHIPS_G3Wave2Found, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate3Wave2MDesTargets, SHIPS_G3Wave2Found);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate3Wave2MDesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate3Wave2MDesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G2HC))
+                            IF ( (ShipsCount (SHIPS_Gate2Wave1HCTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G2HC) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2Int))
+                            IF ( (ShipsCount (SHIPS_Gate2Wave1IntTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G2Int) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2Bomber))
+                            IF ( (ShipsCount (SHIPS_Gate2Wave1BomTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G2Bomber) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G2Des))
+                            IF ( (ShipsCount (SHIPS_Gate2Wave2DesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G2Des) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2MDes))
+                            IF ( (ShipsCount (SHIPS_Gate2Wave2MDesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G2MDes) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G2HC)) OR (ThisTeamIs (TEAM_G2Int)) OR (ThisTeamIs (TEAM_G2Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G2SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G1HC))
+                            IF ( (ShipsCount (SHIPS_Gate1Wave1HCTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G1HC) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1Int))
+                            IF ( (ShipsCount (SHIPS_Gate1Wave1IntTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G1Int) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1Bomber))
+                            IF ( (ShipsCount (SHIPS_Gate1Wave1BomTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G1Bomber) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G1Des))
+                            IF ( (ShipsCount (SHIPS_Gate1Wave2DesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G1Des) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1MDes))
+                            IF ( (ShipsCount (SHIPS_Gate1Wave2MDesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G1MDes) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G1HC)) OR (ThisTeamIs (TEAM_G1Int)) OR (ThisTeamIs (TEAM_G1Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G1SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G3HC))
+                            IF ( (ShipsCount (SHIPS_Gate3Wave1HCTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G3HC) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3Int))
+                            IF ( (ShipsCount (SHIPS_Gate3Wave1IntTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G3Int) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3Bomber))
+                            IF ( (ShipsCount (SHIPS_Gate3Wave1BomTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G3Bomber) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G3Des))
+                            IF ( (ShipsCount (SHIPS_Gate3Wave2DesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G3Des) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3MDes))
+                            IF ( (ShipsCount (SHIPS_Gate3Wave2MDesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G3MDes) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G3HC)) OR (ThisTeamIs (TEAM_G3Int)) OR (ThisTeamIs (TEAM_G3Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G3SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+
+            ENDWATCH
+        ENDSTATE AttackBox
+
+
+        STATE AttackSphere
+            INIT
+
+                    IF (ThisTeamIs (TEAM_G2HC))
+                            ShipsClear (SHIPS_Gate2Wave1HCTargets);
+                            IF (ShipsSelectType (SHIPS_Gate2Wave1HCTargets, SHIPS_G2Wave1GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1HCTargets, SHIPS_G2Wave1GateFound, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1HCTargets, SHIPS_G2Wave1GateFound, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1HCTargets, SHIPS_G2Wave1GateFound, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate2Wave1HCTargets, SHIPS_G2Wave1GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate2Wave1HCTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate2Wave1HCTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2Int))
+                            ShipsClear (SHIPS_Gate2Wave1IntTargets);
+                            IF (ShipsSelectType (SHIPS_Gate2Wave1IntTargets, SHIPS_G2Wave1GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1IntTargets, SHIPS_G2Wave1GateFound, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1IntTargets, SHIPS_G2Wave1GateFound, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1IntTargets, SHIPS_G2Wave1GateFound, "CLASS_Destroyer"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate2Wave1IntTargets, SHIPS_G2Wave1GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate2Wave1IntTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate2Wave1IntTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2Bomber))
+                            ShipsClear (SHIPS_Gate2Wave1BomTargets);
+                            IF (ShipsSelectType (SHIPS_Gate2Wave1BomTargets, SHIPS_G2Wave1GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1BomTargets, SHIPS_G2Wave1GateFound, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1BomTargets, SHIPS_G2Wave1GateFound, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave1BomTargets, SHIPS_G2Wave1GateFound, "CLASS_HeavyCruiser"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate2Wave1BomTargets, SHIPS_G2Wave1GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate2Wave1BomTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate2Wave1BomTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G2Des))
+                            ShipsClear (SHIPS_Gate2Wave2DesTargets);
+                            IF (ShipsSelectType (SHIPS_Gate2Wave2DesTargets, SHIPS_G2Wave2GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2DesTargets, SHIPS_G2Wave2GateFound, "CLASS_HeavyCruiser"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2DesTargets, SHIPS_G2Wave2GateFound, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2DesTargets, SHIPS_G2Wave2GateFound, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate2Wave2DesTargets, SHIPS_G2Wave2GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate2Wave2DesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate2Wave2DesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2MDes))
+                            ShipsClear (SHIPS_Gate2Wave2MDesTargets);
+                            IF (ShipsSelectType (SHIPS_Gate2Wave2MDesTargets, SHIPS_G2Wave2GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2MDesTargets, SHIPS_G2Wave2GateFound, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2MDesTargets, SHIPS_G2Wave2GateFound, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate2Wave2MDesTargets, SHIPS_G2Wave2GateFound, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate2Wave2MDesTargets, SHIPS_G2Wave2GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate2Wave2MDesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate2Wave2MDesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G1HC))
+                            ShipsClear (SHIPS_Gate1Wave1HCTargets);
+                            IF (ShipsSelectType (SHIPS_Gate1Wave1HCTargets, SHIPS_G1Wave1GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1HCTargets, SHIPS_G1Wave1GateFound, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1HCTargets, SHIPS_G1Wave1GateFound, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1HCTargets, SHIPS_G1Wave1GateFound, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate1Wave1HCTargets, SHIPS_G1Wave1GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate1Wave1HCTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate1Wave1HCTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1Int))
+                            ShipsClear (SHIPS_Gate1Wave1IntTargets);
+                            IF (ShipsSelectType (SHIPS_Gate1Wave1IntTargets, SHIPS_G1Wave1GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1IntTargets, SHIPS_G1Wave1GateFound, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1IntTargets, SHIPS_G1Wave1GateFound, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1IntTargets, SHIPS_G1Wave1GateFound, "CLASS_Destroyer"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate1Wave1IntTargets, SHIPS_G1Wave1GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate1Wave1IntTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate1Wave1IntTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1Bomber))
+                            ShipsClear (SHIPS_Gate1Wave1BomTargets);
+                            IF (ShipsSelectType (SHIPS_Gate1Wave1BomTargets, SHIPS_G1Wave1GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1BomTargets, SHIPS_G1Wave1GateFound, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1BomTargets, SHIPS_G1Wave1GateFound, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave1BomTargets, SHIPS_G1Wave1GateFound, "CLASS_HeavyCruiser"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate1Wave1BomTargets, SHIPS_G1Wave1GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate1Wave1BomTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate1Wave1BomTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G1Des))
+                            ShipsClear (SHIPS_Gate1Wave2DesTargets);
+                            IF (ShipsSelectType (SHIPS_Gate1Wave2DesTargets, SHIPS_G1Wave2GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2DesTargets, SHIPS_G1Wave2GateFound, "CLASS_HeavyCruiser"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2DesTargets, SHIPS_G1Wave2GateFound, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2DesTargets, SHIPS_G1Wave2GateFound, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate1Wave2DesTargets, SHIPS_G1Wave2GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate1Wave2DesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate1Wave2DesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1MDes))
+                            ShipsClear (SHIPS_Gate1Wave2MDesTargets);
+                            IF (ShipsSelectType (SHIPS_Gate1Wave2MDesTargets, SHIPS_G1Wave2GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2MDesTargets, SHIPS_G1Wave2GateFound, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2MDesTargets, SHIPS_G1Wave2GateFound, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate1Wave2MDesTargets, SHIPS_G1Wave2GateFound, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate1Wave2MDesTargets, SHIPS_G1Wave2GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate1Wave2MDesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate1Wave2MDesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G3HC))
+                            ShipsClear (SHIPS_Gate3Wave1HCTargets);
+                            IF (ShipsSelectType (SHIPS_Gate3Wave1HCTargets, SHIPS_G3Wave1GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1HCTargets, SHIPS_G3Wave1GateFound, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1HCTargets, SHIPS_G3Wave1GateFound, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1HCTargets, SHIPS_G3Wave1GateFound, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate3Wave1HCTargets, SHIPS_G3Wave1GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate3Wave1HCTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate3Wave1HCTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3Int))
+                            ShipsClear (SHIPS_Gate3Wave1IntTargets);
+                            IF (ShipsSelectType (SHIPS_Gate3Wave1IntTargets, SHIPS_G3Wave1GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1IntTargets, SHIPS_G3Wave1GateFound, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1IntTargets, SHIPS_G3Wave1GateFound, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1IntTargets, SHIPS_G3Wave1GateFound, "CLASS_Destroyer"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate3Wave1IntTargets, SHIPS_G3Wave1GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate3Wave1IntTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate3Wave1IntTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3Bomber))
+                            ShipsClear (SHIPS_Gate3Wave1BomTargets);
+                            IF (ShipsSelectType (SHIPS_Gate3Wave1BomTargets, SHIPS_G3Wave1GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1BomTargets, SHIPS_G3Wave1GateFound, "CLASS_Frigate"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1BomTargets, SHIPS_G3Wave1GateFound, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave1BomTargets, SHIPS_G3Wave1GateFound, "CLASS_HeavyCruiser"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate3Wave1BomTargets, SHIPS_G3Wave1GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate3Wave1BomTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate3Wave1BomTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G3Des))
+                            ShipsClear (SHIPS_Gate3Wave2DesTargets);
+                            IF (ShipsSelectType (SHIPS_Gate3Wave2DesTargets, SHIPS_G3Wave2GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2DesTargets, SHIPS_G3Wave2GateFound, "CLASS_HeavyCruiser"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2DesTargets, SHIPS_G3Wave2GateFound, "CLASS_Destroyer"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2DesTargets, SHIPS_G3Wave2GateFound, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate3Wave2DesTargets, SHIPS_G3Wave2GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate3Wave2DesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate3Wave2DesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3MDes))
+                            ShipsClear (SHIPS_Gate3Wave2MDesTargets);
+                            IF (ShipsSelectType (SHIPS_Gate3Wave2MDesTargets, SHIPS_G3Wave2GateFound, "SalCapCorvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2MDesTargets, SHIPS_G3Wave2GateFound, "CLASS_Fighter"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2MDesTargets, SHIPS_G3Wave2GateFound, "CLASS_Corvette"))
+                            ELSEIF (ShipsSelectClass (SHIPS_Gate3Wave2MDesTargets, SHIPS_G3Wave2GateFound, "CLASS_Frigate"))
+                            ELSE
+                                    ShipsAdd (SHIPS_Gate3Wave2MDesTargets, SHIPS_G3Wave2GateFound);
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Gate3Wave2MDesTargets) > 0)
+                                    Stop ();
+                                    Attack (SHIPS_Gate3Wave2MDesTargets);
+                            ELSE
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+
+                    IF (ThisTeamIs (TEAM_G2HC))
+                            IF ( (ShipsCount (SHIPS_Gate2Wave1HCTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G2HC) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2Int))
+                            IF ( (ShipsCount (SHIPS_Gate2Wave1IntTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G2Int) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2Bomber))
+                            IF ( (ShipsCount (SHIPS_Gate2Wave1BomTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G2Bomber) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G2Des))
+                            IF ( (ShipsCount (SHIPS_Gate2Wave2DesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G2Des) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G2MDes))
+                            IF ( (ShipsCount (SHIPS_Gate2Wave2MDesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G2MDes) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G2HC)) OR (ThisTeamIs (TEAM_G2Int)) OR (ThisTeamIs (TEAM_G2Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G2SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G1HC))
+                            IF ( (ShipsCount (SHIPS_Gate1Wave1HCTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G1HC) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1Int))
+                            IF ( (ShipsCount (SHIPS_Gate1Wave1IntTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G1Int) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1Bomber))
+                            IF ( (ShipsCount (SHIPS_Gate1Wave1BomTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G1Bomber) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G1Des))
+                            IF ( (ShipsCount (SHIPS_Gate1Wave2DesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G1Des) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G1MDes))
+                            IF ( (ShipsCount (SHIPS_Gate1Wave2MDesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G1MDes) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G1HC)) OR (ThisTeamIs (TEAM_G1Int)) OR (ThisTeamIs (TEAM_G1Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G1SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+
+
+
+                    IF (ThisTeamIs (TEAM_G3HC))
+                            IF ( (ShipsCount (SHIPS_Gate3Wave1HCTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G3HC) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3Int))
+                            IF ( (ShipsCount (SHIPS_Gate3Wave1IntTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G3Int) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3Bomber))
+                            IF ( (ShipsCount (SHIPS_Gate3Wave1BomTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G3Bomber) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+
+                    IF (ThisTeamIs (TEAM_G3Des))
+                            IF ( (ShipsCount (SHIPS_Gate3Wave2DesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G3Des) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ELSEIF (ThisTeamIs (TEAM_G3MDes))
+                            IF ( (ShipsCount (SHIPS_Gate3Wave2MDesTargets) = 0) OR (ShipsOrder (TEAMSHIPS_G3MDes) != 2) )
+                                    Jump Decide;
+                            ENDIF
+                    ENDIF
+
+
+                    IF ( (ThisTeamIs (TEAM_G3HC)) OR (ThisTeamIs (TEAM_G3Int)) OR (ThisTeamIs (TEAM_G3Bomber)) )
+                            IF ( (TeamFuelLowest () < 30) OR (TeamHealthAverage () < 40) )
+                                    IF (ShipsCount (TEAMSHIPS_G3SF) > 0)
+                                            Jump Dock;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+
+            ENDWATCH
+        ENDSTATE AttackSphere
+
+
+        STATE Dock
+            INIT
+
+                    IF ( (ThisTeamIs (TEAM_G2HC)) OR (ThisTeamIs (TEAM_G2Int)) OR (ThisTeamIs (TEAM_G2Bomber)) )
+                            Stop ();
+                            DockStay (TEAM_G2SF);
+                    ENDIF
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G1HC)) OR (ThisTeamIs (TEAM_G1Int)) OR (ThisTeamIs (TEAM_G1Bomber)) )
+                            Stop ();
+                            DockStay (TEAM_G1SF);
+                    ENDIF
+
+
+
+
+                    IF ( (ThisTeamIs (TEAM_G3HC)) OR (ThisTeamIs (TEAM_G3Int)) OR (ThisTeamIs (TEAM_G3Bomber)) )
+                            Stop ();
+                            DockStay (TEAM_G3SF);
+                    ENDIF
+
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+                    IF (TeamDockedReadyForLaunch ())
+                            Jump Launch;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Dock
+
+
+        STATE Launch
+            INIT
+                    Launch ();
+            ENDINIT
+            WATCH
+
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+
+                    IF (TeamFinishedLaunching ())
+                            Jump Decide;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Launch
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+ENDFSM HyperspaceGateTeam
+# 3917 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+FSM DummyController
+    States Null;
+
+    INIT
+            Jump Null;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE Null
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE Null
+
+
+ENDFSM DummyController
+
+
+
+
+
+
+INIT
+
+
+
+
+
+        FSMCreate (FleetIntel, TEAM_FleetIntel);
+
+        FSMCreate (MiningBase, TEAM_MiningBase);
+
+        FSMCreate (AIShips, TEAM_CPUCarrier);
+        FSMCreate (AIShips, TEAM_CPUCollector);
+
+        FSMCreate (IonSphere, TEAM_IonSphere);
+        FSMCreate (RoamingMG, TEAM_RoamingMG);
+        FSMCreate (ProxDeath, TEAM_ProxScout);
+        FSMCreate (ProxDeath, TEAM_ProxInt);
+
+        FSMCreate (InnerDefenseTeam, TEAM_InnerCruiser);
+        FSMCreate (InnerDefenseTeam, TEAM_InnerDestroyer1);
+        FSMCreate (InnerDefenseTeam, TEAM_InnerDestroyer2);
+
+        FSMCreate (InnerCloakingTeam, TEAM_CloakACruiser);
+        FSMCreate (InnerCloakingTeam, TEAM_CloakBCruiser);
+        FSMCreate (InnerCloakingTeam, TEAM_CloakADestroyer1);
+        FSMCreate (InnerCloakingTeam, TEAM_CloakBDestroyer1);
+        FSMCreate (InnerCloakingTeam, TEAM_CloakADestroyer2);
+        FSMCreate (InnerCloakingTeam, TEAM_CloakBDestroyer2);
+
+
+
+        FSMCreate (HyperspaceGateTeam, TEAM_G2HC);
+        FSMCreate (HyperspaceGateTeam, TEAM_G2Int);
+        FSMCreate (HyperspaceGateTeam, TEAM_G2Bomber);
+        FSMCreate (HyperspaceGateTeam, TEAM_G2SF);
+        FSMCreate (HyperspaceGateTeam, TEAM_G2Des);
+        FSMCreate (HyperspaceGateTeam, TEAM_G2MDes);
+
+        FSMCreate (HyperspaceGateTeam, TEAM_G1HC);
+        FSMCreate (HyperspaceGateTeam, TEAM_G1Int);
+        FSMCreate (HyperspaceGateTeam, TEAM_G1Bomber);
+        FSMCreate (HyperspaceGateTeam, TEAM_G1SF);
+        FSMCreate (HyperspaceGateTeam, TEAM_G1Des);
+        FSMCreate (HyperspaceGateTeam, TEAM_G1MDes);
+
+        FSMCreate (HyperspaceGateTeam, TEAM_G3HC);
+        FSMCreate (HyperspaceGateTeam, TEAM_G3Int);
+        FSMCreate (HyperspaceGateTeam, TEAM_G3Bomber);
+        FSMCreate (HyperspaceGateTeam, TEAM_G3SF);
+        FSMCreate (HyperspaceGateTeam, TEAM_G3Des);
+        FSMCreate (HyperspaceGateTeam, TEAM_G3MDes);
+
+        FSMCreate (DummyController, TEAM_DummyController);
+
+        FSMCreate (HiddenDummy, TEAM_HiddenDummy);
+# 4019 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+        BuildControl(TRUE);
+
+        DisableAllAIFeatures ();
+        EnableAIFeature (4, 0);
+        EnableAIFeature (10, 0);
+        EnableAIFeature (200, 0);
+        EnableAIFeature (800, 0);
+        EnableAIFeature (1000, 0);
+
+        EnableAIFeature (1, 1);
+        EnableAIFeature (2, 1);
+        EnableAIFeature (4, 1);
+        EnableAIFeature (10, 1);
+        EnableAIFeature (20, 1);
+        EnableAIFeature (40, 1);
+        EnableAIFeature (100, 1);
+        EnableAIFeature (200, 1);
+
+
+
+
+
+
+        SaveLevel(14, LSTRING_Savegame);
+ENDINIT
+
+WATCH
+
+
+
+
+
+        IFONCE (TRUE)
+                TimerCreateSetStart ("LocationCardTimer", 1);
+        ENDIFONCE
+
+        IF (TimerExpiredDestroy ("LocationCardTimer"))
+                LocationCard (5000, LSTRING_LocationCard);
+        ENDIF
+# 4075 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+        IF (NOT VarGet("G_PlayedNis") AND FindEnemiesInside (VOLUME_NISVolume, SHIPS_nisVolumeFOUND, 13000))
+                TimerCreateSetStart ("WideScreenInBeforeNIS", 5);
+                wideScreenIn(90);
+                VarCreateSet("G_PlayedNis", TRUE);
+        ENDIF
+
+
+
+        IF (TimerExpiredDestroy("WideScreenInBeforeNIS"))
+                ShipsAdd (SHIPS_NisCentreShip, TEAMSHIPS_DummyController);
+                HideShips (TEAMSHIPS_DummyController);
+                HideShips (TEAMSHIPS_MiningBase);
+                VarCreateSet ("G_PlayNis", 10);
+                VarCreateSet ("G_NISPlayingNow", TRUE);
+                PauseUniverse();
+        ENDIF
+
+
+        IFONCE (VarGet ("G_Nis10Complete"))
+                VarDestroy ("G_NISPlayingNow");
+                UnhideShips (TEAMSHIPS_MiningBase);
+                UnpauseUniverse();
+        ENDIFONCE
+# 4150 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+        IFONCE (TRUE)
+                TimerCreateSetStart ("G_FCHyperspaceSuccessful", 5);
+        ENDIFONCE
+
+
+
+        IFONCE (TRUE)
+                TimerCreateSetStart ("G_PlaySensorArrayTechEvent", Random (180, 250));
+        ENDIFONCE
+
+
+
+        IFONCE (VarGet ("G_Nis10Complete"))
+
+        ENDIFONCE
+# 4176 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+        IFONCE (VarGet ("G_FleetIntelIntroHasPlayed") = TRUE)
+                ObjectiveCreate ("DestroyGenny", LSTRING_FIDestroyGennyTASKBAR, LSTRING_FIDestroyGennyTASKBAR);
+        ENDIFONCE
+
+
+        IFONCE (ShipsCount (TEAMSHIPS_MiningBase) = 0)
+                ObjectiveSet ("DestroyGenny", TRUE);
+                PingRemove ("MiningBasePING");
+        ENDIFONCE
+
+
+
+        IFONCE (VarGet ("G_FIDestroyGatesHasPlayed") = TRUE)
+                ObjectiveCreateSecondary ("DestroyGates", LSTRING_FIDestroyGatesTASKBAR, LSTRING_FIDestroyGatesTASKBAR);
+        ENDIFONCE
+
+
+        IFONCE ( (VarGet ("G_GATE1") < 0) AND (VarGet ("G_GATE2") < 0) AND (VarGet ("G_GATE3") < 0) )
+                ObjectiveSet ("DestroyGates", TRUE);
+                PingRemove ("GATE1PING");
+                PingRemove ("GATE2PING");
+                PingRemove ("GATE3PING");
+        ENDIFONCE
+# 4207 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+        IFONCE (ObjectiveGet ("DestroyGenny") = TRUE)
+                TimerCreateSetStart ("G_AllObjectivesComplete", 4);
+        ENDIFONCE
+
+
+
+        IFONCE (VarGet ("G_TakeUsHomeEventHasPlayed") = TRUE)
+                ObjectiveCreate ("Hyperspace", LSTRING_Hyperspace, LSTRING_Hyperspace);
+        ENDIFONCE
+# 4234 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission14.kas"
+        IFONCE (VarGet ("G_SensorTechEventHasPlayed") = TRUE)
+                TechSetResearch ("SensorsArrayTech");
+        ENDIFONCE
+
+
+
+
+        IFONCE (TechGet ("MassDrive10Kt"))
+                TechSetResearch ("Chassis2");
+        ENDIFONCE
+
+
+        IF ((TechGet ("Chassis2")) AND (VarGet ("SetMediumGuns") = FALSE))
+                TechSetResearch ("MediumGuns");
+                VarCreateSet ("SetMediumGuns", TRUE);
+        ENDIF
+
+
+
+        IFONCE (TechGet ("Chassis1"))
+                TechSetResearch ("MassDrive10Kt");
+        ENDIFONCE
+
+
+
+
+
+ENDWATCH

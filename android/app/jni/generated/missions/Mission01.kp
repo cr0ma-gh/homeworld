@@ -1,0 +1,2058 @@
+# 0 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+# 0 "<built-in>"
+# 0 "<command-line>"
+# 1 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+# 9 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/Attributes.h" 1
+# 10 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas" 2
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/SpeechEvent.h" 1
+# 11 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas" 2
+
+
+    LOCALIZATION
+
+            LSTRING_LocationCard
+                "KHARAK SYSTEM"
+                "SYSTEME KHARAK"
+                "KHARAK-SYSTEM"
+                "SISTEMA DE KHARAK"
+                "IL SISTEMA DI KHARAK"
+
+            LSTRING_HarvestTASKBAR
+                "Harvest asteroids"
+                "Collecte asteroïdes"
+                "Rohstoffe in Asteroiden ernten."
+                "Cosechar asteroides"
+                "Raccogli degli asteroidi"
+
+            LSTRING_ResearchShipTASKBAR
+                "Construct a Research Ship"
+                "Construction Vaisseau de Recherche"
+                "Ein Forschungsschiff bauen"
+                "Construir nave de investigación"
+                "Costruisci una Nave da Ricerca"
+
+            LSTRING_StartResearchTASKBAR
+                "Research Fighter Chassis"
+                "Recherche sur les châssis de chasseur"
+                "Jäger-Chassis erforschen."
+                "Investigar chasis de caza"
+                "Ricerca struttura Caccia Stellare"
+
+            LSTRING_ScoutTrialFormationTASKBAR
+                "Destroy Target Drones using a formation"
+                "Destruction des Drones-cibles. Méthode : Formation"
+                "Zieldrohnen mit einer Formation vernichten."
+                "Destruir naves teledirigidas con una formación"
+                "Distruggere il bersaglio Droni servendosi di una formazione"
+
+            LSTRING_ScoutTrialTacticsTASKBAR
+                "Destroy Target Drones using tactics"
+                "Destruction des Drones-cibles. Méthode : Tactique"
+                "Zieldrohnen unter Verwendung von Taktiken zerstören."
+                "Destruir naves teledirigidas con tácticas"
+                "Distruggi il bersaglio Droni con una strategia"
+
+            LSTRING_SalvageTrialTASKBAR
+                "Capture the Drone using a Salvage Corvette."
+                "Capture du Drone. Moyens : Corvette de sauvetage."
+                "Drohne mit Hilfe einer Bergungskorvette übernehmen."
+                "Capturar la nave teledirigida con una corbeta de salvamento"
+                "Cattura il Drone utilizzando una Corvetta di Recupero"
+
+            LSTRING_InterceptorTrialTASKBAR
+                "Use Interceptors to destroy advanced drones"
+                "Destruction des Drones de pointe. Moyens : Intercepteurs"
+                "Abfangjäger zur Zerstörung von Superdrohnen verwenden."
+                "Usar interceptadores para destruir naves teledirigidas avanzadas"
+                "Utilizza gli Intercettori per distruggere i Droni rimasti"
+
+            LSTRING_HyperspaceTASKBAR
+                "                      HYPERSPACE"
+                "                      HYPERESPACE"
+                "           HYPERRAUMSPRUNG"
+                "                    HIPERESPACIO"
+                "                    IPERSPAZIO"
+
+            LSTRING_ObjectiveIncomplete
+                "A mission objective remains incomplete. Consult objectives."
+                "Il reste un objectif de mission à accomplir. Consulter objectifs.Il reste un objectif de mission à accomplir. Consulter objectifs."
+                "Eine Aufgabe dieser Mission ist noch nicht abgeschlossen. Bitte Aufgabenziele überprüfen."
+                ""
+                ""
+
+
+    ENDL
+# 96 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+FSM FleetIntel
+        States FIIntro, FIIntro2, FIIntro3,
+
+               FIFormationTrialLBXIn, FIFormationTrialLBXIn2, FIFormationOpenSensors, FIFormationTrial, FIFormationTrial2,
+               FIFormationTrialPING, FIFormationTrialLBXOut, FIFormationTrialWAITEND, FIFormationTrialEND,
+
+               TutTip1, TutorialWait, TutTip2,
+
+               FIObjectiveIncomplete,
+
+               FCHyperspaceJuice,
+
+               FCCryoTrayJuice,
+
+               FIStartResearching, FIAlreadyResearching,
+
+               FITacticsTrialLBXIn, FITacticsTrialLBXIn2, FITacticsOpenSensors, FITacticsTrial, FITacticsTrial2, FITacticsTrialPING,
+               FITacticsTrialPING2, FITacticsTrialLBXOut, FITacticsTrialWAITEND, FITacticsTrialEND,
+
+               FISalvageTrialLBXIn, FISalvageTrialLBXIn2, FISalvageOpenSensors, FISalvageTrial, FISalvageTrial2, FISalvageTrialPING, FISalvageTrialLBXOut,
+               FISalvageTrialWAITEND, FISalvageTrialEND,
+
+               FIInterceptorTrialLBXIn, FIInterceptorTrialLBXIn2, FIInterceptorOpenSensors, FIInterceptorTrial, FIInterceptorTrial2, FIInterceptorTrialPING,
+               FIInterceptorTrialLBXOut, FIInterceptorTrialWAITEND, FIInterceptorTrialEND,
+
+               FIFormationTrialRepopulation, FITacticsTrialRepopulation, FIInterceptorTrialRepopulation, FISalvageTrialRepopulation,
+
+               FICorvetteChassisRasp, FICorvetteChassisUnderwayRasp,
+
+               FIHyperspace, FCHyperspaceModuleReady, FITriggerHyperspace,
+
+
+
+               FIIdle;
+
+        INIT
+                Jump FIIdle;
+        ENDINIT
+        WATCH
+
+                IF ( (TutGameSentMessage ("Game_TaskbarOff,Start_BuildManager,Start_ResearchManager,Start_LaunchManager,KB_Sensors,TB_SensorsManager,SP_EscMenu")) AND
+                     (VarGet ("ObjectivesBoxIsFlashing") = TRUE) )
+                        TutRemoveAllPointers ();
+                        VarDestroy ("ObjectivesBoxIsFlashing");
+                ENDIF
+        ENDWATCH
+
+
+
+        STATE FIIntro
+            INIT
+                    SpeechEvent ((376 + 0x00001000 + 0x10000000),0);
+
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+
+
+                            Jump FIIntro2;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIIntro
+
+        STATE FIIntro2
+            INIT
+                    SpeechEvent ((377 + 0x00001000 + 0x10000000),0);
+                    ForceTaskbar();
+                    ForceTaskbar();
+                    SoundEvent (267);
+                    TimerCreateSetStart ("FlashTaskbar", 1);
+                    ObjectiveCreate ("ResearchShip", LSTRING_ResearchShipTASKBAR, LSTRING_ResearchShipTASKBAR);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FlashTaskbar"))
+                            TutSetPointerTargetFERegion ("TaskbarPointer", "TB_ObjectivesWindowInit");
+                            VarCreateSet ("ObjectivesBoxIsFlashing", TRUE);
+                    ENDIF
+                    IF (IntelEventEnded ())
+                            VarDestroy ("G_CLICK_ResearchShip");
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_CreateInitialObjectives", TRUE);
+                            ENDIFONCE
+                            Jump FIIntro3;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIIntro2
+
+        STATE FIIntro3
+            INIT
+                    SpeechEvent ((378 + 0x00001000 + 0x10000000),0);
+                    SoundEvent (267);
+                    ObjectiveCreate ("Harvest", LSTRING_HarvestTASKBAR, LSTRING_HarvestTASKBAR);
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            VarDestroy ("G_CLICK_Harvest");
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_CreateInitialObjectives", TRUE);
+                            ENDIFONCE
+                            IFONCE (TRUE)
+                                    Jump FCHyperspaceJuice;
+                            ENDIFONCE
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIIntro3
+# 211 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FIFormationTrialLBXIn
+            INIT
+                    TutRemoveAllPointers ();
+                    PauseOtherKAS ();
+                    wideScreenIn(90);
+                    Jump FIFormationOpenSensors;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIFormationTrialLBXIn
+
+        STATE FIFormationTrialLBXIn2
+            INIT
+                    PauseOtherKAS ();
+                    wideScreenIn(30);
+                    TimerCreateSetStart ("WideScreenTimer", 2);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("WideScreenTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FIFormationTrialPING;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIFormationTrialLBXIn2
+
+        STATE FIFormationOpenSensors
+            INIT
+                    TimerCreateSetStart ("FIOpenSensorsTimer", 4);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIOpenSensorsTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FIFormationTrial;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIFormationOpenSensors
+
+        STATE FIFormationTrial
+            INIT
+                    TimerCreateSetStart ("FIFormationTrialTimer", 1);
+            ENDINIT
+            WATCH
+
+                    IF (TimerExpiredDestroy ("FIFormationTrialTimer"))
+                            Jump FIFormationTrial2;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIFormationTrial
+
+        STATE FIFormationTrial2
+            INIT
+                    SpeechEvent ((379 + 0x00001000 + 0x10000000),0);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FIFormationTrialEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FIFormationTrialPING;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIFormationTrial2
+
+        STATE FIFormationTrialPING
+            INIT
+                    SpeechEvent ((380 + 0x00001000 + 0x10000000),0);
+                    TimerCreateSetStart ("FIFormationTrialPINGTimer", 1);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            IF (VarGet ("NeverCreateFormationPingAgain") = FALSE)
+                                    PingAddShips (TEAMSHIPS_TDFormationTrial, "FormationTrialPING");
+
+                                    VarCreateSet ("NeverCreateFormationPingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FIFormationTrialEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FIFormationTrialWAITEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FIFormationTrialPINGTimer"))
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateFormationPingAgain") = FALSE)
+                                    PingAddShips (TEAMSHIPS_TDFormationTrial, "FormationTrialPING");
+
+                                    VarCreateSet ("NeverCreateFormationPingAgain", TRUE);
+                            ENDIF
+                            TutSetTextDisplayBoxToSubtitleRegion();
+                            TutSetPointerTargetShipSelection ("FormationTrialPOINTER", TEAMSHIPS_TDFormationTrial);
+
+
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIFormationTrialPING
+
+        STATE FIFormationTrialLBXOut
+            INIT
+                    TimerCreateSetStart ("FIFormationTrialLBXOutTimer", 10);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIFormationTrialLBXOutTimer"))
+                            wideScreenOut(150);
+                            Jump FIFormationTrialWAITEND;
+                    ENDIF
+                    IF (IntelEventEnded())
+                            wideScreenOut (30);
+                            Jump FIFormationTrialEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIFormationTrialLBXOut
+
+        STATE FIFormationTrialWAITEND
+            INIT
+                    TimerCreateSetStart ("FIFormationTrialENDTimer", 2);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FIFormationTrialEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FIFormationTrialENDTimer"))
+                            wideScreenOut (30);
+                            Jump FIFormationTrialEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIFormationTrialWAITEND
+
+        STATE FIFormationTrialEND
+            INIT
+                    TutRemoveAllPointers ();
+                    UnpauseUniverse();
+                    UnpauseOtherKAS ();
+                    CloseSensors (TRUE);
+                    VarDestroy ("G_CLICK_ScoutTrialFormations");
+                    IFONCE (TRUE)
+                            VarCreateSet ("G_BeginScoutTrialFormations", TRUE);
+                            TimerCreateSetStart ("DisplayTutTip1", 7);
+                    ENDIFONCE
+                    Jump FIIdle;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIFormationTrialEND
+# 372 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE TutTip1
+            INIT
+
+
+
+
+
+                    TimerCreateSetStart ("GoToTutorialTip1",10);
+            ENDINIT
+            WATCH
+# 392 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+                    IF ( (TutNextButtonClicked()) OR (TimerExpiredDestroy ("GoToTutorialTip1")) )
+
+
+                            TimerCreateSetStart ("DisplayTutTip2", 1);
+                            Jump TutorialWait;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE TutTip1
+
+        STATE TutorialWait
+            INIT
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("DisplayTutTip2"))
+                            Jump TutTip2;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE TutorialWait
+
+        STATE TutTip2
+            INIT
+
+
+
+
+
+                    TimerCreateSetStart ("GoToTutorialTip2",10);
+            ENDINIT
+            WATCH
+# 431 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+                    IF ( (TutNextButtonClicked()) OR
+                         (TimerExpiredDestroy ("GoToTutorialTip2")) OR
+                         (VarGet ("G_CLICK_Harvest")) OR
+                         (VarGet ("G_CLICK_ResearchShip")) OR
+                         (VarGet ("G_CLICK_ScoutTrialFormations")) )
+                            TutHideText();
+                            TutHideNextButton();
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE TutTip2
+# 452 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FCHyperspaceJuice
+            INIT
+                    SpeechEvent ((391 + 0x00000800 + 0x10000000),0);
+                    VarCreateSet ("G_FormationDronesHyperspaceIn", TRUE);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FCHyperspaceJuice
+# 476 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FIObjectiveIncomplete
+            INIT
+                    SubtitleSimulate (4, 300, LSTRING_ObjectiveIncomplete);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIObjectiveIncomplete
+# 497 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FCCryoTrayJuice
+            INIT
+
+
+            ENDINIT
+            WATCH
+
+
+                            Jump FIIdle;
+
+            ENDWATCH
+        ENDSTATE FCCryoTrayJuice
+# 520 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FIStartResearching
+            INIT
+                    SpeechEvent ((734 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            VarCreateSet ("G_OnlyCreateResearchObjOnce", TRUE);
+                            VarDestroy ("G_CLICK_StartResearch");
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIStartResearching
+# 544 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FIAlreadyResearching
+            INIT
+
+
+            ENDINIT
+            WATCH
+
+
+                            Jump FIIdle;
+
+            ENDWATCH
+        ENDSTATE FIAlreadyResearching
+# 564 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FITacticsTrialLBXIn
+            INIT
+                    PauseOtherKAS ();
+                    wideScreenIn(90);
+                    Jump FITacticsOpenSensors;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FITacticsTrialLBXIn
+
+        STATE FITacticsTrialLBXIn2
+            INIT
+                    wideScreenIn(30);
+                    TimerCreateSetStart ("WideScreenTimer", 2);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("WideScreenTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FITacticsTrialPING;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FITacticsTrialLBXIn2
+
+        STATE FITacticsOpenSensors
+            INIT
+                    TimerCreateSetStart ("FIOpenSensorsTimer", 4);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIOpenSensorsTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FITacticsTrial;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FITacticsOpenSensors
+
+        STATE FITacticsTrial
+            INIT
+                    TimerCreateSetStart ("FITacticsTrialTimer", 1);
+            ENDINIT
+            WATCH
+
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FITacticsTrialEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FITacticsTrialTimer"))
+
+                            Jump FITacticsTrial2;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FITacticsTrial
+
+        STATE FITacticsTrial2
+            INIT
+                    SpeechEvent ((382 + 0x00001000 + 0x10000000),0);
+            ENDINIT
+            WATCH
+
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FITacticsTrialEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FITacticsTrialPING;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FITacticsTrial2
+
+        STATE FITacticsTrialPING
+            INIT
+                    SpeechEvent ((383 + 0x00001000 + 0x10000000),0);
+                    TimerCreateSetStart ("FITacticsTrialPINGTimer", 6);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            IF (VarGet ("NeverCreateTacticsPingAgain") = FALSE)
+
+                                    VarCreateSet ("NeverCreateTacticsPingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FITacticsTrialEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FITacticsTrialWAITEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FITacticsTrialPINGTimer"))
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateTacticsPingAgain") = FALSE)
+
+
+                                    VarCreateSet ("NeverCreateTacticsPingAgain", TRUE);
+                            ENDIF
+                            TutSetTextDisplayBoxToSubtitleRegion();
+                            TutSetPointerTargetShipSelection("TacticsTrialPOINTER", TEAMSHIPS_TDTacticsTrial);
+
+
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FITacticsTrialPING
+
+
+        STATE FITacticsTrialPING2
+            INIT
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FITacticsTrialPINGTimer"))
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateTacticsPingAgain") = FALSE)
+
+
+                                    VarCreateSet ("NeverCreateTacticsPingAgain", TRUE);
+                            ENDIF
+                            TutSetTextDisplayBoxToSubtitleRegion();
+                            TutSetPointerTargetShipSelection("TacticsTrialPOINTER", TEAMSHIPS_TDTacticsTrial);
+
+                            Jump FITacticsTrialLBXOut;
+                    ENDIF
+                    IF (IntelEventEnded())
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateTacticsPingAgain") = FALSE)
+
+
+                                    VarCreateSet ("NeverCreateTacticsPingAgain", TRUE);
+                            ENDIF
+                            TutSetTextDisplayBoxToSubtitleRegion();
+                            TutSetPointerTargetShipSelection("TacticsTrialPOINTER", TEAMSHIPS_TDTacticsTrial);
+
+                            wideScreenOut (30);
+                            Jump FITacticsTrialEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FITacticsTrialPING2
+
+
+
+
+
+        STATE FITacticsTrialLBXOut
+            INIT
+                    TimerCreateSetStart ("FITacticsTrialLBXOutTimer", 15);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FITacticsTrialLBXOutTimer"))
+                            wideScreenOut(150);
+                            Jump FITacticsTrialEND;
+                    ENDIF
+                    IF (IntelEventEnded() = 2)
+                            wideScreenOut (30);
+                            Jump FITacticsTrialEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FITacticsTrialLBXOut
+
+        STATE FITacticsTrialWAITEND
+            INIT
+                    TimerCreateSetStart ("FITacticsTrialENDTimer", 2);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FITacticsTrialEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FITacticsTrialENDTimer"))
+                            wideScreenOut (30);
+                            Jump FITacticsTrialEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FITacticsTrialWAITEND
+
+        STATE FITacticsTrialEND
+            INIT
+            ENDINIT
+            WATCH
+                    TutRemoveAllPointers ();
+                    UnpauseUniverse();
+                    UnpauseOtherKAS ();
+                    CloseSensors (TRUE);
+                    IFONCE (TRUE)
+                            VarCreateSet ("G_BeginScoutTrialTactics", TRUE);
+                    ENDIFONCE
+                    VarDestroy ("G_CLICK_ScoutTrialTactics");
+                    Jump FIIdle;
+            ENDWATCH
+        ENDSTATE FITacticsTrialEND
+# 774 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FISalvageTrialLBXIn
+            INIT
+
+                    IFONCE (TRUE)
+                            VarCreateSet ("G_SalvageTrialHasBegun", TRUE);
+                    ENDIFONCE
+                    wideScreenIn(90);
+                    Jump FISalvageOpenSensors;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FISalvageTrialLBXIn
+
+        STATE FISalvageTrialLBXIn2
+            INIT
+                    PauseOtherKAS ();
+                    wideScreenIn(30);
+                    TimerCreateSetStart ("WideScreenTimer", 2);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("WideScreenTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FISalvageTrialPING;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageTrialLBXIn2
+
+        STATE FISalvageOpenSensors
+            INIT
+                    TimerCreateSetStart ("FIOpenSensorsTimer", 4);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIOpenSensorsTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FISalvageTrial;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageOpenSensors
+
+        STATE FISalvageTrial
+            INIT
+                    TimerCreateSetStart ("FISalvageTrialTimer", 1);
+            ENDINIT
+            WATCH
+
+                    IF (TimerExpiredDestroy ("FISalvageTrialTimer"))
+
+                            Jump FISalvageTrial2;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageTrial
+
+        STATE FISalvageTrial2
+            INIT
+                    IFONCE (TRUE)
+                            VarCreateSet ("G_CreateSalvageObjective", TRUE);
+                    ENDIFONCE
+                    SpeechEvent ((385 + 0x00001000 + 0x10000000),0);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FISalvageTrialEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FISalvageTrialPING;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageTrial2
+
+        STATE FISalvageTrialPING
+            INIT
+                    IFONCE (TRUE)
+                            VarCreateSet ("G_CreateSalvageObjective", TRUE);
+                    ENDIFONCE
+                    SpeechEvent ((386 + 0x00001000 + 0x10000000),0);
+                    TimerCreateSetStart ("FISalvageTrialPINGTimer", 4);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateSalvagePingAgain") = FALSE)
+
+
+                                    VarCreateSet ("NeverCreateSalvagePingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FISalvageTrialEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FISalvageTrialWAITEND;
+                    ENDIF
+
+
+
+                    IF (TimerExpiredDestroy ("FISalvageTrialPINGTimer"))
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateSalvagePingAgain") = FALSE)
+
+
+                                    VarCreateSet ("NeverCreateSalvagePingAgain", TRUE);
+                            ENDIF
+                            TutSetTextDisplayBoxToSubtitleRegion();
+                            TutSetPointerTargetShipSelection("SalvageTrialPOINTER", TEAMSHIPS_TDSalvageTrial);
+
+
+                    ENDIF
+
+            ENDWATCH
+        ENDSTATE FISalvageTrialPING
+
+        STATE FISalvageTrialLBXOut
+            INIT
+                    TimerCreateSetStart ("FISalvageTrialLBXOutTimer", 5);
+            ENDINIT
+            WATCH
+                    IF ( (TimerExpiredDestroy ("FISalvageTrialLBXOutTimer")) OR (IntelEventEnded()) )
+                            wideScreenOut(150);
+                            Jump FISalvageTrialWAITEND;
+                    ENDIF
+                    IF (IntelEventEnded())
+                            wideScreenOut (30);
+                            Jump FISalvageTrialEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageTrialLBXOut
+
+        STATE FISalvageTrialWAITEND
+            INIT
+                    TimerCreateSetStart ("FISalvageTrialENDTimer", 2);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FISalvageTrialEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FISalvageTrialENDTimer"))
+                            wideScreenOut (30);
+                            Jump FISalvageTrialEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageTrialWAITEND
+
+        STATE FISalvageTrialEND
+            INIT
+                    TutRemoveAllPointers ();
+                    UnpauseUniverse();
+                    UnpauseOtherKAS ();
+                    CloseSensors (TRUE);
+                    VarDestroy ("G_CLICK_SalvageTrial");
+                    Jump FIIdle;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FISalvageTrialEND
+# 951 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FIInterceptorTrialLBXIn
+            INIT
+                    PauseOtherKAS ();
+                    wideScreenIn(90);
+                    Jump FIInterceptorOpenSensors;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIInterceptorTrialLBXIn
+
+        STATE FIInterceptorTrialLBXIn2
+            INIT
+                    wideScreenIn(30);
+                    TimerCreateSetStart ("WideScreenTimer", 2);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("WideScreenTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse ();
+                            Jump FIInterceptorTrialPING;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIInterceptorTrialLBXIn2
+
+        STATE FIInterceptorOpenSensors
+            INIT
+                    TimerCreateSetStart ("FIOpenSensorsTimer", 4);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIOpenSensorsTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FIInterceptorTrial;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIInterceptorOpenSensors
+
+        STATE FIInterceptorTrial
+            INIT
+                    VarCreateSet ("G_BeginInterceptorTrialNOW", TRUE);
+                    TimerCreateSetStart ("FIInterceptorTrialTimer", 1);
+            ENDINIT
+            WATCH
+
+                    IF (TimerExpiredDestroy ("FIInterceptorTrialTimer"))
+
+                            Jump FIInterceptorTrial2;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIInterceptorTrial
+
+        STATE FIInterceptorTrial2
+            INIT
+                    SpeechEvent ((388 + 0x00001000 + 0x10000000),0);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FIInterceptorTrialEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FIInterceptorTrialPING;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIInterceptorTrial2
+
+        STATE FIInterceptorTrialPING
+            INIT
+                    SpeechEvent ((389 + 0x00001000 + 0x10000000),0);
+                    TimerCreateSetStart ("FIInterceptorTrialPINGTimer", 3);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            IF (VarGet ("NeverCreateInterceptorPingAgain") = FALSE)
+
+
+                                    VarCreateSet ("NeverCreateInterceptorPingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FIInterceptorTrialEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FIInterceptorTrialWAITEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FIInterceptorTrialPINGTimer"))
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateInterceptorPingAgain") = FALSE)
+
+
+                                    VarCreateSet ("NeverCreateInterceptorPingAgain", TRUE);
+                            ENDIF
+                            TutSetTextDisplayBoxToSubtitleRegion();
+                            TutSetPointerTargetShipSelection ("InterceptorTrialPOINTER", TEAMSHIPS_TDInterceptorTrial);
+
+
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIInterceptorTrialPING
+
+        STATE FIInterceptorTrialLBXOut
+            INIT
+                    TimerCreateSetStart ("FIInterceptorTrialLBXOutTimer", 10);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIInterceptorTrialLBXOutTimer"))
+                            wideScreenOut(150);
+                            Jump FIInterceptorTrialWAITEND;
+                    ENDIF
+                    IF (IntelEventEnded ())
+                            wideScreenOut (30);
+                            Jump FIInterceptorTrialEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIInterceptorTrialLBXOut
+
+        STATE FIInterceptorTrialWAITEND
+            INIT
+                    TimerCreateSetStart ("FIInterceptorTrialENDTimer", 2);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FIInterceptorTrialEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FIInterceptorTrialENDTimer"))
+                            wideScreenOut (30);
+                            Jump FIInterceptorTrialEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIInterceptorTrialWAITEND
+
+        STATE FIInterceptorTrialEND
+            INIT
+                    TutRemoveAllPointers ();
+                    UnpauseUniverse();
+                    UnpauseOtherKAS ();
+                    CloseSensors (TRUE);
+                    VarDestroy ("G_CLICK_InterceptorTrial");
+                    Jump FIIdle;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIInterceptorTrialEND
+# 1111 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FIFormationTrialRepopulation
+            INIT
+                    SpeechEvent ((381 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIFormationTrialRepopulation
+
+
+        STATE FITacticsTrialRepopulation
+            INIT
+                    SpeechEvent ((384 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FITacticsTrialRepopulation
+
+
+        STATE FIInterceptorTrialRepopulation
+            INIT
+                    SpeechEvent ((390 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIInterceptorTrialRepopulation
+
+
+        STATE FISalvageTrialRepopulation
+            INIT
+                    SpeechEvent ((387 + 0x00001000 + 0x10000000),0);
+
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageTrialRepopulation
+# 1177 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FICorvetteChassisRasp
+            INIT
+
+
+            ENDINIT
+            WATCH
+
+
+                            Jump FIIdle;
+
+            ENDWATCH
+        ENDSTATE FICorvetteChassisRasp
+
+
+        STATE FICorvetteChassisUnderwayRasp
+            INIT
+
+
+            ENDINIT
+            WATCH
+
+
+                            Jump FIIdle;
+
+            ENDWATCH
+        ENDSTATE FICorvetteChassisUnderwayRasp
+# 1214 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FIHyperspace
+            INIT
+                    SpeechEvent ((755 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FCHyperspaceModuleReady;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIHyperspace
+
+
+        STATE FCHyperspaceModuleReady
+            INIT
+                    SpeechEvent ((393 + 0x00000800 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FITriggerHyperspace;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FCHyperspaceModuleReady
+
+
+        STATE FITriggerHyperspace
+            INIT
+                    SpeechEvent ((394 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            TimerCreateSetStart ("G_MissionCompleteTimer", 1);
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FITriggerHyperspace
+# 1264 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        STATE FIIdle
+            INIT
+            ENDINIT
+            WATCH
+
+
+
+                IF (TimerExpiredDestroy ("G_FleetIntelTimer"))
+                        Jump FIIntro;
+                ENDIF
+
+
+                IFONCE ( (TimerExpiredDestroy ("G_BeginScoutTrials")) OR (VarGet ("G_PlayFIFormationImmediately") = TRUE) )
+                        VarDestroy ("G_PlayFIFormationImmediately");
+                        TimerDestroy ("G_BeginScoutTrials");
+                        VarCreateSet ("G_FIFormationTrialHasPlayed", TRUE);
+                        Jump FIFormationTrialLBXIn;
+                ENDIFONCE
+
+
+                IF (TimerExpiredDestroy ("DisplayTutTip1"))
+
+                ENDIF
+
+
+
+
+
+
+
+                IF (TimerExpiredDestroy ("G_FCCryoTrayJuice"))
+                        Jump FCCryoTrayJuice;
+                ENDIF
+
+
+                IF ( (VarGet ("G_ReadyToHYPERSPACE") = FALSE) AND (TimerExpiredDestroy ("G_ResearchPopup")) )
+                        IF (TechIsResearching ())
+                                Jump FIAlreadyResearching;
+                        ELSE
+                                Jump FIStartResearching;
+                        ENDIF
+                ENDIF
+
+
+
+                IFONCE (TimerExpiredDestroy ("G_BeginTacticsTrialNow"))
+                        Jump FITacticsTrialLBXIn;
+                ENDIFONCE
+
+
+                IFONCE (TimerExpiredDestroy ("G_BeginSalvageTrialNow"))
+                        Jump FISalvageTrialLBXIn;
+                ENDIFONCE
+# 1325 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+                IF (VarGet ("G_FormationTrialRepopulation") = TRUE)
+                        IF (VarGet ("G_BeginScoutTrialFormations") = TRUE)
+                                VarDestroy ("G_FormationTrialRepopulation");
+                                Jump FIFormationTrialRepopulation;
+                        ENDIF
+                ENDIF
+
+
+                IF (VarGet ("G_TacticsTrialRepopulation") = TRUE)
+                        IF (VarGet ("G_BeginScoutTrialTactics") = TRUE)
+                                VarDestroy ("G_TacticsTrialRepopulation");
+                                Jump FITacticsTrialRepopulation;
+                        ENDIF
+                ENDIF
+
+
+                IF (VarGet ("G_InterceptorTrialRepopulation") = TRUE)
+                        IF (VarGet ("G_BeginInterceptorTrialNOW") = TRUE)
+                                VarDestroy ("G_InterceptorTrialRepopulation");
+                                Jump FIInterceptorTrialRepopulation;
+                        ENDIF
+                ENDIF
+
+
+                IF (VarGet ("G_SalvageTrialRepopulation") = TRUE)
+                        IF (VarGet ("G_BeginSalvageTrial") = TRUE)
+                                VarDestroy ("G_SalvageTrialRepopulation");
+                                Jump FISalvageTrialRepopulation;
+                        ENDIF
+                ENDIF
+
+
+                IF ( (VarGet ("G_PlayedCorvetteChassisUnderwayRasp") = FALSE) AND (TimerExpiredDestroy ("PlayCorvetteChassisRasp")) )
+                        Jump FICorvetteChassisRasp;
+                ENDIF
+
+
+                IF ( (VarGet ("G_PlayedCorvetteChassisUnderwayRasp") = FALSE) AND (TimerExpiredDestroy ("PlayCorvetteChassisUnderwayRasp")) )
+                        VarCreateSet ("G_PlayedCorvetteChassisRasp", TRUE);
+                        Jump FICorvetteChassisUnderwayRasp;
+                ENDIF
+
+
+                IFONCE (VarGet ("G_ReadyToHYPERSPACE") = TRUE)
+                        Jump FIHyperspace;
+                ENDIFONCE
+# 1380 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+                IF (VarGet ("G_CLICK_ResearchShip"))
+                        Jump FIIntro2;
+                ENDIF
+
+
+                IF (VarGet ("G_CLICK_Harvest"))
+                        Jump FIIntro3;
+                ENDIF
+
+
+                IF (VarGet("G_CLICK_ScoutTrialFormations"))
+                    Jump FIFormationTrialLBXIn2;
+                ENDIF
+
+
+                IF (VarGet("G_CLICK_StartResearch"))
+                    Jump FIStartResearching;
+                ENDIF
+
+
+                IF (VarGet("G_CLICK_ScoutTrialTactics"))
+                    Jump FITacticsTrialLBXIn2;
+                ENDIF
+
+
+                IF (VarGet("G_CLICK_SalvageTrial"))
+                    Jump FISalvageTrialLBXIn2;
+                ENDIF
+
+
+                IF (VarGet("G_CLICK_InterceptorTrial"))
+                    Jump FIInterceptorTrialLBXIn2;
+                ENDIF
+
+
+            ENDWATCH
+        ENDSTATE FIIdle
+
+
+
+ENDFSM FleetIntel
+# 1431 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+FSM TDFormationTrial
+    States WatchForAttackers, WaitingForShips, GetIntoPosition;
+
+    INIT
+            TeamAttributesSet (0x0080);
+            TeamHyperspaceOut ();
+
+    ENDINIT
+    WATCH
+            IF (ShipsCount (THISTEAMSHIPS) > 1)
+                    IF (UnderAttack (SHIPS_FormTrialTDUnderAttack))
+
+                    ENDIF
+            ELSE
+                    ShipsClear (SHIPS_FormTrialTDUnderAttack);
+            ENDIF
+
+            IFONCE (VarGet ("G_FormationDronesHyperspaceIn") = TRUE)
+                    Jump GetIntoPosition;
+            ENDIFONCE
+    ENDWATCH
+
+        STATE WatchForAttackers
+            INIT
+            ENDINIT
+            WATCH
+                    IFONCE ( (ShipsCount (TEAMSHIPS_TDFormationTrial) < 9) AND (VarGet ("G_FIFormationTrialHasPlayed") = FALSE) )
+                            VarCreateSet ("G_PlayFIFormationImmediately", TRUE);
+                    ENDIFONCE
+                    IF (VarGet ("G_TDFormationGoToWaiting") = TRUE)
+                            VarDestroy ("G_TDFormationGoToWaiting");
+                            Jump WaitingForShips;
+                    ENDIF
+
+
+
+
+
+
+            ENDWATCH
+        ENDSTATE WatchForAttackers
+
+
+        STATE WaitingForShips
+            INIT
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_TDFormationTrial) = 9)
+                            FormationWall ();
+                            TeamHyperspaceOut ();
+                            Jump GetIntoPosition;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WaitingForShips
+
+
+        STATE GetIntoPosition
+            INIT
+                    TeamHyperspaceIn (POINT_FormationTrialPING);
+            ENDINIT
+            WATCH
+                    IF (Nearby (POINT_TacticsTrialPING, 500))
+                            PingAddShips (TEAMSHIPS_TDTacticsTrial, "TacticsTrialPING");
+                            Jump WatchForAttackers;
+                    ENDIF
+                    IF (VarGet ("G_TDFormationGoToWaiting") = TRUE)
+                            VarDestroy ("G_TDFormationGoToWaiting");
+                            Jump WaitingForShips;
+                    ENDIF
+
+
+
+
+
+
+            ENDWATCH
+        ENDSTATE GetIntoPosition
+
+
+ENDFSM TDFormationTrial
+
+
+
+
+FSM TDFormationRepopulation
+    States WatchForFailure, GiveDronesToTeam;
+
+    INIT
+            Jump WatchForFailure;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE WatchForFailure
+            INIT
+                    RequestShips ("TargetDrone", 9);
+            ENDINIT
+            WATCH
+                    IF ( (ShipsCount (TEAMSHIPS_TDFormationTrial) = 0) AND
+                         (VarGet ("G_PlayerHasUsedFormation") = FALSE) )
+                            PingRemove ("FormationTrialPING");
+                            VarCreateSet ("G_FormationTrialRepopulation", TRUE);
+                            Jump GiveDronesToTeam;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WatchForFailure
+
+
+        STATE GiveDronesToTeam
+            INIT
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_TDFormationRepopulation) = 9)
+                            ReinforceTeamWithShips (TEAM_TDFormationTrial, TEAMSHIPS_TDFormationRepopulation);
+                            ShipsRemove (TEAMSHIPS_TDFormationRepopulation, TEAMSHIPS_TDFormationRepopulation);
+                            VarCreateSet ("G_TDFormationGoToWaiting", TRUE);
+                            Jump WatchForFailure;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE GiveDronesToTeam
+
+ENDFSM TDFormationRepopulation
+
+
+
+
+FSM TDTacticsTrial
+    States WaitForObjective, WaitingForShips, GetIntoPosition, WatchForAttackers;
+
+    INIT
+            Jump WaitForObjective;
+    ENDINIT
+    WATCH
+            IF (UnderAttack (SHIPS_TacticsTrialTDUnderAttack))
+
+            ENDIF
+    ENDWATCH
+
+
+        STATE WaitForObjective
+            INIT
+
+                    HideShips (TEAMSHIPS_TDTacticsTrial);
+                    TeamHyperspaceOut ();
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_BeginTacticsTrial") = TRUE)
+
+                            FormationWall ();
+                            Jump GetIntoPosition;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WaitForObjective
+
+
+        STATE WaitingForShips
+            INIT
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_TDTacticsTrial) = 16)
+                            FormationWall ();
+                            TeamHyperspaceOut ();
+                            Jump GetIntoPosition;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WaitingForShips
+
+
+        STATE GetIntoPosition
+            INIT
+                    TeamHyperspaceIn (POINT_TacticsTrialPING);
+            ENDINIT
+            WATCH
+                    IF (Nearby (POINT_TacticsTrialPING, 500))
+                            PingAddShips (TEAMSHIPS_TDTacticsTrial, "TacticsTrialPING");
+                            Jump WatchForAttackers;
+                    ENDIF
+                    IF (VarGet ("G_TDTacticsGoToWaiting") = TRUE)
+                            VarDestroy ("G_TDTacticsGoToWaiting");
+                            Jump WaitingForShips;
+                    ENDIF
+
+
+
+
+
+
+            ENDWATCH
+        ENDSTATE GetIntoPosition
+
+
+        STATE WatchForAttackers
+            INIT
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_TDTacticsGoToWaiting") = TRUE)
+                            VarDestroy ("G_TDTacticsGoToWaiting");
+                            Jump WaitingForShips;
+                    ENDIF
+
+
+
+
+
+
+            ENDWATCH
+        ENDSTATE WatchForAttackers
+
+
+ENDFSM TDTacticsTrial
+
+
+
+
+FSM TDTacticsRepopulation
+    States WatchForFailure, GiveDronesToTeam;
+
+    INIT
+            Jump WatchForFailure;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE WatchForFailure
+            INIT
+                    RequestShips ("TargetDrone", 16);
+            ENDINIT
+            WATCH
+                    IF ( (ShipsCount (TEAMSHIPS_TDTacticsTrial) = 0) AND
+                         (VarGet ("G_PlayerHasUsedTactics") = FALSE) AND
+                         (VarGet ("G_BeginScoutTrialTactics") = TRUE) )
+                            PingRemove ("TacticsTrialPING");
+                            VarCreateSet ("G_TacticsTrialRepopulation", TRUE);
+                            Jump GiveDronesToTeam;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WatchForFailure
+
+
+        STATE GiveDronesToTeam
+            INIT
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_TDTacticsRepopulation) = 16)
+                            ReinforceTeamWithShips (TEAM_TDTacticsTrial, TEAMSHIPS_TDTacticsRepopulation);
+                            ShipsRemove (TEAMSHIPS_TDTacticsRepopulation, TEAMSHIPS_TDTacticsRepopulation);
+                            VarCreateSet ("G_TDTacticsGoToWaiting", TRUE);
+                            Jump WatchForFailure;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE GiveDronesToTeam
+
+ENDFSM TDTacticsRepopulation
+
+
+
+
+FSM TDInterceptorTrial
+    States WaitForObjective, WaitingForShips, GetIntoPosition, WatchForAttackers, Attack, WaitToPatrolAgain;
+
+    INIT
+            Jump WaitForObjective;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE WaitForObjective
+            INIT
+                    RequestShips ("TargetDrone", 9);
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_BeginInterceptorTrial") = TRUE)
+
+                            Jump WaitingForShips;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WaitForObjective
+
+
+        STATE WaitingForShips
+            INIT
+
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_TDInterceptorTrial) = 9)
+                            UnHideShips (TEAMSHIPS_TDInterceptorTrial);
+                            FormationDelta3D ();
+                            HideShips (TEAMSHIPS_TDInterceptorTrial);
+                            TeamHyperspaceOut ();
+                            Jump GetIntoPosition;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WaitingForShips
+
+
+        STATE GetIntoPosition
+            INIT
+                    TeamHyperspaceIn (POINT_InterceptorTrialPING);
+                    TimerCreateSetStart ("TDIntHyperspaceInTimer", 12);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("TDIntHyperspaceInTimer"))
+                            IF (VarGet ("G_NeverCreateTDIntPingAgain") = FALSE)
+                                    PingAddShips (TEAMSHIPS_TDInterceptorTrial, "InterceptorTrialPING");
+                                    VarCreateSet ("G_NeverCreateTDIntPingAgain", TRUE);
+                            ENDIF
+                            TeamHealthSet (600);
+                            Jump WatchForAttackers;
+                    ENDIF
+
+                    IF (UnderAttack (SHIPS_AdvancedTDFOUND))
+                            ShipsSelectType (SHIPS_InterceptorTargets, SHIPS_AdvancedTDFOUND, "HeavyInterceptor");
+                            IF (ShipsCount (SHIPS_InterceptorTargets) > 0)
+                                    VarCreateSet ("G_PlayerHasUsedInterceptors", TRUE);
+                                    IF (VarGet ("G_NeverCreateTDIntPingAgain") = FALSE)
+                                            PingAddShips (TEAMSHIPS_TDInterceptorTrial, "InterceptorTrialPING");
+                                            VarCreateSet ("G_NeverCreateTDIntPingAgain", TRUE);
+                                    ENDIF
+                                    TeamHealthSet (600);
+                                    Jump Attack;
+                            ENDIF
+                    ENDIF
+                    IF (VarGet ("G_TDInterceptorGoToWaiting") = TRUE)
+                            VarDestroy ("G_TDInterceptorGoToWaiting");
+                            Jump WaitingForShips;
+                    ENDIF
+
+
+
+
+
+
+            ENDWATCH
+        ENDSTATE GetIntoPosition
+
+
+        STATE WatchForAttackers
+            INIT
+            ENDINIT
+            WATCH
+                    IF (FindEnemiesInside (VOLUME_InterceptorTRIAL, SHIPS_AdvancedTDFOUND, 2500))
+                            ShipsSelectType (SHIPS_InterceptorTargets, SHIPS_AdvancedTDFOUND, "HeavyInterceptor");
+                            IF (ShipsCount (SHIPS_InterceptorTargets) > 0)
+                                    VarCreateSet ("G_PlayerHasUsedInterceptors", TRUE);
+                                    Jump Attack;
+                            ENDIF
+                    ENDIF
+                    IF (VarGet ("G_TDInterceptorGoToWaiting") = TRUE)
+                            VarDestroy ("G_TDInterceptorGoToWaiting");
+                            Jump WaitingForShips;
+                    ENDIF
+
+
+
+
+
+
+            ENDWATCH
+        ENDSTATE WatchForAttackers
+
+
+        STATE Attack
+            INIT
+                    Attack (SHIPS_InterceptorTargets);
+            ENDINIT
+            WATCH
+
+                    IF (FindEnemiesInside (VOLUME_InterceptorTRIAL, SHIPS_AdvancedTDFOUND, 1000))
+                            ShipsSelectType (SHIPS_InterceptorTargets, SHIPS_AdvancedTDFOUND, "HeavyInterceptor");
+                            IF (ShipsCount (SHIPS_InterceptorTargets) = 0)
+                                    Stop ();
+                                    TimerCreateSetStart ("NotUnderAttack", 10);
+                                    Jump WaitToPatrolAgain;
+                            ENDIF
+                    ENDIF
+                    IF (VarGet ("G_TDInterceptorGoToWaiting") = TRUE)
+                            VarDestroy ("G_TDInterceptorGoToWaiting");
+                            Jump WaitingForShips;
+                    ENDIF
+
+
+
+
+
+
+            ENDWATCH
+        ENDSTATE Attack
+
+
+        STATE WaitToPatrolAgain
+            INIT
+            ENDINIT
+            WATCH
+                    IF (FindEnemiesInside (VOLUME_InterceptorTRIAL, SHIPS_AdvancedTDFOUND, 2500))
+                            ShipsSelectType (SHIPS_InterceptorTargets, SHIPS_AdvancedTDFOUND, "HeavyInterceptor");
+                            IF (ShipsCount (SHIPS_InterceptorTargets) > 0)
+                                    VarCreateSet ("G_PlayerHasUsedInterceptors", TRUE);
+                                    Jump Attack;
+                            ENDIF
+                    ENDIF
+                    IF (VarGet ("G_TDInterceptorGoToWaiting") = TRUE)
+                            VarDestroy ("G_TDInterceptorGoToWaiting");
+                            Jump WaitingForShips;
+                    ENDIF
+
+
+
+
+
+
+                    IF (TimerExpiredDestroy ("NotUnderAttack"))
+                            MoveTo (POINT_InterceptorTrialPING);
+                            Jump WatchForAttackers;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WaitToPatrolAgain
+
+
+ENDFSM TDInterceptorTrial
+
+
+
+
+FSM TDIntRepopulation
+    States WatchForFailure, GiveDronesToTeam;
+
+    INIT
+            Jump WatchForFailure;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE WatchForFailure
+            INIT
+                    RequestShips ("TargetDrone", 9);
+            ENDINIT
+            WATCH
+                    IF ( (ShipsCount (TEAMSHIPS_TDInterceptorTrial) = 0) AND
+                         (VarGet ("G_PlayerHasUsedInterceptors") = FALSE) AND
+                         (ObjectiveGet ("ScoutTrialFormations") = TRUE) )
+                            PingRemove ("InterceptorTrialPING");
+                            VarCreateSet ("G_InterceptorTrialRepopulation", TRUE);
+                            Jump GiveDronesToTeam;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WatchForFailure
+
+
+        STATE GiveDronesToTeam
+            INIT
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_TDIntRepopulation) = 9)
+                            ReinforceTeamWithShips (TEAM_TDInterceptorTrial, TEAMSHIPS_TDIntRepopulation);
+                            ShipsRemove (TEAMSHIPS_TDIntRepopulation, TEAMSHIPS_TDIntRepopulation);
+                            VarCreateSet ("G_TDInterceptorGoToWaiting", TRUE);
+                            Jump WatchForFailure;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE GiveDronesToTeam
+
+ENDFSM TDIntRepopulation
+
+
+
+
+
+FSM TDSalvageTrial
+    States WaitForObjective, WaitingForShips, GetIntoPosition, WatchForAttackers;
+
+    INIT
+            HideShips (TEAMSHIPS_TDSalvageTrial);
+            TeamHyperspaceOut ();
+            Jump WaitForObjective;
+
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE WaitForObjective
+            INIT
+
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_BeginSalvageTrial") = TRUE)
+
+                            Jump GetIntoPosition;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WaitForObjective
+
+
+        STATE WaitingForShips
+            INIT
+
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_TDSalvageTrial) = 1)
+
+                            TeamHyperspaceOut ();
+                            Jump GetIntoPosition;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WaitingForShips
+
+
+        STATE GetIntoPosition
+            INIT
+                    TeamHyperspaceIn (POINT_SalvageTrialPING);
+            ENDINIT
+            WATCH
+                    IF (Nearby (THISTEAMSPOINT, 500))
+                            Stop ();
+                    ENDIF
+                    IF (Nearby (POINT_SalvageTrialPING, 500))
+                            PingAddShips (TEAMSHIPS_TDSalvageTrial, "SalvageTrialPING");
+
+                            Jump WatchForAttackers;
+                    ENDIF
+                    IF ( (ShipsCount (TEAMSHIPS_TDSalvageTrial) = 0) AND (VarGet ("G_PlayerHasSalvaged") = FALSE) )
+                            PingRemove ("SalvageTrialPING");
+                            RequestShips ("TargetDrone", 1);
+                            VarCreateSet ("G_SalvageTrialRepopulation", TRUE);
+                            Jump WaitingForShips;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE GetIntoPosition
+
+
+        STATE WatchForAttackers
+            INIT
+            ENDINIT
+            WATCH
+                    IF ( (ShipsCount (TEAMSHIPS_TDSalvageTrial) = 0) AND (VarGet ("G_PlayerHasSalvaged") = FALSE) )
+                            PingRemove ("SalvageTrialPING");
+                            RequestShips ("TargetDrone", 1);
+                            VarCreateSet ("G_SalvageTrialRepopulation", TRUE);
+                            Jump WaitingForShips;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WatchForAttackers
+
+
+ENDFSM TDSalvageTrial
+
+
+
+
+
+
+
+FSM R2Mothership
+    States Hide, Null;
+
+    INIT
+            Jump Hide;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+        STATE Hide
+            INIT
+                    HideShips(TEAMSHIPS_R2Mothership);
+                    Jump Null;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE Hide
+
+
+
+        STATE Null
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE Null
+
+
+ENDFSM R2Mothership
+# 2025 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+INIT
+
+
+
+
+
+        FSMCreate (FleetIntel, TEAM_FleetIntel);
+
+        FSMCREATE (TDFormationTrial, TEAM_TDFormationTrial);
+        FSMCREATE (TDFormationRepopulation, TEAM_TDFormationRepopulation);
+        FSMCREATE (TDTacticsTrial, TEAM_TDTacticsTrial);
+        FSMCREATE (TDTacticsRepopulation, TEAM_TDTacticsRepopulation);
+        FSMCREATE (TDSalvageTrial, TEAM_TDSalvageTrial);
+        FSMCREATE (TDInterceptorTrial, TEAM_TDInterceptorTrial);
+        FSMCREATE (TDIntRepopulation, TEAM_TDIntRepopulation);
+        FSMCREATE (R2Mothership, TEAM_R2Mothership);
+# 2060 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        TechSet ("MassDrive1Kt");
+        TechSetResearch ("Chassis1");
+# 2071 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+ENDINIT
+
+
+WATCH
+
+
+
+
+
+        IFONCE (VarGet ("G_Nis1Complete"))
+                TimerCreateSetStart ("LocationCardTimer", 1);
+        ENDIFONCE
+
+        IF (TimerExpiredDestroy ("LocationCardTimer"))
+                LocationCard (5000, LSTRING_LocationCard);
+
+        ENDIF
+# 2098 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        IFONCE (VarGet ("G_Nis1Complete"))
+                TimerCreateSetStart ("G_FleetIntelTimer", 7);
+        ENDIFONCE
+# 2114 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        IFONCE (VarGet ("G_Nis1Complete"))
+                TimerCreateSetStart ("G_FCHyperspaceJuice", (Random (145,180)));
+        ENDIFONCE
+
+
+
+        IFONCE ( (ObjectiveGet ("Harvest")) AND (ObjectiveGet ("ResearchShip")) AND (ObjectiveGet ("ScoutTrialFormations")) )
+                TimerCreateSetStart ("G_FCCryoTrayJuice", (Random (55,115)));
+        ENDIFONCE
+
+
+        IFONCE (ObjectiveGet ("ResearchShip") = TRUE)
+                TimerCreateSetStart ("G_ResearchPopup", 5);
+        ENDIFONCE
+
+
+        IFONCE ( (TechGetResearch ("MassDrive10Kt")) AND (TechGet ("Chassis1")) AND (NOT TechIsResearching()) AND (VarGet ("G_PlayedCorvetteChassisUnderwayRasp") = FALSE) )
+                TimerCreateSetStart ("PlayCorvetteChassisRasp", Random (10,30));
+                VarCreateSet ("G_PlayedCorvetteChassisRasp", TRUE);
+        ENDIFONCE
+
+
+        IFONCE ( (TechGetResearch ("MassDrive10Kt")) AND (TechGet ("Chassis1")) AND (VarGet ("G_PlayedCorvetteChassisRasp") = FALSE) )
+                TimerCreateSetStart ("PlayCorvetteChassisUnderwayRasp", Random (10,30));
+                VarCreateSet ("G_PlayedCorvetteChassisUnderwayRasp", TRUE);
+        ENDIFONCE
+# 2158 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        IFONCE (RUsEnemyCollected() >= 500)
+                ObjectiveSet ("Harvest", TRUE);
+        ENDIFONCE
+
+
+        IFONCE (FindEnemyShipsOfType(SHIPS_Temp, "ResearchShip"))
+                ObjectiveSet ("ResearchShip", TRUE);
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_OnlyCreateResearchObjOnce") = TRUE)
+                VarCreateSet ("G_CreateResearchObj", TRUE);
+        ENDIFONCE
+
+
+
+        IFONCE (VarGet ("G_CreateResearchObj") = TRUE)
+                ObjectiveCreateSecondary ("StartResearch", LSTRING_StartResearchTASKBAR, LSTRING_StartResearchTASKBAR);
+        ENDIFONCE
+
+
+        IFONCE (TechGet ("Chassis1"))
+                ObjectiveSet ("StartResearch", TRUE);
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_Nis1Complete"))
+                TimerCreateSetStart ("G_BeginScoutTrials", (Random (35,55)));
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_BeginScoutTrialFormations") = TRUE)
+                ObjectiveCreate ("ScoutTrialFormations", LSTRING_ScoutTrialFormationTASKBAR, LSTRING_ScoutTrialFormationTASKBAR);
+        ENDIFONCE
+
+
+        IF (VarGet ("G_PlayerHasUsedFormation") = FALSE)
+
+                IF ( (ShipsInFormation (SHIPS_FormTrialTDUnderAttack, 0)) OR
+                     (ShipsInFormation (SHIPS_FormTrialTDUnderAttack, 1)) OR
+                     (ShipsInFormation (SHIPS_FormTrialTDUnderAttack, 2)) OR
+                     (ShipsInFormation (SHIPS_FormTrialTDUnderAttack, 3)) OR
+                     (ShipsInFormation (SHIPS_FormTrialTDUnderAttack, 4)) OR
+                     (ShipsInFormation (SHIPS_FormTrialTDUnderAttack, 5)) )
+                        VarCreateSet ("G_PlayerHasUsedFormation", TRUE);
+                ENDIF
+        ENDIF
+
+
+        IFONCE ( (ShipsCount (TEAMSHIPS_TDFormationTrial) = 0) AND (VarGet ("G_PlayerHasUsedFormation") = TRUE) )
+                ObjectiveSet ("ScoutTrialFormations", TRUE);
+                PingRemove ("FormationTrialPING");
+                TutRemoveAllPointers();
+                TimerCreateSetStart ("G_BeginTacticsTrialNow", 7);
+                VarCreateSet ("G_BeginTacticsTrial", TRUE);
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_BeginScoutTrialTactics") = TRUE)
+                ObjectiveCreate ("ScoutTrialTactics", LSTRING_ScoutTrialTacticsTASKBAR, LSTRING_ScoutTrialTacticsTASKBAR);
+        ENDIFONCE
+
+
+
+        IF (VarGet ("G_PlayerHasUsedTactics") = FALSE)
+                IF ( ((TutShipsTactics (SHIPS_TacticsTrialTDUnderAttack) = 0) OR (TutShipsTactics (SHIPS_TacticsTrialTDUnderAttack) = 2)) AND
+                     (VarGet ("G_BeginScoutTrialTactics") = TRUE) )
+                        VarCreateSet ("G_PlayerHasUsedTactics", TRUE);
+                ENDIF
+        ENDIF
+
+
+        IFONCE ( (ShipsCount (TEAMSHIPS_TDTacticsTrial) = 0) AND (VarGet ("G_PlayerHasUsedTactics") = TRUE) )
+                ObjectiveSet ("ScoutTrialTactics", TRUE);
+                PingRemove ("TacticsTrialPING");
+                TimerCreateSetStart ("G_BeginSalvageTrialNow", 10);
+                VarCreateSet ("G_BeginSalvageTrial", TRUE);
+        ENDIFONCE
+
+
+
+        IFONCE ( (TechGet ("Chassis1")) AND ((RUsGet (0) > 55) OR (FindEnemyShipsOfType(SHIPS_Stuff, "HeavyInterceptor"))) AND (VarGet ("G_ReadyToHYPERSPACE") = FALSE) )
+
+
+        ENDIFONCE
+
+
+
+        IFONCE (VarGet ("G_BeginInterceptorTrialNOW") = TRUE)
+                ObjectiveCreateSecondary ("InterceptorTrial", LSTRING_InterceptorTrialTASKBAR, LSTRING_InterceptorTrialTASKBAR);
+                VarDestroy ("G_InterceptorTrialRepopulation");
+        ENDIFONCE
+
+
+        IFONCE ( (VarGet ("G_PlayerHasUsedInterceptors") = TRUE) AND (ShipsCount (TEAMSHIPS_TDInterceptorTrial) = 0) )
+                ObjectiveSet ("InterceptorTrial", TRUE);
+                PingRemove ("InterceptorTrialPING");
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_CreateSalvageObjective") = TRUE)
+                ObjectiveCreate ("SalvageTrial", LSTRING_SalvageTrialTASKBAR, LSTRING_SalvageTrialTASKBAR);
+        ENDIFONCE
+
+
+        IF (VarGet ("G_SalvageTD"))
+                PingRemove ("SalvageTrialPING");
+        ENDIF
+
+
+        IFONCE (VarGet ("G_SalvageTrialHasBegun") = TRUE)
+                VarSet ("G_SalvageTS", 0);
+        ENDIFONCE
+
+
+        IFONCE ( (VarGet ("G_SalvageTrialHasBegun") = TRUE) AND (VarGet ("G_SalvageTS")) )
+                VarCreateSet ("G_PlayerHasSalvaged", TRUE);
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_PlayerHasSalvaged") = TRUE)
+                ObjectiveSet ("SalvageTrial", TRUE);
+                PingRemove ("SalvageTrialPING");
+        ENDIFONCE
+
+
+
+
+
+        IFONCE ( (ObjectiveGet ("Harvest") = TRUE) AND
+               (ObjectiveGet ("ResearchShip") = TRUE) AND
+               (ObjectiveGet ("ScoutTrialFormations") = TRUE) AND
+               (ObjectiveGet ("ScoutTrialTactics") = TRUE) AND
+               (ObjectiveGet ("SalvageTrial") = TRUE) )
+                VarCreateSet ("G_ReadyToHYPERSPACE", TRUE);
+        ENDIFONCE
+
+
+        IF (TimerExpiredDestroy ("G_MissionCompleteTimer"))
+                ObjectiveCreate ("Hyperspace", LSTRING_HyperspaceTASKBAR, LSTRING_HyperspaceTASKBAR);
+        ENDIF
+# 2309 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        IFONCE (VarGet ("G_ReadyToHYPERSPACE") = TRUE)
+                TimerCreateSetStart ("G_PlayFleetCommandSpeech", 4);
+        ENDIFONCE
+
+        IF (TimerExpiredDestroy ("G_PlayFleetCommandSpeech"))
+
+        ENDIF
+# 2326 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission01.kas"
+        IFONCE (TechGet ("Chassis1"))
+                TechSetResearch ("MassDrive10Kt");
+        ENDIFONCE
+
+
+
+ENDWATCH

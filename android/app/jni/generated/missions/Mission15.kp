@@ -1,0 +1,661 @@
+# 0 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission15.kas"
+# 0 "<built-in>"
+# 0 "<command-line>"
+# 1 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission15.kas"
+# 10 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission15.kas"
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/CommandDefs.h" 1
+# 11 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission15.kas" 2
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/SoundMusic.h" 1
+# 12 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission15.kas" 2
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/SpeechEvent.h" 1
+# 13 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission15.kas" 2
+# 79 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission15.kas"
+LOCALIZATION
+    LSTRING_Location
+        "CHAPEL PERILOUS"
+        "Chapelle des Périls"
+        "Gefahr im Verzug"
+  "CAPILLA DEL PELIGRO"
+  "CHAPEL PERILOUS"
+
+
+    LSTRING_LevelName
+        "15 - Chapel Perilous"
+        "15 - Chapelle des Périls"
+        "15 - Gefahr im Verzug"
+  "15 - Capilla del peligro"
+  "15 - Chapel Perilous"
+
+    LSTRING_Objective1
+        "Destroy the object"
+        "Destruction de l'objet"
+        "Das Objekt zerstören."
+        "Destruir el objeto"
+  "Distruggi l'oggetto"
+
+    LSTRING_Hyperspace
+        "                HYPERSPACE"
+        "                HYPERESPACE"
+        "        HYPERRAUMSPRUNG"
+  "                HIPERESPACIO"
+  " 				IPERSPAZIO"
+# 208 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission15.kas"
+ENDL
+
+
+
+
+FSM Dead
+    INIT
+        IF ( TeamCount() > 0 )
+            EnableAllAIFeatures();
+            TeamGiveToAI();
+        ENDIF
+    ENDINIT
+    WATCH
+    ENDWATCH
+ENDFSM Dead
+
+
+
+
+
+FSM Events
+    STATES PreNIS, PlayNIS, FIIntro1, FIIntroLBXIn, FIIntro2,
+           FIIntroLBXOut, Countdown, EvaluateWinner;
+
+    INIT
+
+
+        JUMP PreNIS;
+    ENDINIT
+    WATCH
+        IFONCE ( ShipsCount(SHIPS_EnemyMShip) == 0 )
+            JUMP EvaluateWinner;
+        ENDIFONCE
+
+        IFONCE ( MsgReceived("HeadShotDestroyed") )
+            ObjectiveSet("DestroyObject", TRUE);
+            JUMP EvaluateWinner;
+        ENDIFONCE
+    ENDWATCH
+
+
+    STATE PreNIS
+        INIT
+            TimerCreateSetStart("LocationTimer",19);
+        ENDINIT
+        WATCH
+            IFONCE ( TimerRemaining( "LocationTimer" ) = 16 )
+                LocationCard( 5000, LSTRING_Location );
+            ENDIFONCE
+
+
+            IFONCE ( TimerRemaining( "LocationTimer" ) = 13 )
+                SpeechEvent((701 + 0x00000800 + 0x10000000), 0 );
+            ENDIFONCE
+
+            IFONCE ( TimerRemaining( "LocationTimer" ) == 6 )
+                MusicStop(2);
+            ENDIFONCE
+
+            IFONCE ( TimerRemaining( "LocationTimer" ) == 4 )
+                wideScreenIn( 90 );
+            ENDIFONCE
+
+            IFONCE ( TimerExpiredDestroy( "LocationTimer" ) )
+                JUMP PlayNIS;
+            ENDIFONCE
+        ENDWATCH
+    ENDSTATE PreNIS
+
+
+
+
+    STATE PlayNIS
+        INIT
+            VarCreateSet("G_PlayNis", 9);
+            TimerCreate("HoldForIntel");
+            VarCreateSet("FinishedNIS", FALSE);
+        ENDINIT
+        WATCH
+            IFONCE ( VarGet("G_Nis9Complete") )
+                TimerSet( "HoldForIntel", 7 );
+                TimerStart( "HoldForIntel" );
+                VarSet("FinishedNIS", TRUE);
+            ENDIFONCE
+
+            IF ( TimerExpired( "HoldForIntel" ) AND VarGet("FinishedNIS") )
+                TimerDestroy("HoldForIntel");
+                JUMP FIIntro1;
+            ENDIF
+        ENDWATCH
+    ENDSTATE PlayNIS
+
+
+
+
+
+    STATE FIIntro1
+        INIT
+            IF ( RaceOfHuman() == 0 )
+                SpeechEvent((702 + 0x00001000 + 0x10000000), 0);
+            ELSE
+                SpeechEvent((703 + 0x00001000 + 0x10000000), 0);
+            ENDIF
+
+
+            TimerCreate( "HoldForSM" );
+        ENDINIT
+        WATCH
+            VarDestroy("IntelEvent");
+            VarCreateSet("IntelEvent", IntelEventEnded());
+
+            IFONCE (VarGet("IntelEvent"))
+                TimerSet( "HoldForSM", 5 );
+                TimerStart( "HoldForSM" );
+            ENDIFONCE
+
+            IF ( TimerExpiredDestroy( "HoldForSM" ) )
+                JUMP FIIntroLBXIn;
+            ENDIF
+        ENDWATCH
+    ENDSTATE FIIntro1
+
+
+
+
+    STATE FIIntroLBXIn
+        INIT
+            PauseOtherKAS();
+            wideScreenIn(90);
+            TimerCreateSetStart( "LetterboxInTimer", 4);
+        ENDINIT
+        WATCH
+
+            IF ( TimerRemaining ("LetterboxInTimer") = 2 )
+                OpenSensors( 120000 );
+                PauseUniverse();
+            ENDIF
+
+
+            IF ( TimerExpiredDestroy( "LetterboxInTimer" ) )
+                JUMP FIIntro2;
+            ENDIF
+        ENDWATCH
+    ENDSTATE FIIntroLBXIn
+
+
+
+
+
+
+    STATE FIIntro2
+        INIT
+            SpeechEvent((704 + 0x00001000 + 0x10000000), 0);
+            TimerCreateSetStart ( "PingHeadshot", 1 );
+            VarCreateSet("PingedHeadshot", FALSE);
+        ENDINIT
+        WATCH
+            VarDestroy("IntelEvent");
+            VarCreateSet("IntelEvent", IntelEventEnded());
+
+            IF ( VarGet("IntelEvent") = 2 )
+                IF ( VarGet("PingedHeadshot") = FALSE )
+                    TimerDestroy("PingHeadshot");
+                    PingAddShips( TEAMSHIPS_Headshot, "HeadshotAsteroidPing");
+                ELSE
+                    TutRemovePointer( "HeadshotPointer" );
+                ENDIF
+                ObjectiveCreate("DestroyObject", LSTRING_Objective1, LSTRING_Objective1);
+                JUMP FIIntroLBXOut;
+            ELSEIF ( VarGet("IntelEvent") )
+                TutRemovePointer( "HeadshotPointer" );
+                ObjectiveCreate("DestroyObject", LSTRING_Objective1, LSTRING_Objective1);
+                JUMP FIIntroLBXOut;
+            ENDIF
+
+
+            IFONCE ( TimerExpiredDestroy( "PingHeadshot" ) )
+                PingAddShips( TEAMSHIPS_Headshot, "HeadshotAsteroidPing");
+                TutSetPointerTargetShipSelection( "HeadshotPointer", TEAMSHIPS_Headshot );
+                VarSet("PingedHeadshot", TRUE);
+            ENDIFONCE
+        ENDWATCH
+    ENDSTATE FIIntro2
+
+    STATE FIIntroLBXOut
+        INIT
+                TimerCreateSetStart( "LetterboxOutTimer", 5 );
+        ENDINIT
+        WATCH
+            IFONCE ( TimerRemaining( "LetterboxOutTimer" ) == 4 )
+                UnpauseUniverse();
+                CloseSensors( TRUE );
+                wideScreenOut(30);
+                UnpauseOtherKAS();
+            ENDIFONCE
+
+            IF ( TimerExpiredDestroy( "LetterboxOutTimer" ) )
+                JUMP Countdown;
+            ENDIF
+        ENDWATCH
+    ENDSTATE FIIntroLBXOut
+
+
+
+
+    STATE Countdown
+        INIT
+            TimerCreateSetStart("EndofLevel", VarGet("G_CountdownTime") );
+            MsgSendAll( "StartedCountdown" );
+            VarSet("G_HeadshotDestroyed", FALSE);
+        ENDINIT
+        WATCH
+            IF (TimerRemaining("EndofLevel")=1200 AND VarGet("G_HeadshotDestroyed") = FALSE )
+               SpeechEvent((705 + 0x00001000 + 0x10000000),0);
+            ENDIF
+
+            IF (TimerRemaining("EndofLevel")=900 AND VarGet("G_HeadshotDestroyed") = FALSE )
+               SpeechEvent((706 + 0x00001000 + 0x10000000),0);
+            ENDIF
+
+            IF (TimerRemaining("EndofLevel")=600 AND VarGet("G_HeadshotDestroyed") = FALSE)
+               SpeechEvent((707 + 0x00001000 + 0x10000000),0);
+            ENDIF
+
+            IF (TimerRemaining("EndofLevel")=300 AND VarGet("G_HeadshotDestroyed") = FALSE)
+               SpeechEvent((708 + 0x00001000 + 0x10000000),0);
+            ENDIF
+
+            IF (TimerRemaining("EndofLevel")=240 AND VarGet("G_HeadshotDestroyed") = FALSE)
+               SpeechEvent((709 + 0x00001000 + 0x10000000),0);
+            ENDIF
+
+            IF (TimerRemaining("EndofLevel")=180 AND VarGet("G_HeadshotDestroyed") = FALSE)
+               SpeechEvent((710 + 0x00001000 + 0x10000000),0);
+            ENDIF
+
+            IF (TimerRemaining("EndofLevel")=120 AND VarGet("G_HeadshotDestroyed") = FALSE)
+               SpeechEvent((711 + 0x00001000 + 0x10000000),0);
+            ENDIF
+
+            IF (TimerRemaining("EndofLevel")=60 AND VarGet("G_HeadshotDestroyed") = FALSE)
+               SpeechEvent((712 + 0x00001000 + 0x10000000),0);
+            ENDIF
+
+            IF (TimerRemaining("EndofLevel")=30 AND VarGet("G_HeadshotDestroyed") = FALSE)
+               SpeechEvent((735 + 0x00001000 + 0x10000000),0);
+            ENDIF
+
+            IF (TimerRemaining("EndofLevel")=10 AND VarGet("G_HeadshotDestroyed") = FALSE)
+               SpeechEvent((736 + 0x00001000 + 0x10000000),0);
+            ENDIF
+
+            IF (TimerRemaining("EndofLevel")=5 AND VarGet("G_HeadshotDestroyed") = FALSE)
+               SpeechEvent((713 + 0x00000800 + 0x10000000), 0);
+            ENDIF
+
+
+
+
+
+            IF (TimerExpiredDestroy("EndofLevel"))
+                JUMP EvaluateWinner;
+            ENDIF
+        ENDWATCH
+    ENDSTATE Countdown
+
+
+
+
+    STATE EvaluateWinner
+        INIT
+            TimerCreateSetStart( "WonAndDone", 12 );
+        ENDINIT
+        WATCH
+            IFONCE ( VarGet("G_HeadshotDestroyed") == TRUE )
+                ObjectiveSet("DestroyObject", TRUE);
+            ENDIFONCE
+
+            IF ( ShipsCount(SHIPS_EnemyMShip) == 0 )
+                ObjectivesDestroyAll();
+                MissionFailed();
+                FSMCREATE( Dead, THISTEAM );
+            ENDIF
+
+            IFONCE ( TimerExpiredDestroy("WonAndDone") )
+                ObjectiveCreate ("Hyperspace", LSTRING_Hyperspace, LSTRING_Hyperspace);
+                SpeechEvent((714 + 0x00001000 + 0x10000000), 0);
+            ENDIFONCE
+        ENDWATCH
+    ENDSTATE EvaluateWinner
+ENDFSM Events
+
+
+
+
+FSM HeadShot
+    STATES Moving;
+
+    INIT
+    ENDINIT
+    WATCH
+        IF ( MsgReceived("StartedCountdown") )
+            JUMP Moving;
+        ENDIF
+
+
+        IFONCE ( TeamCount() == 0 )
+            MsgSendAll( "HeadShotDestroyed" );
+            VarSet( "G_HeadshotDestroyed", TRUE );
+            Stop();
+
+
+            MusicStop(2);
+
+
+            FSMCREATE( Dead, THISTEAM );
+        ENDIFONCE
+    ENDWATCH
+
+
+
+    STATE Moving
+        INIT
+
+
+            ShipsClear( SHIPS_Mothership );
+            IF ( FindEnemyShipsOfType( SHIPS_Mothership, "Mothership" ) = 0 )
+                MissionFailed();
+                FSMCREATE( Dead, THISTEAM );
+            ENDIF
+            VarSet("G_Dist2MShip", FindDistance( THISTEAMSPOINT, SHIPSPOINT_Mothership ) - 1500 );
+
+
+
+
+            TeamVelocityMaxSet( VarGet("G_Dist2MShip") / VarGet("G_CountdownTime") );
+
+
+            MoveTo(POINT_TowardsPoint);
+        ENDINIT
+        WATCH
+
+
+            IFONCE ( UnderAttack( SHIPS_FirstAttackingShips ) > 0 )
+                MusicStop(0);
+                MusicPlay(13);
+            ENDIFONCE
+        ENDWATCH
+    ENDSTATE Moving
+ENDFSM HeadShot
+
+
+
+
+
+FSM Protection
+    STATES Guarding, KillMShip, Retaliate;
+
+    INIT
+        JUMP Guarding;
+    ENDINIT
+    WATCH
+        IFONCE ( MsgReceived("HeadShotDestroyed") )
+            JUMP KillMShip;
+        ENDIFONCE
+
+        IFONCE ( TeamCount() == 0 )
+            FSMCREATE( Dead, THISTEAM );
+        ENDIFONCE
+    ENDWATCH
+
+
+    STATE Guarding
+        INIT
+
+            IF ( ThisTeamIs( TEAM_DefendersGuard ) )
+                FormationWall();
+            ELSE
+                FormationBroad();
+            ENDIF
+            TacticsNeutral();
+
+
+            Guard( TEAMSHIPS_HeadShot );
+        ENDINIT
+        WATCH
+
+
+            ShipsClear(SHIPS_Evaluate);
+            IF ( UnderAttack( SHIPS_Evaluate ) > 0
+                || UnderAttackElsewhere( TEAM_Headshot, SHIPS_Evaluate ) > 0
+                || FindEnemiesNearby( SHIPS_Evaluate, 20000 ) > 0
+                || FindEnemiesInside( VOLUME_HeadshotPathArea, SHIPS_Evaluate, 5000 ) > 0 )
+
+                Attack(SHIPS_Evaluate); JUMP Retaliate;
+            ENDIF
+        ENDWATCH
+    ENDSTATE Guarding
+
+
+    STATE Retaliate
+        INIT
+        ENDINIT
+        WATCH
+            ShipsClear( SHIPS_Evaluate );
+
+            IF ( ShipsOrder(THISTEAMSHIPS) != 2 )
+                IF ( UnderAttack( SHIPS_Evaluate ) > 0
+                    || UnderAttackElsewhere( TEAM_HeadShot, SHIPS_Evaluate ) > 0
+                    || FindEnemiesNearby(SHIPS_Evaluate, 20000) > 0
+                    || FindEnemiesInside( VOLUME_HeadshotPathArea, SHIPS_Evaluate, 5000 ) > 0 )
+
+                    ShipsSelectIndex( SHIPS_Evaluate, SHIPS_Evaluate, 0 ); Attack(SHIPS_Evaluate);
+                ELSE
+                    JUMP Guarding;
+                ENDIF
+            ENDIF
+
+
+            IF ( TeamHealthAverage() < 40 )
+                TacticsEvasive();
+            ELSEIF ( TeamHealthAverage() < 75 )
+                TacticsNeutral();
+            ELSE
+                TacticsAggressive();
+            ENDIF
+        ENDWATCH
+    ENDSTATE Retaliate
+
+    STATE KillMShip
+        INIT
+            IF ( ShipsCount(SHIPS_EnemyMShip) == 0 )
+                FSMCREATE( Dead, THISTEAM );
+            ENDIF
+        ENDINIT
+        WATCH
+            IF ( ShipsOrder(THISTEAMSHIPS) != 2 )
+                TacticsAggressive();
+
+                IF ( ShipsSelectNonCapital(SHIPS_Evaluate,THISTEAMSHIPS)>0)
+                    KamikazeEveryone(SHIPS_EnemyMShip);
+                ELSE
+                    Attack(SHIPS_EnemyMShip);
+                ENDIF
+            ELSEIF ( ShipsSelectCapital(SHIPS_Evaluate, THISTEAMSHIPS) > 0 )
+                MoveAttack( SHIPS_EnemyMShip );
+
+
+            ENDIF
+        ENDWATCH
+    ENDSTATE KillMShip
+ENDFSM Protection
+
+
+
+
+
+FSM Harrass
+    STATES Bother, KillMShip, Guard;
+
+    INIT
+        TacticsEvasive();
+        JUMP Bother;
+    ENDINIT
+    WATCH
+        IFONCE ( MsgReceived("HeadShotDestroyed") )
+            JUMP KillMShip;
+        ENDIFONCE
+
+        IFONCE ( TeamCount() == 0 )
+            FSMCREATE( Dead, THISTEAM );
+        ENDIFONCE
+    ENDWATCH
+
+    STATE Bother
+        INIT
+            IF ( ShipsSelectCapital( SHIPS_Evaluate, THISTEAMSHIPS ) > 0 )
+                FormationWall();
+            ELSE
+                FormationClaw();
+            ENDIF
+            AttackHarass();
+        ENDINIT
+        WATCH
+            ShipsClear( SHIPS_HEval );
+            IF ( ShipsOrder(THISTEAMSHIPS) != 2 )
+                ShipsClear( SHIPS_HEval );
+
+                IF ( UnderAttack( SHIPS_HEval ) > 0
+                    || UnderAttackElsewhere( TEAM_HeadShot, SHIPS_HEval ) > 0
+                    || FindEnemiesNearTeam( SHIPS_HEval, 20000 ) > 0
+                    || FindEnemiesInside( VOLUME_HeadshotPathArea, SHIPS_HEval, 5000 ) > 0 )
+
+                    ShipsSelectIndex( SHIPS_HEval, SHIPS_HEval, 0 ); Attack(SHIPS_HEval);
+                ELSE
+                    JUMP Guard;
+                ENDIF
+            ENDIF
+        ENDWATCH
+    ENDSTATE Bother
+
+    STATE Guard
+        INIT
+            Guard( TEAMSHIPS_HeadShot );
+        ENDINIT
+        WATCH
+            ShipsClear( SHIPS_HEval );
+            IF ( UnderAttack( SHIPS_HEval ) > 0
+                || UnderAttackElsewhere( TEAM_HeadShot, SHIPS_HEval ) > 0
+                || FindEnemiesNearTeam( SHIPS_HEval, 20000 ) > 0
+                || FindEnemiesInside( VOLUME_HeadshotPathArea, SHIPS_HEval, 5000 ) > 0 )
+
+                ShipsSelectIndex( SHIPS_HEval, SHIPS_HEval, 0 ); Attack(SHIPS_HEval);;
+                JUMP Bother;
+            ENDIF
+        ENDWATCH
+    ENDSTATE Guard
+
+    STATE KillMShip
+        INIT
+            IF ( ShipsCount(SHIPS_EnemyMShip) == 0 )
+                FSMCREATE( Dead, THISTEAM );
+            ENDIF
+        ENDINIT
+        WATCH
+            IF ( ShipsOrder(THISTEAMSHIPS) != 2 )
+                TacticsAggressive();
+
+                IF ( ShipsSelectNonCapital(SHIPS_Evaluate,THISTEAMSHIPS)>0)
+                    KamikazeEveryone(SHIPS_EnemyMShip);
+                ELSE
+                    Attack(SHIPS_EnemyMShip);
+                ENDIF
+            ELSEIF ( ShipsSelectCapital(SHIPS_Evaluate, THISTEAMSHIPS) > 0 )
+                MoveAttack( SHIPS_EnemyMShip );
+
+
+            ENDIF
+        ENDWATCH
+    ENDSTATE KillMShip
+ENDFSM Harrass
+
+
+
+FSM WaitForCountDown
+    INIT
+    ENDINIT
+    WATCH
+        IF ( MsgReceived("StartedCountdown") )
+
+            IF ( ThisTeamIs( TEAM_Destroyers )
+                    || ThisTeamIs( TEAM_FrigatesGuard )
+                    || ThisTeamIs( TEAM_DefendersGuard )
+                    || ThisTeamIs( TEAM_CorvetteGuard ) )
+                FSMCREATE( Protection, THISTEAM );
+
+
+            ELSEIF ( ThisTeamIs( TEAM_FrgHarrass )
+                    || ThisTeamIs( TEAM_InterceptorsHarrass )
+                    || ThisTeamIs( TEAM_CorvetteHarass ) )
+                FSMCREATE( Harrass, THISTEAM );
+            ENDIF
+        ENDIF
+    ENDWATCH
+ENDFSM WaitForCountDown
+
+
+
+INIT
+
+    VarCreateSet("G_HeadshotDestroyed", FALSE);
+    VarCreateSet("G_CountdownTime", 390 );
+    VarCreateSet("G_Dist2MShip", 0);
+
+    FSMCREATE (Events, TEAM_Events);
+
+    FSMCREATE (HeadShot, TEAM_HeadShot);
+    FSMCREATE (WaitForCountDown, TEAM_Destroyers);
+    FSMCREATE (WaitForCountDown, TEAM_FrigatesGuard);
+    FSMCREATE (WaitForCountDown, TEAM_DefendersGuard);
+    FSMCREATE (WaitForCountDown, TEAM_FrgHarrass);
+    FSMCREATE (WaitForCountDown, TEAM_InterceptorsHarrass);
+    FSMCREATE (WaitForCountDown, TEAM_CorvetteGuard);
+    FSMCREATE (WaitForCountDown, TEAM_CorvetteHarass);
+
+
+    ShipsClear(SHIPS_EnemyMShip);
+    FindEnemyShipsOfType( SHIPS_EnemyMShip, "Mothership" );
+
+
+    SaveLevel(15, LSTRING_LevelName);
+ENDINIT
+WATCH
+
+
+
+
+
+
+    IFONCE (TechGet ("MassDrive10Kt"))
+        TechSetResearch ("Chassis2");
+    ENDIFONCE
+
+
+
+    IF ((TechGet ("Chassis2")) AND (VarGet ("SetMediumGuns") = FALSE))
+        TechSetResearch ("MediumGuns");
+        VarCreateSet ("SetMediumGuns", TRUE);
+    ENDIF
+
+
+
+
+    IFONCE (TechGet ("Chassis1"))
+        TechSetResearch ("MassDrive10Kt");
+    ENDIFONCE
+
+
+ENDWATCH

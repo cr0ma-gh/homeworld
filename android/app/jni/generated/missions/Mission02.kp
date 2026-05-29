@@ -1,0 +1,4379 @@
+# 0 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+# 0 "<built-in>"
+# 0 "<command-line>"
+# 1 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+# 9 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/SoundMusic.h" 1
+# 10 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas" 2
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/SpeechEvent.h" 1
+# 11 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas" 2
+
+
+
+    LOCALIZATION
+
+            LSTRING_Savegame
+                "02 - Outskirts of Kharak System"
+                "02 - Périphérie du Système Kharak "
+                "02 - Außenbereich des Kharak-Systems"
+                "02 - Inmediaciones del sistema de Kharak"
+    "02 - Margine esterno del sistema di Kharak"
+
+            LSTRING_LocationCard
+                "OUTSKIRTS OF KHARAK SYSTEM"
+                "PERIPHERIE DU SYSTEME KHARAK"
+                "AUSSENBEREICH DES KHARAK-SYSTEMS"
+                "INMEDIACIONES DEL SISTEMA DE KHARAK"
+    "MARGINE ESTERNO DEL SISTEMA DI KHARAK"
+
+            LSTRING_FISendProbeTASKBAR
+                "Send probe to the Khar-Selim"
+                "Lancement sonde vers Khar-Selim"
+                "Sonde zur Khar-Selim schicken."
+                "Enviar sonda a Khar-Selim"
+    "Invia una sonda al Khar-Selim"
+
+            LSTRING_FISalvageVesselTASKBAR
+                "Salvage the Khar-Selim"
+                "Sauvetage du Khar-Selim"
+                "Die Khar-Selim bergen."
+                "Salvar el Khar-Selim"
+    "Salva il Khar-Selim"
+
+            LSTRING_FCProtectMothershipTASKBAR
+                "Protect the Mothership"
+                "Protection Vaisseau Mère"
+                "Das Mutterschiff schützen."
+                "Proteger la Nave nodriza"
+    "Proteggi l'Astronave Madre"
+
+            LSTRING_DefendSalvageTeamTASKBAR
+                "Defend Salvage Team"
+                "Défense Equipe de sauvetage"
+                "Bergungsteam verteidigen."
+                "Defender equipo de salvamento"
+    "Difendi la squadra di recupero"
+
+            LSTRING_FIDefendMothershipTASKBAR
+                "Defend the Mothership"
+                "Défense Vaisseau Mère"
+                "Das Mutterschiff schützen."
+                "Defender la Nave nodriza"
+    "Difendi l'Astronave Madre"
+
+            LSTRING_FIInvestigateP1MothershipTASKBAR
+                "Investigate power source"
+                "Expertise alimentation électrique"
+                "Energiequelle untersuchen."
+                "Investigar fuente de energía"
+    "Indaga sulla fonte d'energia"
+
+            LSTRING_FIDestroyAllP1TASKBAR
+                "Destroy the attacking force"
+                "Destruction forces d'agression"
+                "Angreifer vernichten."
+                "Destruir fuerza atacante"
+    "Distruggi la forza d'attacco"
+
+            LSTRING_Hyperspace
+                "                      HYPERSPACE"
+                "                      HYPERESPACE"
+                "           HYPERRAUMSPRUNG"
+                "                    HIPERESPACIO"
+    "                    IPERSPAZIO"
+
+    ENDL
+
+
+
+
+
+
+FSM FleetIntel
+        States FCIntro,
+
+               FIIntro,
+
+               FCSignalling, FCSignalling2,
+
+               FISendProbeWaitToLBXIn, FISendProbeLBXIn, FISendProbeLBXIn2, FISendProbeOpenSensors, FISendProbe, FISendProbe2,
+               FISendProbePING, FISendProbeLBXOut, FISendProbeEND, FISendProbeWAITEND,
+
+               FIReactionToN02, FCUnderAttack, FISalvageVessel, FIReactionToN02Replay,
+
+               FISalvageKSLBXIn, FISalvageKSLBXIn2, FISalvageKSOpenSensors, FISalvageKS, FISalvageKS2, FISalvageKSWAITEND, FISalvageKSEND,
+
+               FISCDiedStillNeedData,
+
+               FIKilledNISTeam, FCMothershipIsOK,
+
+               FIDefendSalvageTeam, FIDefendSalvageTeam2,
+
+               FISCDockedSafely, FocusOnKharSelim, WaitOnKharSelim, AllShipsRecording, FIAllShipsRecordingLBXOut,
+
+               FIDefendMothershipLBXIn, FIDefendMothershipLBXIn2, FIDefendMothershipOpenSensors, FIDefendMothership, FIDefendMothershipPING,
+               FIDefendMothershipLBXOut, FIDefendMothershipWAITEND, FIDefendMothershipEND,
+
+               FIInvestigateP1Mothership,
+
+               FISeenP1Mothership,
+
+               FIDestroyAllP1, FIDestroyAllP12,
+
+               FIObjectivesComplete, FIObjectivesComplete2,
+
+               FIDone,
+
+
+
+               FIIdle;
+
+        INIT
+                Jump FIIdle;
+        ENDINIT
+        WATCH
+        ENDWATCH
+
+
+        STATE FCIntro
+            INIT
+                    SpeechEvent ((401 + 0x00000800 + 0x10000000), 0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FIIntro;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FCIntro
+
+        STATE FIIntro
+            INIT
+                    IF (VarGet ("G_NISISPlaying") = TRUE)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            Jump FIIdle;
+                    ENDIF
+
+                    SpeechEvent ((402 + 0x00001000 + 0x10000000), 0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FCSignalling;
+                    ENDIF
+
+                    IF (VarGet ("G_NISISPlaying") = TRUE)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIIntro
+
+        STATE FCSignalling
+            INIT
+                    IF (VarGet ("G_NISISPlaying") = TRUE)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            Jump FIIdle;
+                    ENDIF
+
+                    SpeechEvent ((403 + 0x00000800 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            TimerCreateSetStart ("BeginFISendProbe",1);
+                            Jump FIIdle;
+
+                    ENDIF
+
+                    IF (VarGet ("G_NISISPlaying") = TRUE)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FCSignalling
+
+        STATE FCSignalling2
+            INIT
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            TimerCreateSetStart ("BeginFISendProbe",1);
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FCSignalling2
+
+
+
+
+
+
+        STATE FISendProbeLBXIn
+            INIT
+
+                    IF (VarGet ("G_NISISPlaying") = TRUE)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            Jump FISendProbeEND;
+                    ENDIF
+                    PauseOtherKAS();
+                    wideScreenIn(90);
+                    Jump FISendProbeOpenSensors;
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_NISISPlaying") = TRUE)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FISendProbeEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISendProbeLBXIn
+
+        STATE FISendProbeLBXIn2
+            INIT
+                    PauseOtherKAS ();
+                    wideScreenIn(30);
+                    TimerCreateSetStart ("WideScreenTimer", 2);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("WideScreenTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FISendProbe;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISendProbeLBXIn2
+
+        STATE FISendProbeOpenSensors
+            INIT
+                    TimerCreateSetStart ("FIOpenSensorsTimer", 4);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIOpenSensorsTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FISendProbe;
+                    ENDIF
+
+
+                    IF (VarGet ("G_NISISPlaying") = TRUE)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FISendProbeEND;
+                    ENDIF
+
+            ENDWATCH
+        ENDSTATE FISendProbeOpenSensors
+
+        STATE FISendProbe
+            INIT
+                    TimerCreateSetStart ("FISendProbeTimer", 1);
+            ENDINIT
+            WATCH
+
+                    IF (TimerExpiredDestroy ("FISendProbeTimer"))
+                            Jump FISendProbe2;
+                    ENDIF
+
+
+                    IF (VarGet ("G_NISISPlaying") = TRUE)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FISendProbeEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISendProbe
+
+        STATE FISendProbe2
+            INIT
+                    SpeechEvent ((404 + 0x00001000 + 0x10000000),0);
+                    TimerCreateSetStart ("FISendProbePINGTimer", 3);
+                    IFONCE (TRUE)
+                            VarCreateSet ("G_FleetIntelIntroHasPlayed", TRUE);
+                    ENDIFONCE
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FISendProbeEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FISendProbePING;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FISendProbePINGTimer"))
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            TutSetTextDisplayBoxToSubtitleRegion();
+                            TutSetPointerTargetAIVolume("ServiceVesselPOINTER", VOLUME_SCVolume);
+
+                    ENDIF
+
+
+                    IF (VarGet ("G_NISISPlaying") = TRUE)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FISendProbeEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISendProbe2
+
+        STATE FISendProbePING
+            INIT
+                    SpeechEvent ((405 + 0x00001000 + 0x10000000),0);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FISendProbeEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FISendProbeWAITEND;
+                    ENDIF
+
+
+                    IF (VarGet ("G_NISISPlaying") = TRUE)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FISendProbeEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISendProbePING
+
+        STATE FISendProbeLBXOut
+            INIT
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded())
+                            wideScreenOut(90);
+                            Jump FISendProbeWAITEND;
+                    ENDIF
+                    IF (IntelEventEnded() = 2)
+                            wideScreenOut (30);
+                            Jump FISendProbeEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISendProbeLBXOut
+
+        STATE FISendProbeWAITEND
+            INIT
+                    TimerCreateSetStart ("FISendProbeENDTimer", 3);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FISendProbeEND;
+                    ENDIF
+                    IF (TimerExpiredDestroy ("FISendProbeENDTimer"))
+                            wideScreenOut (30);
+                            Jump FISendProbeEND;
+                    ENDIF
+
+
+                    IF (VarGet ("G_NISISPlaying") = TRUE)
+                            IF (VarGet ("NeverCreateSendProbePingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSendProbePingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FISendProbeEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISendProbeWAITEND
+
+        STATE FISendProbeEND
+            INIT
+                    TutRemoveAllPointers ();
+                    UnpauseUniverse();
+                    UnpauseOtherKAS();
+                    CloseSensors (TRUE);
+                    VarDestroy("G_CLICK_SendProbe");
+                    Jump FIIdle;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FISendProbeEND
+# 475 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FCUnderAttack
+            INIT
+                    IFONCE (TRUE)
+                            PingRemove ("ServiceVesselPING");
+                    ENDIFONCE
+                    SpeechEvent ((407 + 0x00000800 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FISalvageVessel;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FCUnderAttack
+
+        STATE FISalvageVessel
+            INIT
+                    SpeechEvent ((408 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            IFONCE (TRUE)
+                                    VarCreateSet ("G_FIProtectMothershipHasPlayed", TRUE);
+                            ENDIFONCE
+                            VarDestroy("G_CLICK_ProtectMothership");
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageVessel
+# 533 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FISalvageKSLBXIn
+            INIT
+                    PauseOtherKAS();
+                    wideScreenIn(90);
+                    Jump FISalvageKSOpenSensors;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FISalvageKSLBXIn
+
+        STATE FISalvageKSLBXIn2
+            INIT
+                    PauseOtherKAS ();
+                    wideScreenIn(30);
+                    TimerCreateSetStart ("WideScreenTimer", 2);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("WideScreenTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FISalvageKS;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageKSLBXIn2
+
+        STATE FISalvageKSOpenSensors
+            INIT
+                    TimerCreateSetStart ("FIOpenSensorsTimer", 4);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIOpenSensorsTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FISalvageKS;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageKSOpenSensors
+
+        STATE FISalvageKS
+            INIT
+                    TimerCreateSetStart ("FISalvageKSTimer", 1);
+            ENDINIT
+            WATCH
+
+                    IF (TimerExpiredDestroy ("FISalvageKSTimer"))
+                            Jump FISalvageKS2;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageKS
+
+        STATE FISalvageKS2
+            INIT
+                    SpeechEvent ((406 + 0x00001000 + 0x10000000),0);
+                    TimerCreateSetStart ("FISalvageKSPINGTimer", 3);
+                    IFONCE (TRUE)
+                            VarCreateSet ("G_FIReactionToN02HasPlayed", TRUE);
+                    ENDIFONCE
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            IF (VarGet ("NeverCreateSalvageKSPingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSalvageKSPingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FISalvageKSEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FISalvageKSWAITEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FISalvageKSPINGTimer"))
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateSalvageKSPingAgain") = FALSE)
+                                    PingAddPoint (POINT_ServiceVesselPING, "ServiceVesselPING");
+                                    VarCreateSet ("NeverCreateSalvageKSPingAgain", TRUE);
+                            ENDIF
+                            TutSetTextDisplayBoxToSubtitleRegion();
+                            TutSetPointerTargetAIVolume("ServiceVesselPOINTER", VOLUME_SCVolume);
+
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageKS2
+
+        STATE FISalvageKSWAITEND
+            INIT
+                    TimerCreateSetStart ("FISalvageKSENDTimer", 2);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FISalvageKSEND;
+                    ENDIF
+                    IF (TimerExpiredDestroy ("FISalvageKSENDTimer"))
+                            wideScreenOut (30);
+                            Jump FISalvageKSEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISalvageKSWAITEND
+
+        STATE FISalvageKSEND
+            INIT
+                    TutRemoveAllPointers ();
+                    UnpauseUniverse();
+                    UnpauseOtherKAS();
+                    CloseSensors (TRUE);
+                    VarDestroy("G_CLICK_SalvageVessel");
+                    Jump FIIdle;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FISalvageKSEND
+# 665 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FISCDiedStillNeedData
+            INIT
+                    SpeechEvent ((413 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISCDiedStillNeedData
+# 690 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FIKilledNISTeam
+            INIT
+                    SpeechEvent ((409 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FCMothershipIsOK;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIKilledNISTeam
+
+        STATE FCMothershipIsOK
+            INIT
+                    SpeechEvent ((410 + 0x00000800 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IFONCE (TRUE)
+                            VarCreateSet ("G_PlayerHasFinishedACT1", TRUE);
+                    ENDIFONCE
+                    IF (IntelEventEnded ())
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FCMothershipIsOK
+# 729 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FIDefendSalvageTeam
+            INIT
+                    SpeechEvent ((411 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            IFONCE (TRUE)
+                                    MusicPlay (13);
+                            ENDIFONCE
+                            Jump FIDefendSalvageTeam2;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDefendSalvageTeam
+
+        STATE FIDefendSalvageTeam2
+            INIT
+                    SpeechEvent ((412 + 0x00001000 + 0x10000000),0);
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            VarDestroy("G_CLICK_DefendSalvageTeam");
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDefendSalvageTeam2
+# 768 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FISCDockedSafely
+            INIT
+                    IFONCE (TRUE)
+
+                    ENDIFONCE
+                    SpeechEvent ((414 + 0x00001000 + 0x10000000),0);
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            Jump FocusOnKharSelim;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISCDockedSafely
+
+        STATE FocusOnKharSelim
+            INIT
+                    wideScreenIn (90);
+                    TimerCreateSetStart ("FocusOnKharSelimTimer", 4);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FocusOnKharSelimTimer"))
+                            SoundEvent(262);
+                            TutCameraFocusDerelictType ("Shipwreck");
+                            TutCameraFocusDerelictType ("Shipwreck");
+                            Jump WaitOnKharSelim;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FocusOnKharSelim
+
+        STATE WaitOnKharSelim
+            INIT
+                    TimerCreateSetStart ("WaitOnKharSelimTimer", 1);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("WaitOnKharSelimTimer"))
+                            Jump AllShipsRecording;
+                    ENDIF
+
+
+
+
+
+
+            ENDWATCH
+        ENDSTATE WaitOnKharSelim
+
+        STATE AllShipsRecording
+            INIT
+                    FindEnemiesInside (VOLUME_MothershipSphere, SHIPS_AllShipsRecordingSHIPS, 100);
+                    ShipsSelectClass (SHIPS_Mothership99SHIPS, SHIPS_AllShipsRecordingSHIPS, "CLASS_Mothership");
+                    VarCreateSet ("G_MOTHERSHIP99SHIPS", ShipsCount (SHIPS_Mothership99SHIPS));
+                    SpeechEvent ((415 + 0x00200000 + 0x10000000), 0);
+                    TimerCreateSetStart ("G_ACT3Timer", 35);
+                    TutResetGameMessageQueue();
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+
+                            IF (VarGet ("G_P1MothershipHasRetreated") = FALSE)
+                                    TimerCreateSetStart ("PlayEnemyUnitsAdvancing", 15);
+                            ENDIF
+                            IF (VarGet ("PlayerChangedFocus") = FALSE)
+                                    Jump FIAllShipsRecordingLBXOut;
+                            ELSE
+                                    Jump FIIdle;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (TutGameSentMessage ("Game_BandBoxFocus,Game_ClickFocus,KB_FocusMothership,KB_CancelFocus,KB_Focus,KB_Sensors,TB_SensorsManager"))
+
+                            IF (VarGet ("PlayerChangedFocus") = FALSE)
+                                    WideScreenOut (60);
+                                    VarCreateSet ("PlayerChangedFocus", TRUE);
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AllShipsRecording
+
+        STATE FIAllShipsRecordingLBXOut
+            INIT
+                    TimerCreateSetStart ("G_GoBackToPreviousFocus", 1);
+                    TimerCreateSetStart ("G_StartUnLetterbox", 2);
+                    TimerCreateSetStart ("G_WaitForLBXOutToFinish", 4);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("G_GoBackToPreviousFocus"))
+                            IF (VarGet ("PlayerChangedFocus") = FALSE)
+                                    SoundEvent(262);
+                                    TutCameraFocusCancel();
+                            ENDIF
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("G_StartUnLetterbox"))
+                            IF (VarGet ("PlayerChangedFocus") = FALSE)
+                                    WideScreenOut (60);
+                                    VarCreateSet ("PlayerChangedFocus", TRUE);
+                            ENDIF
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("G_WaitForLBXOutToFinish"))
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIAllShipsRecordingLBXOut
+# 888 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FIDefendMothershipLBXIn
+            INIT
+                    PauseOtherKAS();
+                    wideScreenIn(90);
+                    Jump FIDefendMothershipOpenSensors;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIDefendMothershipLBXIn
+
+        STATE FIDefendMothershipLBXIn2
+            INIT
+                    PauseOtherKAS ();
+                    wideScreenIn(30);
+                    TimerCreateSetStart ("WideScreenTimer", 2);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("WideScreenTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FIDefendMothership;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDefendMothershipLBXIn2
+
+        STATE FIDefendMothershipOpenSensors
+            INIT
+                    TimerCreateSetStart ("FIOpenSensorsTimer", 4);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIOpenSensorsTimer"))
+                            OpenSensors (TRUE);
+                            PauseUniverse();
+                            Jump FIDefendMothership;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDefendMothershipOpenSensors
+
+
+        STATE FIDefendMothership
+            INIT
+                    TimerCreateSetStart ("FIDefendMothershipTimer", 1);
+            ENDINIT
+            WATCH
+
+                    IF (TimerExpiredDestroy ("FIDefendMothershipTimer"))
+                            IFONCE (TRUE)
+                                    MusicPlay (12);
+                            ENDIFONCE
+                            Jump FIDefendMothershipPING;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDefendMothership
+
+        STATE FIDefendMothershipPING
+            INIT
+                    SpeechEvent ((416 + 0x00001000 + 0x10000000),0);
+
+                    TimerCreateSetStart ("FIDefendMothershipPINGTimer", 1);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            IF (VarGet ("NeverCreateDefendPingAgain") = FALSE)
+                                    PingAddShips (TEAMSHIPS_ACT3Fighters, "ACT3FightersPING");
+                                    PingAddShips (TEAMSHIPS_ACT3Corvettes1, "ACT3Corvettes1PING");
+                                    VarCreateSet ("NeverCreateDefendPingAgain", TRUE);
+                            ENDIF
+                            wideScreenOut (30);
+                            Jump FIDefendMothershipEND;
+                    ELSEIF (VarGet("IntelEvent"))
+                            Jump FIDefendMothershipWAITEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FIDefendMothershipPINGTimer"))
+                            SoundEvent (267);
+                            IF (VarGet ("NeverCreateDefendPingAgain") = FALSE)
+                                    PingAddShips (TEAMSHIPS_ACT3Fighters, "ACT3FightersPING");
+                                    PingAddShips (TEAMSHIPS_ACT3Corvettes1, "ACT3Corvettes1PING");
+                                    VarCreateSet ("NeverCreateDefendPingAgain", TRUE);
+                            ENDIF
+                            TutRemoveAllPointers ();
+                            TutRemoveAllPointers ();
+                            TutRemoveAllPointers ();
+                            TutSetTextDisplayBoxToSubtitleRegion();
+
+                            TutSetPointerTargetShipSelection ("ACT3FightersPOINTER", TEAMSHIPS_ACT3Fighters);
+                            TutSetPointerTargetShipSelection ("ACT3Corvettes1POINTER", TEAMSHIPS_ACT3Corvettes1);
+
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDefendMothershipPING
+
+
+        STATE FIDefendMothershipLBXOut
+            INIT
+                    TimerCreateSetStart ("FIDefendMothershipLBXOutTimer", 10);
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("FIDefendMothershipLBXOutTimer"))
+                            wideScreenOut(150);
+                            Jump FIDefendMothershipEND;
+                    ENDIF
+                    IF (IntelEventEnded())
+                            wideScreenOut (30);
+                            Jump FIDefendMothershipEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDefendMothershipLBXOut
+
+
+        STATE FIDefendMothershipWAITEND
+            INIT
+                    TimerCreateSetStart ("FIDefendMothershipENDTimer", 3);
+            ENDINIT
+            WATCH
+                    VarDestroy ("IntelEvent");
+                    VarCreateSet("IntelEvent", IntelEventEnded());
+                    IF (VarGet("IntelEvent") = 2)
+                            wideScreenOut (30);
+                            Jump FIDefendMothershipEND;
+                    ENDIF
+
+                    IF (TimerExpiredDestroy ("FIDefendMothershipENDTimer"))
+                            wideScreenOut (30);
+                            Jump FIDefendMothershipEND;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDefendMothershipWAITEND
+
+
+        STATE FIDefendMothershipEND
+            INIT
+                    TutRemoveAllPointers ();
+                    TutRemoveAllPointers ();
+                    TutRemoveAllPointers ();
+                    UnpauseUniverse();
+                    UnpauseOtherKAS ();
+                    CloseSensors (TRUE);
+                    VarDestroy("G_CLICK_DefendMothership");
+                    IFONCE (TRUE)
+                            VarCreateSet ("G_EnemyUnitsAdvancing", TRUE);
+                            TimerCreateSetStart ("G_PlayDetectedPowerSignature", 110);
+                    ENDIFONCE
+                    Jump FIIdle;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIDefendMothershipEND
+# 1052 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FIInvestigateP1Mothership
+            INIT
+                    SpeechEvent ((417 + 0x00001000 + 0x10000000),0);
+
+                    IFONCE (TRUE)
+                            PingRemove ("ACT3FightersPING");
+                            PingRemove ("ACT3Corvettes1PING");
+                            PingAddShips (TEAMSHIPS_P1Mothership, "P1MothershipPING");
+                            VarCreateSet ("G_InvestigateP1Mothership", TRUE);
+                    ENDIFONCE
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            VarDestroy("G_CLICK_InvestigateP1Mothership");
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIInvestigateP1Mothership
+# 1086 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FISeenP1Mothership
+            INIT
+                    SpeechEvent ((418 + 0x00001000 + 0x10000000),0);
+
+                    IFONCE (TRUE)
+                            PingRemove ("P1MothershipPING");
+                    ENDIFONCE
+
+            ENDINIT
+            WATCH
+
+                    IF (IntelEventEnded ())
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FISeenP1Mothership
+# 1113 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FIDestroyAllP1
+            INIT
+                    SpeechEvent ((756 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            Jump FIDestroyAllP12;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDestroyAllP1
+
+        STATE FIDestroyAllP12
+            INIT
+
+                    SpeechEvent ((757 + 0x00001000 + 0x10000000),0);
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            VarDestroy("G_CLICK_DestroyAllP1");
+                            Jump FIIdle;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIDestroyAllP12
+# 1149 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FIObjectivesComplete
+            INIT
+                    SpeechEvent ((421 + 0x00001000 + 0x10000000),0);
+                    IFONCE (TRUE)
+
+                    ENDIFONCE
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            IFONCE (TRUE)
+                                    ObjectiveCreate ("Hyperspace", LSTRING_Hyperspace, LSTRING_Hyperspace);
+                            ENDIFONCE
+                            Jump FIDone;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIObjectivesComplete
+
+        STATE FIObjectivesComplete2
+            INIT
+                    SpeechEvent ((751 + 0x00001000 + 0x10000000),0);
+
+
+
+            ENDINIT
+            WATCH
+                    IF (IntelEventEnded ())
+                            IFONCE (TRUE)
+                                    ObjectiveCreate ("Hyperspace", LSTRING_Hyperspace, LSTRING_Hyperspace);
+                            ENDIFONCE
+                            Jump FIDone;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE FIObjectivesComplete2
+
+
+
+        STATE FIDone
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE FIDone
+# 1199 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        STATE FIIdle
+            INIT
+            ENDINIT
+            WATCH
+
+
+
+                    IF (TimerExpiredDestroy ("G_FCHyperspaceSuccessful"))
+                            Jump FCIntro;
+                    ENDIF
+
+
+                    IF ( (VarGet ("G_NISISPlaying") = FALSE) AND (TimerExpiredDestroy ("BeginFISendProbe")) )
+                            Jump FISendProbeLBXIn;
+                    ENDIF
+
+
+                    IF ( (VarGet ("G_Nis2Complete")) AND (TimerExpiredDestroy ("G_PostNISEventTimer")) )
+                            MusicPlay (13);
+
+                            Jump FCUnderAttack;
+                    ENDIF
+
+
+                    IFONCE (VarGet ("G_PlayKharSelimDestroyed") = TRUE)
+                            Jump FISalvageKSLBXIn;
+                    ENDIFONCE
+
+
+                    IF ( (VarGet ("G_TechRemoved") = 100) AND (ShipsCount (SHIPS_SCsReturning) = 0) AND (TimerExpiredDestroy ("G_PlaySCDiedStillNeedDataEvent")) )
+                            VarSet ("G_TechRemoved", 0);
+                            VarDestroy ("PlaySCDeadEventOnce");
+                            Jump FISCDiedStillNeedData;
+                    ENDIF
+
+
+                    IFONCE (VarGet ("G_NISTeamKilled") = TRUE)
+                            Jump FIKilledNISTeam;
+                    ENDIFONCE
+
+
+                    IFONCE ( (VarGet ("G_DefendSalvageTeamCreated") = TRUE) AND (VarGet ("G_P1MothershipHasRetreated") = FALSE) )
+                            Jump FIDefendSalvageTeam;
+                    ENDIFONCE
+
+
+                    IFONCE (VarGet ("G_SCDockedWithInfo") = TRUE)
+                            Jump FISCDockedSafely;
+                    ENDIFONCE
+
+
+                    IFONCE (TimerExpiredDestroy ("PlayEnemyUnitsAdvancing"))
+                            Jump FIDefendMothershipLBXIn;
+                    ENDIFONCE
+
+
+                    IFONCE ( (VarGet ("G_PlayerHasSeenP1Mothership") = FALSE) AND (TimerExpiredDestroy ("G_PlayDetectedPowerSignature")) )
+                            Jump FIInvestigateP1Mothership;
+                    ENDIFONCE
+
+
+                    IFONCE (VarGet ("G_PlayerHasSeenP1Mothership") = TRUE)
+                            Jump FISeenP1Mothership;
+                    ENDIFONCE
+
+
+                    IFONCE (VarGet ("G_PlayerHasKilledEnoughP1") = TRUE)
+                            Jump FIDestroyAllP1;
+                    ENDIFONCE
+
+
+                    IFONCE (TimerExpiredDestroy ("G_WaitToPlayFinalEvent"))
+                            Jump FIObjectivesComplete;
+                    ENDIFONCE
+
+
+                    IFONCE (TimerExpiredDestroy ("G_PlayNormalObjectivesComplete"))
+                            Jump FIObjectivesComplete2;
+                    ENDIFONCE
+# 1287 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+                    IF (VarGet ("G_CLICK_SendProbe"))
+                            Jump FISendProbeLBXIn2;
+                    ENDIF
+
+
+                    IF (VarGet ("G_CLICK_SalvageVessel"))
+                            Jump FISalvageKSLBXIn2;
+                    ENDIF
+
+
+                    IF (VarGet ("G_CLICK_ProtectMothership"))
+                            Jump FISalvageVessel;
+                    ENDIF
+
+
+                    IF (VarGet ("G_CLICK_DefendSalvageTeam"))
+                            Jump FIDefendSalvageTeam2;
+                    ENDIF
+
+
+                    IF (VarGet ("G_CLICK_DefendMothership"))
+                            Jump FIDefendMothershipLBXIn2;
+                    ENDIF
+
+
+                    IF (VarGet ("G_CLICK_InvestigateP1Mothership"))
+                            Jump FIInvestigateP1Mothership;
+                    ENDIF
+
+
+                    IF (VarGet ("G_CLICK_DestroyAllP1"))
+                            Jump FIDestroyAllP12;
+                    ENDIF
+
+
+            ENDWATCH
+        ENDSTATE FIIdle
+
+
+ENDFSM FleetIntel
+# 1337 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+FSM NISTeamFighter
+        States AttackMothership, Attack, WatchAttack, DockForGood, BugginOut, NullState;
+
+        INIT
+                JUMP AttackMothership;
+        ENDINIT
+        WATCH
+                IF (FindEnemiesInside (VOLUME_MothershipSphere, SHIPS_EntireFleet, 100))
+                        ShipsSelectClass (SHIPS_Fighter, SHIPS_EntireFleet, "CLASS_Fighter");
+                        ShipsSelectClass (SHIPS_Corvette, SHIPS_EntireFleet, "CLASS_Corvette");
+                        ShipsSelectType (SHIPS_PlayerSalCaps, SHIPS_EntireFleet, "SalCapCorvette");
+                        ShipsRemove (SHIPS_Corvette, SHIPS_PlayerSalCaps);
+                        ShipsSelectClass (SHIPS_Resource, SHIPS_EntireFleet, "CLASS_Resource");
+                        ShipsSelectType (SHIPS_Research, SHIPS_EntireFleet, "ResearchShip");
+                        ShipsSelectClass (SHIPS_Mothership, SHIPS_EntireFleet, "CLASS_Mothership");
+
+
+
+
+
+
+                ENDIF
+                IF (UnderAttack (SHIPS_NISTeamFighterUnderAttack))
+
+                ENDIF
+                IF ( (VarGet ("NowInNullState") = FALSE) AND (ShipsCount (TEAMSHIPS_NISTeamFighter) = 0) )
+                        Jump NullState;
+                ENDIF
+
+        ENDWATCH
+
+
+        STATE AttackMothership
+            INIT
+                    AttackMothership ();
+                    IF (VarGet ("G_Nis2Complete"))
+                            TimerCreateSetStart ("DamagedMothershipTimer", 20);
+                            TimerCreateSetStart ("AttackingMothershipTimer", 25);
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("DamagedMothershipTimer"))
+                            VarCreateSet ("G_NISTeamHasDamagedMothership", TRUE);
+                    ENDIF
+                    IF (TimerExpiredDestroy ("AttackingMothershipTimer"))
+                            Jump Attack;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackMothership
+
+
+        STATE Attack
+            INIT
+
+                    TacticsAggressive ();
+                    IF (ShipsCount (SHIPS_Fighter) > 2)
+                            Attack (SHIPS_Fighter);
+                            VarCreateSet ("AttackingFighter", TRUE);
+                            Jump WatchAttack;
+                    ELSEIF (ShipsCount (SHIPS_Corvette) > 1)
+                            Attack (SHIPS_Corvette);
+                            VarCreateSet ("AttackingCorvette", TRUE);
+                            Jump WatchAttack;
+                    ELSEIF ( (ShipsCount (SHIPS_Resource) > 0) AND (VarGet ("NeverAttackResourceAgain") = FALSE) )
+                            Attack (SHIPS_Resource);
+                            VarCreateSet ("AttackingResource", TRUE);
+                            Jump WatchAttack;
+                    ELSEIF ( (ShipsCount (SHIPS_Research) > 0) AND (VarGet ("NeverAttackResearchAgain") = FALSE) )
+                            Attack (SHIPS_Research);
+                            VarCreateSet ("AttackingResearch", TRUE);
+                            Jump WatchAttack;
+                    ELSEIF (ShipsCount (SHIPS_Mothership) > 0)
+                            Attack (SHIPS_Mothership);
+                            VarCreateSet ("AttackingMothership", TRUE);
+                            Jump WatchAttack;
+                    ENDIF
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE Attack
+
+
+        STATE WatchAttack
+            INIT
+            ENDINIT
+            WATCH
+                    IF (VarGet ("AttackingCorvette") = TRUE)
+                            IF ( (ShipsCount (SHIPS_Corvette) < 2) OR (NOT UnderAttack (SHIPS_Null746)) )
+                                    VarDestroy ("AttackingCorvette");
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Fighter) > 2)
+                                    VarDestroy ("AttackingCorvette");
+                                    Jump Attack;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResource") = TRUE)
+                            ShipsSelectDamaged (SHIPS_ResourceDamaged, SHIPS_Resource, 70);
+                            IF ( (ShipsCount (SHIPS_Resource) = 0) OR (ShipsCount (SHIPS_ResourceDamaged) > 0) )
+                                    VarDestroy ("AttackingResource");
+                                    VarCreateSet ("NeverAttackResourceAgain", TRUE);
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Fighter) > 2)
+                                    VarDestroy ("AttackingResource");
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Corvette) > 1)
+                                    VarDestroy ("AttackingResource");
+                                    Jump Attack;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResearch") = TRUE)
+                            ShipsSelectDamaged (SHIPS_ResearchDamaged, SHIPS_Research, 70);
+                            IF ( (ShipsCount (SHIPS_Research) = 0) OR (ShipsCount (SHIPS_ResearchDamaged) > 0) )
+                                    VarDestroy ("AttackingResearch");
+                                    VarCreateSet ("NeverAttackResearchAgain", TRUE);
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Fighter) > 2)
+                                    VarDestroy ("AttackingResearch");
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Corvette) > 1)
+                                    VarDestroy ("AttackingResearch");
+                                    Jump Attack;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingFighter") = TRUE)
+                            IF ( (ShipsCount (SHIPS_Fighter) < 4) OR (NOT UnderAttack (SHIPS_Null749)) )
+                                    VarDestroy ("AttackingFighter");
+                                    Jump Attack;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingMothership") = TRUE)
+                            IF ( (ShipsCount (SHIPS_Mothership) = 0) OR (NOT UnderAttack (SHIPS_Null750)) )
+                                    VarDestroy ("AttackingMothership");
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Fighter) > 2)
+                                    VarDestroy ("AttackingMothership");
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Corvette) > 1)
+                                    VarDestroy ("AttackingMothership");
+                                    Jump Attack;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_NISTeamFighter) != 2)
+                            Jump Attack;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WatchAttack
+
+
+        STATE DockForGood
+            INIT
+                    DockStay (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_P1MothershipHasRetreated") = TRUE)
+                            Jump BugginOut;
+                    ENDIF
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockForGood
+
+
+        STATE BugginOut
+            INIT
+                    Stop ();
+                    MoveTo (POINT_OutsideOfWorld);
+            ENDINIT
+            WATCH
+
+
+
+
+                    IF (PointInside (VOLUME_BugginOutVolume, THISTEAMSPOINT))
+                            HideShips (THISTEAMSHIPS);
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE BugginOut
+
+
+        STATE NullState
+            INIT
+                    VarCreateSet ("NowInNullState", TRUE);
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+
+ENDFSM NISTeamFighter
+
+
+
+
+
+
+FSM NISTeamCorvette
+        States Attack, WatchAttack, DockForGood, BugginOut, NullState;
+
+        INIT
+                IF (FindEnemiesInside (VOLUME_MothershipSphere, SHIPS_EntireFleet2, 100))
+                        ShipsSelectType (SHIPS_Research2, SHIPS_EntireFleet2, "ResearchShip");
+                        ShipsSelectClass (SHIPS_Resource2, SHIPS_EntireFleet2, "CLASS_Resource");
+                        ShipsSelectClass (SHIPS_Fighter2, SHIPS_EntireFleet2, "CLASS_Fighter");
+                        ShipsSelectClass (SHIPS_Corvette2, SHIPS_EntireFleet2, "CLASS_Corvette");
+                        ShipsSelectClass (SHIPS_Mothership2, SHIPS_EntireFleet2, "CLASS_Mothership");
+
+
+
+
+
+
+                ENDIF
+                IF (UnderAttack (SHIPS_NISTeamCorvetteUnderAttack))
+
+                ENDIF
+                IF ( (VarGet ("NowInNullState") = FALSE) AND (ShipsCount (TEAMSHIPS_NISTeamCorvette) = 0) )
+                        Jump NullState;
+                ENDIF
+                JUMP Attack;
+        ENDINIT
+        WATCH
+                IF (FindEnemiesInside (VOLUME_MothershipSphere, SHIPS_EntireFleet2, 100))
+                        ShipsSelectType (SHIPS_Research2, SHIPS_EntireFleet2, "ResearchShip");
+                        ShipsSelectClass (SHIPS_Resource2, SHIPS_EntireFleet2, "CLASS_Resource");
+                        ShipsSelectClass (SHIPS_Fighter2, SHIPS_EntireFleet2, "CLASS_Fighter");
+                        ShipsSelectClass (SHIPS_Corvette2, SHIPS_EntireFleet2, "CLASS_Corvette");
+                        ShipsSelectType (SHIPS_PlayerSalCaps2, SHIPS_EntireFleet2, "SalCapCorvette");
+                        ShipsRemove (SHIPS_Corvette2, SHIPS_PlayerSalCaps2);
+                        ShipsSelectClass (SHIPS_Mothership2, SHIPS_EntireFleet2, "CLASS_Mothership");
+
+
+
+
+
+
+                ENDIF
+                IF (UnderAttack (SHIPS_NISTeamCorvetteUnderAttack))
+
+                ENDIF
+                IF ( (VarGet ("NowInNullState") = FALSE) AND (ShipsCount (TEAMSHIPS_NISTeamCorvette) = 0) )
+                        Jump NullState;
+                ENDIF
+
+        ENDWATCH
+
+
+        STATE Attack
+            INIT
+                    IF ( (ShipsCount (SHIPS_Research2) > 0) AND (VarGet ("NeverAttackResearchAgain") = FALSE) )
+                            Attack (SHIPS_Research2);
+                            VarCreateSet ("AttackingResearch", TRUE);
+                            Jump WatchAttack;
+                    ELSEIF ( (ShipsCount (SHIPS_Resource2) > 0) AND (VarGet ("NeverAttackResourceAgain") = FALSE) )
+                            Attack (SHIPS_Resource2);
+                            VarCreateSet ("AttackingResource", TRUE);
+                            Jump WatchAttack;
+                    ELSEIF (ShipsCount (SHIPS_Fighter2) > 3)
+                            Attack (SHIPS_Fighter2);
+                            VarCreateSet ("AttackingFighter", TRUE);
+                            Jump WatchAttack;
+                    ELSEIF (ShipsCount (SHIPS_Corvette2) > 1)
+                            Attack (SHIPS_Corvette2);
+                            VarCreateSet ("AttackingCorvette", TRUE);
+                            Jump WatchAttack;
+                    ELSEIF (ShipsCount (SHIPS_Mothership2) > 0)
+                            Attack (SHIPS_Mothership2);
+                            VarCreateSet ("AttackingMothership", TRUE);
+                            Jump WatchAttack;
+                    ENDIF
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE Attack
+
+
+        STATE WatchAttack
+            INIT
+            ENDINIT
+            WATCH
+                    IF (VarGet ("AttackingCorvette") = TRUE)
+                            IF ( (ShipsCount (SHIPS_Corvette2) < 2) OR (NOT UnderAttack (SHIPS_Null7462)) )
+                                    VarDestroy ("AttackingCorvette");
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Fighter) > 3)
+                                    VarDestroy ("AttackingCorvette");
+                                    Jump Attack;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResource") = TRUE)
+                            ShipsSelectDamaged (SHIPS_ResourceDamaged2, SHIPS_Resource2, 70);
+                            IF ( (ShipsCount (SHIPS_Resource2) = 0) OR (ShipsCount (SHIPS_ResourceDamaged2) > 0) )
+                                    VarDestroy ("AttackingResource");
+                                    VarCreateSet ("NeverAttackResourceAgain", TRUE);
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Fighter) > 3)
+                                    VarDestroy ("AttackingResource");
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Corvette) > 1)
+                                    VarDestroy ("AttackingResource");
+                                    Jump Attack;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResearch") = TRUE)
+                            ShipsSelectDamaged (SHIPS_ResearchDamaged2, SHIPS_Research2, 55);
+                            IF ( (ShipsCount (SHIPS_Research2) = 0) OR (ShipsCount (SHIPS_ResearchDamaged2) > 0) )
+                                    VarDestroy ("AttackingResearch");
+                                    VarCreateSet ("NeverAttackResearchAgain", TRUE);
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Fighter) > 3)
+                                    VarDestroy ("AttackingResearch");
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Corvette) > 1)
+                                    VarDestroy ("AttackingResearch");
+                                    Jump Attack;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingFighter") = TRUE)
+                            IF ( (ShipsCount (SHIPS_Fighter2) < 4) OR (NOT UnderAttack (SHIPS_Null7492)) )
+                                    VarDestroy ("AttackingFighter");
+                                    Jump Attack;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingMothership") = TRUE)
+                            IF ( (ShipsCount (SHIPS_Mothership2) = 0) OR (NOT UnderAttack (SHIPS_Null7502)) )
+                                    VarDestroy ("AttackingMothership");
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Fighter) > 3)
+                                    VarDestroy ("AttackingMothership");
+                                    Jump Attack;
+                            ENDIF
+                            IF (ShipsCount (SHIPS_Corvette) > 1)
+                                    VarDestroy ("AttackingMothership");
+                                    Jump Attack;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_NISTeamFighter) != 2)
+                            Jump Attack;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WatchAttack
+
+
+        STATE DockForGood
+            INIT
+                    DockStay (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_P1MothershipHasRetreated") = TRUE)
+                            Jump BugginOut;
+                    ENDIF
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockForGood
+
+
+        STATE BugginOut
+            INIT
+                    Stop ();
+                    MoveTo (POINT_OutsideOfWorld);
+            ENDINIT
+            WATCH
+
+
+
+
+                    IF (PointInside (VOLUME_BugginOutVolume, THISTEAMSPOINT))
+                            HideShips (THISTEAMSHIPS);
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE BugginOut
+
+
+        STATE NullState
+            INIT
+                    VarCreateSet ("NowInNullState", TRUE);
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+
+ENDFSM NISTeamCorvette
+
+
+
+
+
+
+FSM DoggedFighter
+        States AllDeadWaitForShips, DockInstant, WatchingForSC, Launch, AttackSC, AttackSCsReturning, IHaveNoTarget,
+               Defend, AttacknisVolume, DockWithMothership, Docked, Launch2, WatchingForSC2, DockForGood, BugginOutForGood, BugginOut, NullState;
+
+        INIT
+                VarCreateSet ("SHIPSOriginal", (ShipsCount (THISTEAMSHIPS)));
+                VarCreateSet ("SHIPSRequested", 0);
+                VarCreateSet ("SHIPSNeeded", 0);
+                VarCreateSet ("SHIPSNewships", 0);
+                VarCreateSet ("SHIPSKilled", 0);
+
+                VarSet ("G_TOTALOriginalDoggedFighters", VarGet ("G_TOTALOriginalDoggedFighters") + ShipsCount (THISTEAMSHIPS));
+
+                Jump DockInstant;
+        ENDINIT
+        WATCH
+
+                IF ( (ShipsCount (THISTEAMSHIPS) = 0) AND (VarGet ("WaitingForShips") = FALSE) )
+                        Jump AllDeadWaitForShips;
+                ENDIF
+
+
+                IF ( (ShipsCount (THISTEAMSHIPS) + VarGet ("SHIPSRequested")) < VarGet ("SHIPSOriginal") )
+                        VarSet ("SHIPSNeeded", (VarGet ("SHIPSOriginal") - (ShipsCount (THISTEAMSHIPS) + VarGet("SHIPSRequested"))));
+                        RequestShips ("P1Fighter", VarGet ("SHIPSNeeded"));
+                        VarSet ("SHIPSKilled", VarGet ("SHIPSKilled") + VarGet ("SHIPSNeeded"));
+                        VarSet ("G_TOTALDoggedFightersKilled", VarGet ("SHIPSKilled"));
+                        VarSet("SHIPSRequested", VarGet("SHIPSRequested") + VarGet("SHIPSNeeded"));
+                ENDIF
+                VarSet ("SHIPSNewships", NewShipsAdded());
+                IF (VarGet("SHIPSNewships"))
+
+                        VarSet("SHIPSRequested", VarGet("SHIPSRequested") - VarGet("SHIPSNewships"));
+                ENDIF
+
+
+                IF (FindShipsInside (VOLUME_EntireWorldVolume, SHIPS_EntireWorld))
+
+                        ShipsSelectSpecial (SHIPS_SCsReturning, SHIPS_EntireWorld, 1);
+                        VarCreateSet ("G_SCsReturningSHIPS", ShipsCount (SHIPS_SCsReturning));
+                ENDIF
+                IFONCE (ObjectiveGet ("SalvageVessel") = TRUE)
+                        Jump BugginOut;
+                ENDIFONCE
+                IFONCE (MsgReceived ("DontHassleSCAnymore"))
+                        Jump BugginOut;
+                ENDIFONCE
+
+
+                IFONCE (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                        Jump DockForGood;
+                ENDIFONCE
+        ENDWATCH
+
+
+
+
+        STATE AllDeadWaitForShips
+            INIT
+                    VarCreateSet ("WaitingForShips", TRUE);
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (THISTEAMSHIPS) > 0)
+                            VarDestroy ("WaitingForShips");
+                            Jump AttackSC;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AllDeadWaitForShips
+
+
+        STATE DockInstant
+            INIT
+                    DockInstant (TEAM_P1Mothership);
+                    Jump WatchingForSC;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE DockInstant
+
+
+        STATE WatchingForSC
+            INIT
+            ENDINIT
+            WATCH
+                    IF (FindEnemiesInside (VOLUME_SCVolume, SHIPS_NearDerelict, 700))
+
+                            ShipsSelectType (SHIPS_SalvageCorvettes, SHIPS_NearDerelict, "SalCapCorvette");
+
+                    ENDIF
+                    IF (VarGet ("G_TechRemoved") > 15)
+                            Jump Launch;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WatchingForSC
+
+
+        STATE Launch
+            INIT
+                    IF ( (TeamDockedReadyForLaunch ()) AND (TimerExpiredDestroy ("G_P1MothershipHasHyperspacedIn")) )
+                            Launch ();
+                            VarCreateSet ("G_DoggedFighterHasLaunched", TRUE);
+                            TimerCreateSetStart ("LaunchDoggedFighter", 5);
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("LaunchDoggedFighter"))
+                            TimerCreateSetStart ("G_DoggedFighterOnItsWay", 8);
+                            Jump AttackSC;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Launch
+
+
+        STATE AttackSC
+            INIT
+                    TacticsAggressive();
+                    Attack (SHIPS_SalvageCorvettes);
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (SHIPS_SCsReturning) > 0 )
+                            Jump AttackSCsReturning;
+                    ENDIF
+                    IF (ShipsCount (SHIPS_SalvageCorvettes) = 0)
+                            Jump IHaveNoTarget;
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_DoggedFighter) != 2)
+                            Jump AttackSC;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackSC
+
+
+        STATE AttackSCsReturning
+            INIT
+                    Attack (SHIPS_SCsReturning);
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (SHIPS_SCsReturning) = 0)
+                            Jump IHaveNoTarget;
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_DoggedFighter) != 2)
+                            Jump AttackSC;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackSCsReturning
+
+
+        STATE IHaveNoTarget
+            INIT
+            ENDINIT
+            WATCH
+
+                    IF (UnderAttack (SHIPS_DoggedFighterUnderAttack))
+                            ShipsSelectClass (SHIPS_Mothership, SHIPS_DoggedFighterUnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_DoggedFighterUnderAttack, SHIPS_Mothership);
+                            IF (ShipsCount (SHIPS_DoggedFighterUnderAttack) > 0)
+                                    Jump Defend;
+                            ENDIF
+                    ELSEIF (FindEnemiesInside (VOLUME_nisVolume, SHIPS_DoggedFighterLooking, 2000))
+                            Jump AttacknisVolume;
+                    ELSEIF (ShipsCount (TEAMSHIPS_DoggedFighter) = 0)
+                            Jump WatchingForSC2;
+                    ELSE
+                            Jump DockWithMothership;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE IHaveNoTarget
+
+
+        STATE Defend
+            INIT
+                    ShipsSelectClass (SHIPS_DoggedFighterFighters, SHIPS_DoggedFighterUnderAttack, "CLASS_Fighter");
+                    IF (ShipsCount (SHIPS_DoggedFighterFighters) > 0)
+                            Attack (SHIPS_DoggedFighterFighters);
+                    ELSE
+                            Attack (SHIPS_DoggedFighterUnderAttack);
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_DoggedFighter) = 0)
+                            Jump WatchingForSC2;
+                    ENDIF
+                    IF (NOT (UnderAttack (SHIPS_Null960006544)))
+                            Jump AttackSC;
+                    ENDIF
+                    IF (ShipsCount (SHIPS_DoggedFighterUnderAttack) = 0)
+                            Jump AttackSC;
+                    ENDIF
+                    IF (FindEnemiesInside (VOLUME_SCVolume, SHIPS_NearDerelict, 700))
+                            VarSet ("G_NearDerelictSHIPS", (ShipsCount (SHIPS_NearDerelict)));
+                            ShipsSelectType (SHIPS_SalvageCorvettes, SHIPS_NearDerelict, "SalCapCorvette");
+                            VarSet ("G_SalvageCorvettesSHIPS", (ShipsCount (SHIPS_SalvageCorvettes)));
+                            IF (ShipsCount (SHIPS_SalvageCorvettes) > 0)
+                                    Jump AttackSC;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_DoggedFighter) != 2)
+                            Jump Defend;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Defend
+
+
+        STATE AttacknisVolume
+            INIT
+                    ShipsSelectClass (SHIPS_nisVolumeFighters, SHIPS_DoggedFighterLooking, "CLASS_Fighter");
+                    IF (ShipsCount (SHIPS_nisVolumeFighters) > 0)
+                            Attack (SHIPS_nisVolumeFighters);
+                    ELSE
+                            Attack (SHIPS_DoggedFighterLooking);
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_DoggedFighter) = 0)
+                            Jump WatchingForSC2;
+                    ENDIF
+                    IF (ShipsCount (SHIPS_DoggedFighterLooking) = 0)
+                            Jump IHaveNoTarget;
+                    ENDIF
+                    IF (FindEnemiesInside (VOLUME_SCVolume, SHIPS_NearDerelict, 700))
+                            VarSet ("G_NearDerelictSHIPS", (ShipsCount (SHIPS_NearDerelict)));
+                            ShipsSelectType (SHIPS_SalvageCorvettes, SHIPS_NearDerelict, "SalCapCorvette");
+                            VarSet ("G_SalvageCorvettesSHIPS", (ShipsCount (SHIPS_SalvageCorvettes)));
+                            IF (ShipsCount (SHIPS_SalvageCorvettes) > 0)
+                                    Jump AttackSC;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_DoggedFighter) != 2)
+                            Jump AttacknisVolume;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttacknisVolume
+
+
+        STATE DockWithMothership
+            INIT
+                    DockStay (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_DoggedFighter) = 0)
+                            Jump WatchingForSC2;
+                    ENDIF
+                    IF (TeamDockedReadyForLaunch ())
+                            Jump Docked;
+                    ELSEIF (FindEnemiesInside (VOLUME_SCVolume, SHIPS_NearDerelict, 700))
+                            VarSet ("G_NearDerelictSHIPS", (ShipsCount (SHIPS_NearDerelict)));
+                            ShipsSelectType (SHIPS_SalvageCorvettes, SHIPS_NearDerelict, "SalCapCorvette");
+                            VarSet ("G_SalvageCorvettesSHIPS", (ShipsCount (SHIPS_SalvageCorvettes)));
+                            IF (ShipsCount (SHIPS_SalvageCorvettes) > 0)
+                                    Jump AttackSC;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockWithMothership
+
+
+        STATE Docked
+            INIT
+            ENDINIT
+            WATCH
+                    IF (FindEnemiesInside (VOLUME_SCVolume, SHIPS_NearDerelict, 700))
+                            VarSet ("G_NearDerelictSHIPS", (ShipsCount (SHIPS_NearDerelict)));
+                            ShipsSelectType (SHIPS_SalvageCorvettes, SHIPS_NearDerelict, "SalCapCorvette");
+                            VarSet ("G_SalvageCorvettesSHIPS", (ShipsCount (SHIPS_SalvageCorvettes)));
+                            IF (ShipsCount (SHIPS_SalvageCorvettes) > 0)
+                                    Jump Launch2;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Docked
+
+
+        STATE Launch2
+            INIT
+                    IF (TeamDockedReadyForLaunch ())
+                            Launch ();
+                            TimerCreateSetStart ("LaunchDoggedFighter2", 5);
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_DoggedFighter) = 0)
+                            Jump WatchingForSC2;
+                    ENDIF
+                    IF (TimerExpiredDestroy ("LaunchDoggedFighter2"))
+                            Jump AttackSC;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Launch2
+
+
+        STATE WatchingForSC2
+            INIT
+            ENDINIT
+            WATCH
+                    IF (FindEnemiesInside (VOLUME_SCVolume, SHIPS_NearDerelict, 700))
+                            VarSet ("G_NearDerelictSHIPS", (ShipsCount (SHIPS_NearDerelict)));
+                            ShipsSelectType (SHIPS_SalvageCorvettes, SHIPS_NearDerelict, "SalCapCorvette");
+                            VarSet ("G_SalvageCorvettesSHIPS", (ShipsCount (SHIPS_SalvageCorvettes)));
+                            IF (ShipsCount (SHIPS_SalvageCorvettes) > 0)
+                                    Jump AttackSC;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WatchingForSC2
+
+
+        STATE DockForGood
+            INIT
+                    DockStay (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_P1MothershipHasRetreated") = TRUE)
+                            Jump BugginOutForGood;
+                    ENDIF
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockForGood
+
+
+        STATE BugginOutForGood
+            INIT
+                    Stop ();
+                    MoveTo (POINT_OutsideOfWorld);
+            ENDINIT
+            WATCH
+
+
+
+
+                    IF (PointInside (VOLUME_BugginOutVolume, THISTEAMSPOINT))
+                            HideShips (THISTEAMSHIPS);
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE BugginOutForGood
+
+
+        STATE BugginOut
+            INIT
+                    Stop ();
+                    DockStay (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IF (TeamDockedReadyForLaunch ())
+                            Jump NullState;
+                    ENDIF
+                    IF (ShipsCount (TEAMSHIPS_DoggedFighter) = 0)
+                            Jump NullState;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipHasRetreated") = TRUE)
+                            Jump BugginOutForGood;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE BugginOut
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+ENDFSM DoggedFighter
+
+
+
+
+
+
+FSM SCFighters
+        States DockInstant, WatchingForSC, Launch, AttackSC, AttackSCsReturning, Defend, AllDeadWaitForShips, IHaveNoTarget, Defend2, AttacknisVolume,
+               DockWithMothership, Docked, Launch2, WatchingForSC2, DockForGood, BugginOutForGood, BugginOut, NullState;
+
+        INIT
+                VarCreateSet ("SHIPSOriginal", (ShipsCount (THISTEAMSHIPS)));
+                VarCreateSet ("SHIPSRequested", 0);
+                VarCreateSet ("SHIPSNeeded", 0);
+                VarCreateSet ("SHIPSNewships", 0);
+                VarCreateSet ("SHIPSKilled", 0);
+
+                VarSet ("G_TOTALOriginalSCFighters", VarGet ("G_TOTALOriginalSCFighters") + ShipsCount (THISTEAMSHIPS));
+
+                Jump DockInstant;
+        ENDINIT
+        WATCH
+
+                IF ( (ShipsCount (THISTEAMSHIPS) = 0) AND (VarGet ("WaitingForShips") = FALSE) )
+                        Jump AllDeadWaitForShips;
+                ENDIF
+
+
+                IF ( (ShipsCount (THISTEAMSHIPS) + VarGet ("SHIPSRequested")) < VarGet ("SHIPSOriginal") )
+                        VarSet ("SHIPSNeeded", (VarGet ("SHIPSOriginal") - (ShipsCount (THISTEAMSHIPS) + VarGet("SHIPSRequested"))));
+                        RequestShips ("P1Fighter", VarGet ("SHIPSNeeded"));
+                        VarSet ("SHIPSKilled", VarGet ("SHIPSKilled") + VarGet ("SHIPSNeeded"));
+                        VarSet ("G_TOTALSCFightersKilled", VarGet ("SHIPSKilled"));
+                        VarSet("SHIPSRequested", VarGet("SHIPSRequested") + VarGet("SHIPSNeeded"));
+                ENDIF
+                VarSet ("SHIPSNewships", NewShipsAdded());
+                IF (VarGet("SHIPSNewships"))
+
+                        VarSet("SHIPSRequested", VarGet("SHIPSRequested") - VarGet("SHIPSNewships"));
+                ENDIF
+
+
+
+                IF (FindShipsInside (VOLUME_EntireWorldVolume, SHIPS_EntireWorld))
+
+                        ShipsSelectSpecial (SHIPS_SCsReturning, SHIPS_EntireWorld, 1);
+
+                ENDIF
+                IFONCE (ObjectiveGet ("SalvageVessel") = TRUE)
+                        Jump BugginOut;
+                ENDIFONCE
+                IFONCE (MsgReceived ("DontHassleSCAnymore"))
+                        Jump BugginOut;
+                ENDIFONCE
+
+
+                IFONCE (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                        Jump DockForGood;
+                ENDIFONCE
+        ENDWATCH
+
+
+        STATE AllDeadWaitForShips
+            INIT
+                    VarCreateSet ("WaitingForShips", TRUE);
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (THISTEAMSHIPS) > 0)
+                            VarDestroy ("WaitingForShips");
+                            Jump AttackSC;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AllDeadWaitForShips
+
+
+        STATE DockInstant
+            INIT
+                    DockInstant (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_DoggedFighterHasLaunched") = TRUE)
+                            VarDestroy ("G_DoggedFighterHasLaunched");
+                            TimerCreateSetStart ("LaunchSCFighters", 12);
+                            Jump WatchingForSC;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockInstant
+
+
+        STATE WatchingForSC
+            INIT
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("LaunchSCFighters"))
+                            Jump Launch;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WatchingForSC
+
+
+        STATE Launch
+            INIT
+                    IF (TeamDockedReadyForLaunch ())
+                            Launch ();
+                            VarCreateSet ("G_SCFightersHaveLaunched", TRUE);
+                            TimerCreateSetStart ("SCFightersHaveLaunched", 5);
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF (TimerExpiredDestroy ("SCFightersHaveLaunched"))
+                            Jump AttackSC;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Launch
+
+
+        STATE AttackSC
+            INIT
+                    TacticsAggressive ();
+                    Attack (SHIPS_SalvageCorvettes);
+            ENDINIT
+            WATCH
+                    IF (UnderAttack (SHIPS_SCFightersUnderAttack))
+                            ShipsSelectClass (SHIPS_Mothership, SHIPS_SCFightersUnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_SCFightersUnderAttack, SHIPS_Mothership);
+                            IF (ShipsCount (SHIPS_SCFightersUnderAttack) > 0)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+                    IF (ShipsCount (SHIPS_SCsReturning) > 0 )
+                            Jump AttackSCsReturning;
+                    ENDIF
+                    IF (ShipsCount (SHIPS_SalvageCorvettes) = 0)
+                            Jump IHaveNoTarget;
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_SCFighters) != 2)
+                            Jump AttackSC;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackSC
+
+
+        STATE AttackSCsReturning
+            INIT
+                    TacticsAggressive();
+                    Attack (SHIPS_SCsReturning);
+            ENDINIT
+            WATCH
+                    IF (UnderAttack (SHIPS_SCFightersUnderAttack))
+                            ShipsSelectClass (SHIPS_Mothership, SHIPS_SCFightersUnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_SCFightersUnderAttack, SHIPS_Mothership);
+                            IF (ShipsCount (SHIPS_SCFightersUnderAttack) > 0)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+                    IF (ShipsCount (SHIPS_SCsReturning) = 0)
+                            Jump IHaveNoTarget;
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_SCFighters) != 2)
+                            Jump AttackSCsReturning;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackSCsReturning
+
+
+        STATE Defend
+            INIT
+                    VarCreateSet ("SCFightersAreDefending", TRUE);
+                    TacticsAggressive ();
+                    ShipsSelectClass (SHIPS_SCFightersFighters, SHIPS_SCFightersUnderAttack, "CLASS_Fighter");
+                    IF (ShipsCount (SHIPS_SCFightersFighters) > 0)
+                            Attack (SHIPS_SCFightersFighters);
+                    ELSE
+                            Attack (SHIPS_SCFightersUnderAttack);
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF (NOT (UnderAttack (SHIPS_Null92399766544)))
+                            VarDestroy ("SCFightersAreDefending");
+                            Jump AttackSC;
+                    ENDIF
+                    IF (ShipsCount (SHIPS_SCFightersUnderAttack) = 0)
+                            VarDestroy ("SCFightersAreDefending");
+                            Jump AttackSC;
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_SCFighters) != 2)
+                            Jump AttackSCsReturning;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Defend
+
+
+        STATE IHaveNoTarget
+            INIT
+            ENDINIT
+            WATCH
+
+                    IF (UnderAttack (SHIPS_SCFightersUnderAttack))
+                            ShipsSelectClass (SHIPS_Mothership, SHIPS_SCFightersUnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_SCFightersUnderAttack, SHIPS_Mothership);
+                            IF (ShipsCount (SHIPS_SCFightersUnderAttack) > 0)
+                                    Jump Defend2;
+                            ENDIF
+                    ELSEIF (FindEnemiesInside (VOLUME_nisVolume, SHIPS_SCFightersLooking, 2000))
+                            Jump AttacknisVolume;
+                    ELSEIF (ShipsCount (TEAMSHIPS_SCFighters) = 0)
+                            Jump WatchingForSC2;
+                    ELSE
+                            Jump DockWithMothership;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE IHaveNoTarget
+
+
+        STATE Defend2
+            INIT
+                    ShipsSelectClass (SHIPS_SCFightersFighters, SHIPS_SCFightersUnderAttack, "CLASS_Fighter");
+                    IF (ShipsCount (SHIPS_SCFightersFighters) > 0)
+                            Attack (SHIPS_SCFightersFighters);
+                    ELSE
+                            Attack (SHIPS_SCFightersUnderAttack);
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_SCFighters) = 0)
+                            Jump WatchingForSC2;
+                    ENDIF
+                    IF (NOT (UnderAttack (SHIPS_Null906544)))
+                            Jump AttackSC;
+                    ENDIF
+                    IF (ShipsCount (SHIPS_SCFightersUnderAttack) = 0)
+                            Jump AttackSC;
+                    ENDIF
+                    IF (FindEnemiesInside (VOLUME_SCVolume, SHIPS_NearDerelict, 700))
+                            VarSet ("G_NearDerelictSHIPS", (ShipsCount (SHIPS_NearDerelict)));
+                            ShipsSelectType (SHIPS_SalvageCorvettes, SHIPS_NearDerelict, "SalCapCorvette");
+                            VarSet ("G_SalvageCorvettesSHIPS", (ShipsCount (SHIPS_SalvageCorvettes)));
+                            IF (ShipsCount (SHIPS_SalvageCorvettes) > 0)
+                                    Jump AttackSC;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_SCFighters) != 2)
+                            Jump IHaveNoTarget;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Defend2
+
+
+        STATE AttacknisVolume
+            INIT
+                    ShipsSelectClass (SHIPS_nisVolumeFighters, SHIPS_SCFightersLooking, "CLASS_Fighter");
+                    IF (ShipsCount (SHIPS_nisVolumeFighters) > 0)
+                            Attack (SHIPS_nisVolumeFighters);
+                    ELSE
+                            Attack (SHIPS_SCFightersLooking);
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_SCFighters) = 0)
+                            Jump WatchingForSC2;
+                    ENDIF
+                    IF (ShipsCount (SHIPS_SCFightersLooking) = 0)
+                            Jump IHaveNoTarget;
+                    ENDIF
+                    IF (FindEnemiesInside (VOLUME_SCVolume, SHIPS_NearDerelict, 700))
+                            VarSet ("G_NearDerelictSHIPS", (ShipsCount (SHIPS_NearDerelict)));
+                            ShipsSelectType (SHIPS_SalvageCorvettes, SHIPS_NearDerelict, "SalCapCorvette");
+                            VarSet ("G_SalvageCorvettesSHIPS", (ShipsCount (SHIPS_SalvageCorvettes)));
+                            IF (ShipsCount (SHIPS_SalvageCorvettes) > 0)
+                                    Jump AttackSC;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_SCFighters) != 2)
+                            Jump IHaveNoTarget;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttacknisVolume
+
+
+        STATE DockWithMothership
+            INIT
+                    DockStay (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_SCFighters) = 0)
+                            Jump WatchingForSC2;
+                    ENDIF
+                    IF (TeamDockedReadyForLaunch ())
+                            Jump Docked;
+                    ELSEIF (FindEnemiesInside (VOLUME_SCVolume, SHIPS_NearDerelict, 700))
+                            VarSet ("G_NearDerelictSHIPS", (ShipsCount (SHIPS_NearDerelict)));
+                            ShipsSelectType (SHIPS_SalvageCorvettes, SHIPS_NearDerelict, "SalCapCorvette");
+                            VarSet ("G_SalvageCorvettesSHIPS", (ShipsCount (SHIPS_SalvageCorvettes)));
+                            IF (ShipsCount (SHIPS_SalvageCorvettes) > 0)
+                                    Jump AttackSC;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockWithMothership
+
+
+        STATE Docked
+            INIT
+            ENDINIT
+            WATCH
+                    IF (FindEnemiesInside (VOLUME_SCVolume, SHIPS_NearDerelict, 700))
+                            VarSet ("G_NearDerelictSHIPS", (ShipsCount (SHIPS_NearDerelict)));
+                            ShipsSelectType (SHIPS_SalvageCorvettes, SHIPS_NearDerelict, "SalCapCorvette");
+                            VarSet ("G_SalvageCorvettesSHIPS", (ShipsCount (SHIPS_SalvageCorvettes)));
+                            IF (ShipsCount (SHIPS_SalvageCorvettes) > 0)
+                                    Jump Launch2;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Docked
+
+
+        STATE Launch2
+            INIT
+                    IF (TeamDockedReadyForLaunch ())
+                            Launch ();
+                            TimerCreateSetStart ("LaunchSCFighters2", 5);
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (TEAMSHIPS_SCFighters) = 0)
+                            Jump WatchingForSC2;
+                    ENDIF
+                    IF (TimerExpiredDestroy ("LaunchSCFighters2"))
+                            Jump AttackSC;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Launch2
+
+
+        STATE WatchingForSC2
+            INIT
+            ENDINIT
+            WATCH
+                    IF (FindEnemiesInside (VOLUME_SCVolume, SHIPS_NearDerelict, 700))
+                            VarSet ("G_NearDerelictSHIPS", (ShipsCount (SHIPS_NearDerelict)));
+                            ShipsSelectType (SHIPS_SalvageCorvettes, SHIPS_NearDerelict, "SalCapCorvette");
+                            VarSet ("G_SalvageCorvettesSHIPS", (ShipsCount (SHIPS_SalvageCorvettes)));
+                            IF (ShipsCount (SHIPS_SalvageCorvettes) > 0)
+                                    Jump AttackSC;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE WatchingForSC2
+
+
+        STATE DockForGood
+            INIT
+                    DockStay (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_P1MothershipHasRetreated") = TRUE)
+                            Jump BugginOutForGood;
+                    ENDIF
+                    IF (ShipsCount (THISTEAMSHIPS) = 0)
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockForGood
+
+
+        STATE BugginOutForGood
+            INIT
+                    Stop ();
+                    MoveTo (POINT_OutsideOfWorld);
+            ENDINIT
+            WATCH
+
+
+
+
+                    IF (PointInside (VOLUME_BugginOutVolume, THISTEAMSPOINT))
+                            HideShips (THISTEAMSHIPS);
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE BugginOutForGood
+
+
+        STATE BugginOut
+            INIT
+                    Stop ();
+                    DockStay (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IF (TeamDockedReadyForLaunch ())
+                            Jump NullState;
+                    ENDIF
+                    IF (ShipsCount (TEAMSHIPS_SCFighters) = 0)
+                            Jump NullState;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipHasRetreated") = TRUE)
+                            Jump BugginOutForGood;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE BugginOut
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+
+ENDFSM SCFighters
+# 2549 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+FSM ACT3Fighters
+        States DockInstant, Launch, MASTERLooking, AttackMothershipSphere, AttackEntireWorld, AttackMothership, AllDeadWaitForShips, Defend,
+               GoHelpP1Mothership, DockForGood, BugginOut, NullState;
+
+
+        INIT
+                VarCreateSet ("SHIPSOriginal", (ShipsCount (THISTEAMSHIPS)));
+                VarCreateSet ("SHIPSRequested", 0);
+                VarCreateSet ("SHIPSNeeded", 0);
+                VarCreateSet ("SHIPSNewships", 0);
+                VarCreateSet ("SHIPSKilled", 0);
+
+                VarSet ("G_TOTALOriginalACT3Fighters", VarGet ("G_TOTALOriginalACT3Fighters") + ShipsCount (THISTEAMSHIPS));
+
+                Jump DockInstant;
+        ENDINIT
+        WATCH
+
+                IF ( (ShipsCount (THISTEAMSHIPS) = 0) AND (VarGet ("WaitingForShips") = FALSE) )
+                        Jump AllDeadWaitForShips;
+                ENDIF
+
+
+                IF ( ((ShipsCount (THISTEAMSHIPS) + VarGet ("SHIPSRequested")) < VarGet ("SHIPSOriginal")) AND (VarGet ("G_P1MothershipGettinOut") = FALSE) )
+                        VarSet ("SHIPSNeeded", (VarGet ("SHIPSOriginal") - (ShipsCount (THISTEAMSHIPS) + VarGet("SHIPSRequested"))));
+                        RequestShips ("P1Fighter", VarGet ("SHIPSNeeded"));
+                        VarSet ("SHIPSKilled", VarGet ("SHIPSKilled") + VarGet ("SHIPSNeeded"));
+                        VarSet ("G_TOTALACT3FightersKilled", VarGet ("SHIPSKilled"));
+                        VarSet("SHIPSRequested", VarGet("SHIPSRequested") + VarGet("SHIPSNeeded"));
+                ENDIF
+                VarSet ("SHIPSNewships", NewShipsAdded());
+                IF (VarGet("SHIPSNewships"))
+
+                        VarSet("SHIPSRequested", VarGet("SHIPSRequested") - VarGet("SHIPSNewships"));
+                ENDIF
+        ENDWATCH
+
+
+        STATE AllDeadWaitForShips
+            INIT
+                    VarCreateSet ("WaitingForShips", TRUE);
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (THISTEAMSHIPS) > 0)
+                            VarDestroy ("WaitingForShips");
+                            IF (VarGet ("G_P1MothershipGettinOut") = FALSE)
+                                    Jump MASTERLooking;
+                            ELSEIF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                                    Jump DockForGood;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AllDeadWaitForShips
+
+
+        STATE DockInstant
+            INIT
+                    DockInstant (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_BeginACT3Now") = TRUE)
+                            Jump Launch;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockInstant
+
+
+        STATE Launch
+            INIT
+                    IF (TeamDockedReadyForLaunch ())
+                            Launch ();
+                            VarCreateSet ("G_ACT3FightersHaveLaunched", TRUE);
+                            TimerCreateSetStart ("ACT3FightersHaveLaunched", 12);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3FightersUnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3FightersMothership, SHIPS_ACT3FightersUnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3FightersUnderAttack, SHIPS_ACT3FightersMothership);
+                            ShipsSelectClass (SHIPS_ACT3FightersFighterLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3FightersCorvetteLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3FightersFighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3FightersCorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (TimerExpiredDestroy ("ACT3FightersHaveLaunched"))
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Launch
+
+
+        STATE MASTERLooking
+            INIT
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3FightersUnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3FightersMothership, SHIPS_ACT3FightersUnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3FightersUnderAttack, SHIPS_ACT3FightersMothership);
+                            ShipsSelectClass (SHIPS_ACT3FightersFighterLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3FightersCorvetteLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3FightersFighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3FightersCorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    FindEnemiesInside (VOLUME_MothershipSphere, SHIPS_ACT3EntireFleet1, 100);
+                    ShipsSelectClass (SHIPS_ACT3Fighter1, SHIPS_ACT3EntireFleet1, "CLASS_Fighter");
+                    ShipsSelectClass (SHIPS_ACT3Corvette1, SHIPS_ACT3EntireFleet1, "CLASS_Corvette");
+                    ShipsSelectClass (SHIPS_ACT3Resource1, SHIPS_ACT3EntireFleet1, "CLASS_Resource");
+                    ShipsSelectType (SHIPS_ACT3Research1, SHIPS_ACT3EntireFleet1, "ResearchShip");
+                    ShipsSelectClass (SHIPS_ACT3NonCombat1, SHIPS_ACT3EntireFleet1, "CLASS_NonCombat");
+                    ShipsSelectClass (SHIPS_ACT3Mothership1, SHIPS_ACT3EntireFleet1, "CLASS_Mothership");
+                    VarCreateSet ("G_ACT3TeamMothershipSHIPS", ShipsCount (SHIPS_ACT3Mothership1));
+                    VarCreateSet ("G_ACT3TeamEntireFleetSHIPS", ShipsCount (SHIPS_ACT3EntireFleet1));
+                    VarCreateSet ("G_ACT3TeamFighterSHIPS", ShipsCount (SHIPS_ACT3Fighter1));
+                    VarCreateSet ("G_ACT3TeamCorvetteSHIPS", ShipsCount (SHIPS_ACT3Corvette1));
+                    VarCreateSet ("G_ACT3TeamResourceSHIPS", ShipsCount (SHIPS_ACT3Resource1));
+                    VarCreateSet ("G_ACT3TeamResearchSHIPS", ShipsCount (SHIPS_ACT3Research1));
+                    VarCreateSet ("G_ACT3TeamNonCombatSHIPS", ShipsCount (SHIPS_ACT3NonCombat1));
+
+                    FindEnemiesInside (VOLUME_EntireWorldVolume, SHIPS_ACT3WORLDEntireWorld1, 1000);
+                    ShipsSelectClass (SHIPS_ACT3WORLDFighter1, SHIPS_ACT3WORLDEntireWorld1, "CLASS_Fighter");
+                    ShipsSelectClass (SHIPS_ACT3WORLDCorvette1, SHIPS_ACT3WORLDEntireWorld1, "CLASS_Corvette");
+                    ShipsSelectClass (SHIPS_ACT3WORLDResource1, SHIPS_ACT3WORLDEntireWorld1, "CLASS_Resource");
+                    ShipsSelectType (SHIPS_ACT3WORLDResearch1, SHIPS_ACT3WORLDEntireWorld1, "ResearchShip");
+                    ShipsSelectClass (SHIPS_ACT3WORLDNonCombat1, SHIPS_ACT3WORLDEntireWorld1, "CLASS_NonCombat");
+                    VarCreateSet ("G_ACT3TeamEntireFleetWORLDSHIPS", ShipsCount (SHIPS_EntireFleet));
+                    VarCreateSet ("G_ACT3TeamFighterWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDFighter1));
+                    VarCreateSet ("G_ACT3TeamCorvetteWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDCorvette1));
+                    VarCreateSet ("G_ACT3TeamResourceWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDResource1));
+                    VarCreateSet ("G_ACT3TeamResearchWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDResearch1));
+                    VarCreateSet ("G_ACT3TeamNonCombatWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDNonCombat1));
+
+
+                    IF ( (ShipsCount (SHIPS_ACT3Fighter1) > 3) OR
+                         (ShipsCount (SHIPS_ACT3Corvette1) > 2) OR
+                         (ShipsCount (SHIPS_ACT3Resource1) > 0) OR
+                         (ShipsCount (SHIPS_ACT3Research1) > 0) OR
+                         (ShipsCount (SHIPS_ACT3NonCombat1) > 0) )
+                            Jump AttackMothershipSphere;
+                    ELSEIF ( (ShipsCount (SHIPS_ACT3WORLDFighter1) > 3) OR
+                             (ShipsCount (SHIPS_ACT3WORLDCorvette1) > 2) OR
+                             (ShipsCount (SHIPS_ACT3WORLDResource1) > 0) OR
+                             (ShipsCount (SHIPS_ACT3WORLDResearch1) > 0) OR
+                             (ShipsCount (SHIPS_ACT3WORLDNonCombat1) > 0) )
+                            Jump AttackEntireWorld;
+                    ELSEIF (ShipsCount (SHIPS_ACT3Mothership1) > 0)
+                            Jump AttackMothership;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE MASTERLooking
+
+
+        STATE AttackMothershipSphere
+            INIT
+
+
+                    IF (ShipsCount (SHIPS_ACT3Fighter1) > 3)
+                            Attack (SHIPS_ACT3Fighter1);
+                            VarCreateSet ("AttackingFighter", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3Corvette1) > 2)
+                            Attack (SHIPS_ACT3Corvette1);
+                            VarCreateSet ("AttackingCorvette", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3Resource1) > 0)
+                            Attack (SHIPS_ACT3Resource1);
+                            VarCreateSet ("AttackingResource", TRUE);
+                    ELSEIF ( (ShipsCount (SHIPS_ACT3Research1) > 0) AND (VarGet ("NeverAttackResearchAgain") = FALSE) )
+                            Attack (SHIPS_ACT3Research1);
+                            VarCreateSet ("AttackingResearch", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3NonCombat1) > 0)
+                            Attack (SHIPS_ACT3NonCombat1);
+                            VarCreateSet ("AttackingNonCombat", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3Mothership1) > 0)
+                            Attack (SHIPS_ACT3Mothership1);
+                            VarCreateSet ("AttackingMothership", TRUE);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3FightersUnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3FightersMothership, SHIPS_ACT3FightersUnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3FightersUnderAttack, SHIPS_ACT3FightersMothership);
+                            ShipsSelectClass (SHIPS_ACT3FightersFighterLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3FightersCorvetteLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3FightersFighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3FightersCorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (VarGet ("AttackingCorvette") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3Corvette1) < 3)
+                                    VarDestroy ("AttackingCorvette");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResource") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3Resource1) = 0)
+                                    VarDestroy ("AttackingResource");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResearch") = TRUE)
+                            ShipsSelectDamaged (SHIPS_ACT3ResearchDamaged1, SHIPS_ACT3Research1, 50);
+                            IF ( (ShipsCount (SHIPS_ACT3Research1) = 0) OR (ShipsCount (SHIPS_ACT3ResearchDamaged1) > 0) )
+                                    VarDestroy ("AttackingResearch");
+                                    VarCreateSet ("NeverAttackResearchAgain", TRUE);
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingFighter") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3Fighter1) < 4)
+                                    VarDestroy ("AttackingFighter");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingNonCombat") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3NonCombat1) = 0)
+                                    VarDestroy ("AttackingNonCombat");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingMothership") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3Mothership1) = 0)
+                                    VarDestroy ("AttackingMothership");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Fighters) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackMothershipSphere
+
+
+        STATE AttackEntireWorld
+            INIT
+
+
+                    IF (ShipsCount (SHIPS_ACT3WORLDFighter1) > 3)
+                            Attack (SHIPS_ACT3WORLDFighter1);
+                            VarCreateSet ("AttackingFighter", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3WORLDCorvette1) > 2)
+                            Attack (SHIPS_ACT3WORLDCorvette1);
+                            VarCreateSet ("AttackingCorvette", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3WORLDResource1) > 0)
+                            Attack (SHIPS_ACT3WORLDResource1);
+                            VarCreateSet ("AttackingResource", TRUE);
+                    ELSEIF ( (ShipsCount (SHIPS_ACT3WORLDResearch1) > 0) AND (VarGet ("NeverAttackResearchAgain") = FALSE) )
+                            Attack (SHIPS_ACT3WORLDResearch1);
+                            VarCreateSet ("AttackingResearch", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3WORLDNonCombat1) > 0)
+                            Attack (SHIPS_ACT3WORLDNonCombat1);
+                            VarCreateSet ("AttackingNonCombat", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3WORLDMothership1) > 0)
+                            Attack (SHIPS_ACT3WORLDMothership1);
+                            VarCreateSet ("AttackingMothership", TRUE);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3FightersUnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3FightersMothership, SHIPS_ACT3FightersUnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3FightersUnderAttack, SHIPS_ACT3FightersMothership);
+                            ShipsSelectClass (SHIPS_ACT3FightersFighterLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3FightersCorvetteLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3FightersFighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3FightersCorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (VarGet ("AttackingCorvette") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDCorvette1) < 3)
+                                    VarDestroy ("AttackingCorvette");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResource") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDResource1) = 0)
+                                    VarDestroy ("AttackingResource");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResearch") = TRUE)
+                            ShipsSelectDamaged (SHIPS_ACT3WORLDResearchDamaged1, SHIPS_ACT3WORLDResearch1, 50);
+                            IF ( (ShipsCount (SHIPS_ACT3WORLDResearch1) = 0) OR (ShipsCount (SHIPS_ACT3WORLDResearchDamaged1) > 0) )
+                                    VarDestroy ("AttackingResearch");
+                                    VarCreateSet ("NeverAttackResearchAgain", TRUE);
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingFighter") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDFighter1) < 4)
+                                    VarDestroy ("AttackingFighter");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingNonCombat") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDNonCombat1) = 0)
+                                    VarDestroy ("AttackingNonCombat");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingMothership") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDMothership1) = 0)
+                                    VarDestroy ("AttackingMothership");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Fighters) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackEntireWorld
+
+
+
+        STATE AttackMothership
+            INIT
+                    AttackMothership ();
+                    TimerCreateSetStart ("GoBackToMASTERLooking", 30);
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3FightersUnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3FightersMothership, SHIPS_ACT3FightersUnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3FightersUnderAttack, SHIPS_ACT3FightersMothership);
+                            ShipsSelectClass (SHIPS_ACT3FightersFighterLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3FightersCorvetteLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3FightersFighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3FightersCorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Fighters) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+
+
+                    IF (TimerExpiredDestroy ("GoBackToMASTERLooking"))
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackMothership
+
+
+        STATE Defend
+            INIT
+
+                    ShipsSelectClass (SHIPS_ACT3FightersFighters, SHIPS_ACT3FightersUnderAttack, "CLASS_Fighter");
+                    IF (ShipsCount (SHIPS_ACT3FightersFighters) > 0)
+                            Attack (SHIPS_ACT3FightersFighters);
+                    ELSE
+                            Attack (SHIPS_ACT3FightersUnderAttack);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+
+
+                    IF (NOT (UnderAttack (SHIPS_Null91244)))
+                            Jump MASTERLooking;
+                    ENDIF
+                    IF (ShipsCount (SHIPS_ACT3FightersUnderAttack) < 4)
+                            Jump MASTERLooking;
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Fighters) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Defend
+
+
+        STATE GoHelpP1Mothership
+            INIT
+                    Attack (SHIPS_AttackingP1Mothership);
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3FightersUnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3FightersMothership, SHIPS_ACT3FightersUnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3FightersUnderAttack, SHIPS_ACT3FightersMothership);
+                            ShipsSelectClass (SHIPS_ACT3FightersFighterLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3FightersCorvetteLOOK, SHIPS_ACT3FightersUnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3FightersFighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3FightersCorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Fighters) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE GoHelpP1Mothership
+
+
+        STATE DockForGood
+            INIT
+                    DockStay (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IFONCE (TeamDockedReadyForLaunch ())
+                            VarCreateSet ("G_ACT3FightersHaveDocked", TRUE);
+                    ENDIFONCE
+                    IF (VarGet ("G_P1MothershipHasRetreated") = TRUE)
+                            Jump BugginOut;
+                    ENDIF
+                    IF (ShipsCount (TEAMSHIPS_ACT3Fighters) = 0)
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockForGood
+
+
+        STATE BugginOut
+            INIT
+                    Stop ();
+                    MoveTo (POINT_OutsideOfWorld);
+            ENDINIT
+            WATCH
+
+
+
+
+                    IF (PointInside (VOLUME_BugginOutVolume, THISTEAMSPOINT))
+                            HideShips (THISTEAMSHIPS);
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE BugginOut
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+
+ENDFSM ACT3Fighters
+# 3058 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+FSM ACT3Corvettes1
+        States DockInstant, Launch, MASTERLooking, AttackMothershipSphere, AttackEntireWorld, AttackMothership, AllDeadWaitForShips, Defend,
+               GoHelpP1Mothership, DockForGood, BugginOut, NullState;
+
+
+        INIT
+                VarCreateSet ("SHIPSOriginal", (ShipsCount (THISTEAMSHIPS)));
+                VarCreateSet ("SHIPSRequested", 0);
+                VarCreateSet ("SHIPSNeeded", 0);
+                VarCreateSet ("SHIPSNewships", 0);
+                VarCreateSet ("SHIPSKilled", 0);
+
+                VarSet ("G_TOTALOriginalACT3Corvettes1", VarGet ("G_TOTALOriginalACT3Corvettes1") + ShipsCount (THISTEAMSHIPS));
+
+                Jump DockInstant;
+        ENDINIT
+        WATCH
+
+                IF ( (ShipsCount (THISTEAMSHIPS) = 0) AND (VarGet ("WaitingForShips") = FALSE) )
+                        Jump AllDeadWaitForShips;
+                ENDIF
+
+
+                IF ( ((ShipsCount (THISTEAMSHIPS) + VarGet ("SHIPSRequested")) < VarGet ("SHIPSOriginal")) AND (VarGet ("G_P1MothershipGettinOut") = FALSE) )
+                        VarSet ("SHIPSNeeded", (VarGet ("SHIPSOriginal") - (ShipsCount (THISTEAMSHIPS) + VarGet("SHIPSRequested"))));
+                        RequestShips ("P1MissileCorvette", VarGet ("SHIPSNeeded"));
+                        VarSet ("SHIPSKilled", VarGet ("SHIPSKilled") + VarGet ("SHIPSNeeded"));
+                        VarSet ("G_TOTALACT3Corvettes1Killed", VarGet ("SHIPSKilled"));
+                        VarSet("SHIPSRequested", VarGet("SHIPSRequested") + VarGet("SHIPSNeeded"));
+                ENDIF
+                VarSet ("SHIPSNewships", NewShipsAdded());
+                IF (VarGet("SHIPSNewships"))
+
+                        VarSet("SHIPSRequested", VarGet("SHIPSRequested") - VarGet("SHIPSNewships"));
+                ENDIF
+        ENDWATCH
+
+
+        STATE AllDeadWaitForShips
+            INIT
+                    VarCreateSet ("WaitingForShips", TRUE);
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (THISTEAMSHIPS) > 0)
+                            VarDestroy ("WaitingForShips");
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AllDeadWaitForShips
+
+
+        STATE DockInstant
+            INIT
+                    DockInstant (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_BeginACT3Now") = TRUE)
+                            Jump Launch;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockInstant
+
+
+        STATE Launch
+            INIT
+                    IF (TeamDockedReadyForLaunch ())
+                            Launch ();
+                            VarCreateSet ("G_ACT3Corvettes1HaveLaunched", TRUE);
+                            TimerCreateSetStart ("ACT3Corvettes1HaveLaunched", 12);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes1UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1Mothership, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes1UnderAttack, SHIPS_ACT3Corvettes1Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1FighterLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1CorvetteLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes1FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes1CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (TimerExpiredDestroy ("ACT3Corvettes1HaveLaunched"))
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Launch
+
+
+        STATE MASTERLooking
+            INIT
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes1UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1Mothership, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes1UnderAttack, SHIPS_ACT3Corvettes1Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1FighterLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1CorvetteLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes1FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes1CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    FindEnemiesInside (VOLUME_MothershipSphere, SHIPS_ACT3EntireFleet2, 200);
+                    ShipsSelectClass (SHIPS_ACT3Fighter2, SHIPS_ACT3EntireFleet2, "CLASS_Fighter");
+                    ShipsSelectClass (SHIPS_ACT3Corvette2, SHIPS_ACT3EntireFleet2, "CLASS_Corvette");
+                    ShipsSelectClass (SHIPS_ACT3Resource2, SHIPS_ACT3EntireFleet2, "CLASS_Resource");
+                    ShipsSelectType (SHIPS_ACT3Research2, SHIPS_ACT3EntireFleet2, "ResearchShip");
+                    ShipsSelectClass (SHIPS_ACT3NonCombat2, SHIPS_ACT3EntireFleet2, "CLASS_NonCombat");
+                    ShipsSelectClass (SHIPS_ACT3Mothership2, SHIPS_ACT3EntireFleet2, "CLASS_Mothership");
+                    VarCreateSet ("G_ACT3TeamMothershipSHIPS", ShipsCount (SHIPS_ACT3Mothership2));
+                    VarCreateSet ("G_ACT3TeamEntireFleetSHIPS", ShipsCount (SHIPS_ACT3EntireFleet2));
+                    VarCreateSet ("G_ACT3TeamFighterSHIPS", ShipsCount (SHIPS_ACT3Fighter2));
+                    VarCreateSet ("G_ACT3TeamCorvetteSHIPS", ShipsCount (SHIPS_ACT3Corvette2));
+                    VarCreateSet ("G_ACT3TeamResourceSHIPS", ShipsCount (SHIPS_ACT3Resource2));
+                    VarCreateSet ("G_ACT3TeamResearchSHIPS", ShipsCount (SHIPS_ACT3Research2));
+                    VarCreateSet ("G_ACT3TeamNonCombatSHIPS", ShipsCount (SHIPS_ACT3NonCombat2));
+
+                    FindEnemiesInside (VOLUME_EntireWorldVolume, SHIPS_ACT3WORLDEntireWorld2, 2000);
+                    ShipsSelectClass (SHIPS_ACT3WORLDFighter2, SHIPS_ACT3WORLDEntireWorld2, "CLASS_Fighter");
+                    ShipsSelectClass (SHIPS_ACT3WORLDCorvette2, SHIPS_ACT3WORLDEntireWorld2, "CLASS_Corvette");
+                    ShipsSelectClass (SHIPS_ACT3WORLDResource2, SHIPS_ACT3WORLDEntireWorld2, "CLASS_Resource");
+                    ShipsSelectType (SHIPS_ACT3WORLDResearch2, SHIPS_ACT3WORLDEntireWorld2, "ResearchShip");
+                    ShipsSelectClass (SHIPS_ACT3WORLDNonCombat2, SHIPS_ACT3WORLDEntireWorld2, "CLASS_NonCombat");
+                    VarCreateSet ("G_ACT3TeamEntireFleetWORLDSHIPS", ShipsCount (SHIPS_EntireFleet));
+                    VarCreateSet ("G_ACT3TeamFighterWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDFighter2));
+                    VarCreateSet ("G_ACT3TeamCorvetteWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDCorvette2));
+                    VarCreateSet ("G_ACT3TeamResourceWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDResource2));
+                    VarCreateSet ("G_ACT3TeamResearchWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDResearch2));
+                    VarCreateSet ("G_ACT3TeamNonCombatWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDNonCombat2));
+
+
+                    IF ( (ShipsCount (SHIPS_ACT3Fighter2) > 3) OR
+                         (ShipsCount (SHIPS_ACT3Corvette2) > 2) OR
+                         (ShipsCount (SHIPS_ACT3Resource2) > 0) OR
+                         (ShipsCount (SHIPS_ACT3Research2) > 0) OR
+                         (ShipsCount (SHIPS_ACT3NonCombat2) > 0) )
+                            Jump AttackMothershipSphere;
+                    ELSEIF ( (ShipsCount (SHIPS_ACT3WORLDFighter2) > 3) OR
+                             (ShipsCount (SHIPS_ACT3WORLDCorvette2) > 2) OR
+                             (ShipsCount (SHIPS_ACT3WORLDResource2) > 0) OR
+                             (ShipsCount (SHIPS_ACT3WORLDResearch2) > 0) OR
+                             (ShipsCount (SHIPS_ACT3WORLDNonCombat2) > 0) )
+                            Jump AttackEntireWorld;
+                    ELSEIF (ShipsCount (SHIPS_ACT3Mothership2) > 0)
+                            Jump AttackMothership;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE MASTERLooking
+
+
+        STATE AttackMothershipSphere
+            INIT
+
+
+                    IF (ShipsCount (SHIPS_ACT3Corvette2) > 2)
+                            Attack (SHIPS_ACT3Corvette2);
+                            VarCreateSet ("AttackingCorvette", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3Resource2) > 0)
+                            Attack (SHIPS_ACT3Resource2);
+                            VarCreateSet ("AttackingResource", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3Fighter2) > 3)
+                            Attack (SHIPS_ACT3Fighter2);
+                            VarCreateSet ("AttackingFighter", TRUE);
+                    ELSEIF ( (ShipsCount (SHIPS_ACT3Research2) > 0) AND (VarGet ("NeverAttackResearchAgain") = FALSE) )
+                            Attack (SHIPS_ACT3Research2);
+                            VarCreateSet ("AttackingResearch", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3NonCombat2) > 0)
+                            Attack (SHIPS_ACT3NonCombat2);
+                            VarCreateSet ("AttackingNonCombat", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3Mothership2) > 0)
+                            Attack (SHIPS_ACT3Mothership2);
+                            VarCreateSet ("AttackingMothership", TRUE);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes1UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1Mothership, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes1UnderAttack, SHIPS_ACT3Corvettes1Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1FighterLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1CorvetteLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes1FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes1CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (VarGet ("AttackingCorvette") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3Corvette2) < 3)
+                                    VarDestroy ("AttackingCorvette");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResource") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3Resource2) = 0)
+                                    VarDestroy ("AttackingResource");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResearch") = TRUE)
+                            ShipsSelectDamaged (SHIPS_ACT3ResearchDamaged2, SHIPS_ACT3Research2, 50);
+                            IF ( (ShipsCount (SHIPS_ACT3Research2) = 0) OR (ShipsCount (SHIPS_ACT3ResearchDamaged2) > 0) )
+                                    VarDestroy ("AttackingResearch");
+                                    VarCreateSet ("NeverAttackResearchAgain", TRUE);
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingFighter") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3Fighter2) < 4)
+                                    VarDestroy ("AttackingFighter");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingNonCombat") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3NonCombat2) = 0)
+                                    VarDestroy ("AttackingNonCombat");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingMothership") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3Mothership2) = 0)
+                                    VarDestroy ("AttackingMothership");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Corvettes2) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackMothershipSphere
+
+
+        STATE AttackEntireWorld
+            INIT
+
+
+                    IF (ShipsCount (SHIPS_ACT3WORLDCorvette2) > 2)
+                            Attack (SHIPS_ACT3WORLDCorvette2);
+                            VarCreateSet ("AttackingCorvette", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3WORLDResource2) > 0)
+                            Attack (SHIPS_ACT3WORLDResource2);
+                            VarCreateSet ("AttackingResource", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3WORLDFighter2) > 3)
+                            Attack (SHIPS_ACT3WORLDFighter2);
+                            VarCreateSet ("AttackingFighter", TRUE);
+                    ELSEIF ( (ShipsCount (SHIPS_ACT3WORLDResearch2) > 0) AND (VarGet ("NeverAttackResearchAgain") = FALSE) )
+                            Attack (SHIPS_ACT3WORLDResearch2);
+                            VarCreateSet ("AttackingResearch", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3WORLDNonCombat2) > 0)
+                            Attack (SHIPS_ACT3WORLDNonCombat2);
+                            VarCreateSet ("AttackingNonCombat", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3WORLDMothership2) > 0)
+                            Attack (SHIPS_ACT3WORLDMothership2);
+                            VarCreateSet ("AttackingMothership", TRUE);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes1UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1Mothership, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes1UnderAttack, SHIPS_ACT3Corvettes1Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1FighterLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1CorvetteLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes1FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes1CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (VarGet ("AttackingCorvette") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDCorvette2) < 3)
+                                    VarDestroy ("AttackingCorvette");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResource") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDResource2) = 0)
+                                    VarDestroy ("AttackingResource");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingResearch") = TRUE)
+                            ShipsSelectDamaged (SHIPS_ACT3WORLDResearchDamaged2, SHIPS_ACT3WORLDResearch2, 50);
+                            IF ( (ShipsCount (SHIPS_ACT3WORLDResearch2) = 0) OR (ShipsCount (SHIPS_ACT3WORLDResearchDamaged2) > 0) )
+                                    VarDestroy ("AttackingResearch");
+                                    VarCreateSet ("NeverAttackResearchAgain", TRUE);
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingFighter") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDFighter2) < 4)
+                                    VarDestroy ("AttackingFighter");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingNonCombat") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDNonCombat2) = 0)
+                                    VarDestroy ("AttackingNonCombat");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingMothership") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDMothership2) = 0)
+                                    VarDestroy ("AttackingMothership");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Corvettes1) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackEntireWorld
+
+
+
+        STATE AttackMothership
+            INIT
+                    AttackMothership ();
+                    TimerCreateSetStart ("GoBackToMASTERLooking", 30);
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes1UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1Mothership, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes1UnderAttack, SHIPS_ACT3Corvettes1Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1FighterLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1CorvetteLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes1FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes1CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Corvettes1) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+
+
+                    IF (TimerExpiredDestroy ("GoBackToMASTERLooking"))
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackMothership
+
+
+        STATE Defend
+            INIT
+
+                    ShipsSelectClass (SHIPS_ACT3Corvettes1Fighters, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Fighter");
+                    IF (ShipsCount (SHIPS_ACT3Corvettes1Fighters) > 3)
+                            Attack (SHIPS_ACT3Corvettes1Fighters);
+                    ELSE
+                            Attack (SHIPS_ACT3Corvettes1UnderAttack);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipUnderAttack") = TRUE)
+                            Jump GoHelpP1Mothership;
+                    ENDIF
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+
+
+                    IF (NOT (UnderAttack (SHIPS_Null91244)))
+                            Jump MASTERLooking;
+                    ENDIF
+                    IF (ShipsCount (SHIPS_ACT3Corvettes1UnderAttack) < 4)
+                            Jump MASTERLooking;
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Corvettes1) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Defend
+
+
+        STATE GoHelpP1Mothership
+            INIT
+                    Attack (SHIPS_AttackingP1Mothership);
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes1UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1Mothership, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes1UnderAttack, SHIPS_ACT3Corvettes1Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1FighterLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes1CorvetteLOOK, SHIPS_ACT3Corvettes1UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes1FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes1CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Corvettes1) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE GoHelpP1Mothership
+
+
+        STATE DockForGood
+            INIT
+                    DockStay (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IFONCE (TeamDockedReadyForLaunch ())
+                            VarCreateSet ("G_ACT3Corvettes1HaveDocked", TRUE);
+                    ENDIFONCE
+                    IF (VarGet ("G_P1MothershipHasRetreated") = TRUE)
+                            Jump BugginOut;
+                    ENDIF
+                    IF (ShipsCount (TEAMSHIPS_ACT3Corvettes1) = 0)
+                            VarCreateSet ("G_ACT3Corvettes1HaveDocked", TRUE);
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockForGood
+
+
+        STATE BugginOut
+            INIT
+                    Stop ();
+                    MoveTo (POINT_OutsideOfWorld);
+            ENDINIT
+            WATCH
+
+
+
+
+                    IF (PointInside (VOLUME_BugginOutVolume, THISTEAMSPOINT))
+                            HideShips (THISTEAMSHIPS);
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE BugginOut
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+
+ENDFSM ACT3Corvettes1
+# 3565 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+FSM ACT3Corvettes2
+        States DockInstant, Launch, MASTERLooking, AttackMothershipSphere, AttackEntireWorld, AttackMothership, AllDeadWaitForShips, Defend,
+               GoHelpP1Mothership, DockForGood, BugginOut, NullState;
+
+
+        INIT
+                VarCreateSet ("SHIPSOriginal", (ShipsCount (THISTEAMSHIPS)));
+                VarCreateSet ("SHIPSRequested", 0);
+                VarCreateSet ("SHIPSNeeded", 0);
+                VarCreateSet ("SHIPSNewships", 0);
+                VarCreateSet ("SHIPSKilled", 0);
+
+                VarSet ("G_TOTALOriginalACT3Corvettes2", VarGet ("G_TOTALOriginalACT3Corvettes2") + ShipsCount (THISTEAMSHIPS));
+
+                Jump DockInstant;
+        ENDINIT
+        WATCH
+
+                IF ( (ShipsCount (THISTEAMSHIPS) = 0) AND (VarGet ("WaitingForShips") = FALSE) )
+                        Jump AllDeadWaitForShips;
+                ENDIF
+
+
+                IF ( ((ShipsCount (THISTEAMSHIPS) + VarGet ("SHIPSRequested")) < VarGet ("SHIPSOriginal")) AND (VarGet ("G_P1MothershipGettinOut") = FALSE) )
+                        VarSet ("SHIPSNeeded", (VarGet ("SHIPSOriginal") - (ShipsCount (THISTEAMSHIPS) + VarGet("SHIPSRequested"))));
+                        RequestShips ("P1StandardCorvette", VarGet ("SHIPSNeeded"));
+                        VarSet ("SHIPSKilled", VarGet ("SHIPSKilled") + VarGet ("SHIPSNeeded"));
+                        VarSet ("G_TOTALACT3Corvettes2Killed", VarGet ("SHIPSKilled"));
+                        VarSet("SHIPSRequested", VarGet("SHIPSRequested") + VarGet("SHIPSNeeded"));
+                ENDIF
+                VarSet ("SHIPSNewships", NewShipsAdded());
+                IF (VarGet("SHIPSNewships"))
+
+                        VarSet("SHIPSRequested", VarGet("SHIPSRequested") - VarGet("SHIPSNewships"));
+                ENDIF
+        ENDWATCH
+
+
+        STATE AllDeadWaitForShips
+            INIT
+                    VarCreateSet ("WaitingForShips", TRUE);
+            ENDINIT
+            WATCH
+                    IF (ShipsCount (THISTEAMSHIPS) > 0)
+                            VarDestroy ("WaitingForShips");
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AllDeadWaitForShips
+
+
+        STATE DockInstant
+            INIT
+                    DockInstant (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_BeginACT3Now") = TRUE)
+                            Jump Launch;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockInstant
+
+
+        STATE Launch
+            INIT
+                    IF (TeamDockedReadyForLaunch ())
+                            Launch ();
+                            VarCreateSet ("G_ACT3Corvettes2HaveLaunched", TRUE);
+                            TimerCreateSetStart ("ACT3Corvettes2HaveLaunched", 12);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes2UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2Mothership, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes2UnderAttack, SHIPS_ACT3Corvettes2Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2FighterLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2CorvetteLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes2FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes2CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (TimerExpiredDestroy ("ACT3Corvettes2HaveLaunched"))
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Launch
+
+
+        STATE MASTERLooking
+            INIT
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes2UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2Mothership, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes2UnderAttack, SHIPS_ACT3Corvettes2Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2FighterLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2CorvetteLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes2FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes2CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    FindEnemiesInside (VOLUME_MothershipSphere, SHIPS_ACT3EntireFleet3, 300);
+                    ShipsSelectClass (SHIPS_ACT3Fighter3, SHIPS_ACT3EntireFleet3, "CLASS_Fighter");
+                    ShipsSelectClass (SHIPS_ACT3Corvette3, SHIPS_ACT3EntireFleet3, "CLASS_Corvette");
+                    ShipsSelectClass (SHIPS_ACT3Resource3, SHIPS_ACT3EntireFleet3, "CLASS_Resource");
+                    ShipsSelectType (SHIPS_ACT3Research3, SHIPS_ACT3EntireFleet3, "ResearchShip");
+                    ShipsSelectClass (SHIPS_ACT3NonCombat3, SHIPS_ACT3EntireFleet3, "CLASS_NonCombat");
+                    ShipsSelectClass (SHIPS_ACT3Mothership3, SHIPS_ACT3EntireFleet3, "CLASS_Mothership");
+                    VarCreateSet ("G_ACT3TeamMothershipSHIPS", ShipsCount (SHIPS_ACT3Mothership3));
+                    VarCreateSet ("G_ACT3TeamEntireFleetSHIPS", ShipsCount (SHIPS_ACT3EntireFleet3));
+                    VarCreateSet ("G_ACT3TeamFighterSHIPS", ShipsCount (SHIPS_ACT3Fighter3));
+                    VarCreateSet ("G_ACT3TeamCorvetteSHIPS", ShipsCount (SHIPS_ACT3Corvette3));
+                    VarCreateSet ("G_ACT3TeamResourceSHIPS", ShipsCount (SHIPS_ACT3Resource3));
+                    VarCreateSet ("G_ACT3TeamResearchSHIPS", ShipsCount (SHIPS_ACT3Research3));
+                    VarCreateSet ("G_ACT3TeamNonCombatSHIPS", ShipsCount (SHIPS_ACT3NonCombat3));
+
+                    FindEnemiesInside (VOLUME_EntireWorldVolume, SHIPS_ACT3WORLDEntireWorld3, 3000);
+                    ShipsSelectClass (SHIPS_ACT3WORLDFighter3, SHIPS_ACT3WORLDEntireWorld3, "CLASS_Fighter");
+                    ShipsSelectClass (SHIPS_ACT3WORLDCorvette3, SHIPS_ACT3WORLDEntireWorld3, "CLASS_Corvette");
+                    ShipsSelectClass (SHIPS_ACT3WORLDResource3, SHIPS_ACT3WORLDEntireWorld3, "CLASS_Resource");
+                    ShipsSelectType (SHIPS_ACT3WORLDResearch3, SHIPS_ACT3WORLDEntireWorld3, "ResearchShip");
+                    ShipsSelectClass (SHIPS_ACT3WORLDNonCombat3, SHIPS_ACT3WORLDEntireWorld3, "CLASS_NonCombat");
+                    VarCreateSet ("G_ACT3TeamEntireFleetWORLDSHIPS", ShipsCount (SHIPS_EntireFleet));
+                    VarCreateSet ("G_ACT3TeamFighterWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDFighter3));
+                    VarCreateSet ("G_ACT3TeamCorvetteWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDCorvette3));
+                    VarCreateSet ("G_ACT3TeamResourceWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDResource3));
+                    VarCreateSet ("G_ACT3TeamResearchWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDResearch3));
+                    VarCreateSet ("G_ACT3TeamNonCombatWORLDSHIPS", ShipsCount (SHIPS_ACT3WORLDNonCombat3));
+
+
+                    IF ( (ShipsCount (SHIPS_ACT3Fighter3) > 3) OR
+                         (ShipsCount (SHIPS_ACT3Corvette3) > 2) OR
+                         (ShipsCount (SHIPS_ACT3Resource3) > 0) OR
+                         (ShipsCount (SHIPS_ACT3Research3) > 0) OR
+                         (ShipsCount (SHIPS_ACT3NonCombat3) > 0) )
+                            Jump AttackMothershipSphere;
+                    ELSEIF ( (ShipsCount (SHIPS_ACT3WORLDFighter3) > 3) OR
+                             (ShipsCount (SHIPS_ACT3WORLDCorvette3) > 2) OR
+                             (ShipsCount (SHIPS_ACT3WORLDResource3) > 0) OR
+                             (ShipsCount (SHIPS_ACT3WORLDResearch3) > 0) OR
+                             (ShipsCount (SHIPS_ACT3WORLDNonCombat3) > 0) )
+                            Jump AttackEntireWorld;
+                    ELSEIF (ShipsCount (SHIPS_ACT3Mothership3) > 0)
+                            Jump AttackMothership;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE MASTERLooking
+
+
+        STATE AttackMothershipSphere
+            INIT
+
+
+                    IF (ShipsCount (SHIPS_ACT3Fighter3) > 3)
+                            Attack (SHIPS_ACT3Fighter3);
+                            VarCreateSet ("AttackingFighter", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3Corvette3) > 2)
+                            Attack (SHIPS_ACT3Corvette3);
+                            VarCreateSet ("AttackingCorvette", TRUE);
+
+
+
+                    ELSEIF ( (ShipsCount (SHIPS_ACT3Research3) > 0) AND (VarGet ("NeverAttackResearchAgain") = FALSE) )
+                            Attack (SHIPS_ACT3Research3);
+                            VarCreateSet ("AttackingResearch", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3NonCombat3) > 0)
+                            Attack (SHIPS_ACT3NonCombat3);
+                            VarCreateSet ("AttackingNonCombat", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3Mothership3) > 0)
+                            Attack (SHIPS_ACT3Mothership3);
+                            VarCreateSet ("AttackingMothership", TRUE);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes2UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2Mothership, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes2UnderAttack, SHIPS_ACT3Corvettes2Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2FighterLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2CorvetteLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes2FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes2CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (VarGet ("AttackingCorvette") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3Corvette3) < 3)
+                                    VarDestroy ("AttackingCorvette");
+                                    Jump MASTERLooking;
+                            ENDIF
+
+
+
+
+
+                    ELSEIF (VarGet ("AttackingResearch") = TRUE)
+                            ShipsSelectDamaged (SHIPS_ACT3ResearchDamaged3, SHIPS_ACT3Research3, 50);
+                            IF ( (ShipsCount (SHIPS_ACT3Research3) = 0) OR (ShipsCount (SHIPS_ACT3ResearchDamaged3) > 0) )
+                                    VarDestroy ("AttackingResearch");
+                                    VarCreateSet ("NeverAttackResearchAgain", TRUE);
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingFighter") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3Fighter3) < 4)
+                                    VarDestroy ("AttackingFighter");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingNonCombat") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3NonCombat3) = 0)
+                                    VarDestroy ("AttackingNonCombat");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingMothership") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3Mothership3) = 0)
+                                    VarDestroy ("AttackingMothership");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Corvettes2) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackMothershipSphere
+
+
+        STATE AttackEntireWorld
+            INIT
+
+
+                    IF (ShipsCount (SHIPS_ACT3WORLDFighter3) > 3)
+                            Attack (SHIPS_ACT3WORLDFighter3);
+                            VarCreateSet ("AttackingFighter", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3WORLDCorvette3) > 2)
+                            Attack (SHIPS_ACT3WORLDCorvette3);
+                            VarCreateSet ("AttackingCorvette", TRUE);
+
+
+
+                    ELSEIF ( (ShipsCount (SHIPS_ACT3WORLDResearch3) > 0) AND (VarGet ("NeverAttackResearchAgain") = FALSE) )
+                            Attack (SHIPS_ACT3WORLDResearch3);
+                            VarCreateSet ("AttackingResearch", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3WORLDNonCombat3) > 0)
+                            Attack (SHIPS_ACT3WORLDNonCombat3);
+                            VarCreateSet ("AttackingNonCombat", TRUE);
+                    ELSEIF (ShipsCount (SHIPS_ACT3WORLDMothership3) > 0)
+                            Attack (SHIPS_ACT3WORLDMothership3);
+                            VarCreateSet ("AttackingMothership", TRUE);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes2UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2Mothership, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes2UnderAttack, SHIPS_ACT3Corvettes2Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2FighterLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2CorvetteLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes2FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes2CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (VarGet ("AttackingCorvette") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDCorvette3) < 3)
+                                    VarDestroy ("AttackingCorvette");
+                                    Jump MASTERLooking;
+                            ENDIF
+
+
+
+
+
+                    ELSEIF (VarGet ("AttackingResearch") = TRUE)
+                            ShipsSelectDamaged (SHIPS_ACT3WORLDResearchDamaged3, SHIPS_ACT3WORLDResearch3, 50);
+                            IF ( (ShipsCount (SHIPS_ACT3WORLDResearch3) = 0) OR (ShipsCount (SHIPS_ACT3WORLDResearchDamaged3) > 0) )
+                                    VarDestroy ("AttackingResearch");
+                                    VarCreateSet ("NeverAttackResearchAgain", TRUE);
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingFighter") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDFighter3) < 4)
+                                    VarDestroy ("AttackingFighter");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingNonCombat") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDNonCombat3) = 0)
+                                    VarDestroy ("AttackingNonCombat");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ELSEIF (VarGet ("AttackingMothership") = TRUE)
+                            IF (ShipsCount (SHIPS_ACT3WORLDMothership3) = 0)
+                                    VarDestroy ("AttackingMothership");
+                                    Jump MASTERLooking;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Corvettes2) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackEntireWorld
+
+
+
+        STATE AttackMothership
+            INIT
+                    AttackMothership ();
+                    TimerCreateSetStart ("GoBackToMASTERLooking", 30);
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes2UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2Mothership, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes2UnderAttack, SHIPS_ACT3Corvettes2Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2FighterLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2CorvetteLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes2FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes2CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Corvettes2) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+
+
+                    IF (TimerExpiredDestroy ("GoBackToMASTERLooking"))
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE AttackMothership
+
+
+        STATE Defend
+            INIT
+
+                    ShipsSelectClass (SHIPS_ACT3Corvettes2Fighters, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Fighter");
+                    IF (ShipsCount (SHIPS_ACT3Corvettes2Fighters) > 3)
+                            Attack (SHIPS_ACT3Corvettes2Fighters);
+                    ELSE
+                            Attack (SHIPS_ACT3Corvettes2UnderAttack);
+                    ENDIF
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+
+
+                    IF (NOT (UnderAttack (SHIPS_Null91244)))
+                            Jump MASTERLooking;
+                    ENDIF
+                    IF (ShipsCount (SHIPS_ACT3Corvettes2UnderAttack) < 4)
+                            Jump MASTERLooking;
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Corvettes2) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Defend
+
+
+        STATE GoHelpP1Mothership
+            INIT
+                    Attack (SHIPS_AttackingP1Mothership);
+            ENDINIT
+            WATCH
+
+                    IF (VarGet ("G_P1MothershipGettinOut") = TRUE)
+                            Jump DockForGood;
+                    ENDIF
+                    IF (UnderAttack (SHIPS_ACT3Corvettes2UnderAttack))
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2Mothership, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Mothership");
+                            ShipsRemove (SHIPS_ACT3Corvettes2UnderAttack, SHIPS_ACT3Corvettes2Mothership);
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2FighterLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Fighter");
+                            ShipsSelectClass (SHIPS_ACT3Corvettes2CorvetteLOOK, SHIPS_ACT3Corvettes2UnderAttack, "CLASS_Corvette");
+                            IF (ShipsCount (SHIPS_ACT3Corvettes2FighterLOOK) > 3)
+                                    Jump Defend;
+                            ELSEIF (ShipsCount (SHIPS_ACT3Corvettes2CorvetteLOOK) > 2)
+                                    Jump Defend;
+                            ENDIF
+                    ENDIF
+
+
+                    IF (ShipsOrder (TEAMSHIPS_ACT3Corvettes2) != 2)
+                            Jump MASTERLooking;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE GoHelpP1Mothership
+
+
+        STATE DockForGood
+            INIT
+                    DockStay (TEAM_P1Mothership);
+            ENDINIT
+            WATCH
+                    IFONCE (TeamDockedReadyForLaunch ())
+                            VarCreateSet ("G_ACT3Corvettes2HaveDocked", TRUE);
+                    ENDIFONCE
+                    IF (VarGet ("G_P1MothershipHasRetreated") = TRUE)
+                            Jump BugginOut;
+                    ENDIF
+                    IF (ShipsCount (TEAMSHIPS_ACT3Corvettes2) = 0)
+                            VarCreateSet ("G_ACT3Corvettes2HaveDocked", TRUE);
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DockForGood
+
+
+        STATE BugginOut
+            INIT
+                    Stop ();
+                    MoveTo (POINT_OutsideOfWorld);
+            ENDINIT
+            WATCH
+
+
+
+
+                    IF (PointInside (VOLUME_BugginOutVolume, THISTEAMSPOINT))
+                            HideShips (THISTEAMSHIPS);
+                            Jump NullState;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE BugginOut
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+
+ENDFSM ACT3Corvettes2
+# 4056 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+FSM P1Mothership
+
+States Hide, Amble, Retreat, GetIntoPosition, InPosition, DefendYourself, BackInPosition, PatrolPlayerFleet, Retreat2,
+       OuttaHereLikeVladimir, HyperspaceOut, NullState;
+
+    INIT
+            Jump Hide;
+    ENDINIT
+    WATCH
+            IFONCE (ObjectiveGet ("SalvageVessel") = TRUE)
+
+            ENDIFONCE
+            IFONCE (TimerExpiredDestroy ("G_ACT3Timer"))
+                    VarCreateSet ("G_BeginACT3Now", TRUE);
+                    IF (VarGet ("P1MothershipGettinOut") = FALSE)
+                            Jump PatrolPlayerFleet;
+                    ENDIF
+            ENDIFONCE
+
+            IFONCE ( (TeamHealthAverage () < 45) AND (VarGet ("G_P1MothershipHasRetreated") = FALSE) )
+                    VarCreateSet ("NowGettingOuttaHere", TRUE);
+                    Jump OuttaHereLikeVladimir;
+            ENDIFONCE
+            IFONCE ( (ObjectiveGet ("DestroyAllP1") = TRUE) AND (VarGet ("G_P1MothershipHasRetreated") = FALSE) )
+                    VarCreateSet ("NowGettingOuttaHere", TRUE);
+                    Jump OuttaHereLikeVladimir;
+            ENDIFONCE
+            IF ((VarGet ("G_TOTALDoggedFightersKilled") + VarGet ("G_TOTALSCFightersKilled")) > 20)
+                    MsgSendAll ("DontHassleSCAnymore");
+            ENDIF
+    ENDWATCH
+
+
+        STATE Hide
+            INIT
+                    HideShips (TEAMSHIPS_P1Mothership);
+                    TeamHyperspaceOut ();
+
+            ENDINIT
+            WATCH
+                    IF (VarGet ("G_Nis2Complete"))
+
+                            Jump Amble;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Hide
+
+
+        STATE Amble
+            INIT
+
+
+            ENDINIT
+            WATCH
+
+
+
+
+                    IF (FindEnemiesInside (VOLUME_nisVolume, SHIPS_P1MothershipFound, 7000))
+
+                            ShipsSelectType (SHIPS_P1MothershipFoundSC, SHIPS_P1MothershipFound, "SalCapCorvette");
+
+                            IF (ShipsCount (SHIPS_P1MothershipFoundSC) > 0)
+
+
+                                    Jump GetIntoPosition;
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Amble
+
+
+        STATE Retreat
+            INIT
+                    TacticsEvasive ();
+            ENDINIT
+            WATCH
+                    IF (FindEnemiesNearTeam (SHIPS_Null999923, 16000) = 0)
+                            Jump Amble;
+                    ENDIF
+                    IF (FindEnemiesInside (VOLUME_nisVolume, SHIPS_P1MothershipFound, 700))
+                            ShipsSelectType (SHIPS_P1MothershipFoundSC, SHIPS_P1MothershipFound, "SalCapCorvette");
+                            IF (ShipsCount (SHIPS_P1MothershipFoundSC) > 0)
+                                    IF (VarGet ("P1MothershipHasHyperspacedIn") = FALSE)
+                                            Stop ();
+                                            VarCreateSet ("P1MothershipHasHyperspacedIn", TRUE);
+                                            TeamHyperspaceOut ();
+                                            Jump GetIntoPosition;
+                                    ENDIF
+                            ENDIF
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Retreat
+
+
+        STATE GetIntoPosition
+            INIT
+
+                    TeamHyperspaceIn (POINT_NearDerelict);
+                    TimerCreateSetStart ("G_P1MothershipHasHyperspacedIn", 24);
+                    Jump InPosition;
+            ENDINIT
+            WATCH
+# 4168 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+            ENDWATCH
+        ENDSTATE GetIntoPosition
+
+
+        STATE InPosition
+            INIT
+            ENDINIT
+            WATCH
+# 4187 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+                    IF (UnderAttack (SHIPS_AttackingP1Mothership))
+                            Jump DefendYourself;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE InPosition
+
+
+        STATE DefendYourself
+            INIT
+                    IF (ShipsSelectClass (SHIPS_P1MothershipTargets, SHIPS_AttackingP1Mothership, "CLASS_Corvette"))
+                    ELSEIF (ShipsSelectType (SHIPS_P1MothershipTargets, SHIPS_AttackingP1Mothership, "CLASS_Fighter"))
+                    ELSE
+                            ShipsAdd (SHIPS_P1MothershipTargets, SHIPS_AttackingP1Mothership);
+                    ENDIF
+
+                    IF (ShipsCount (SHIPS_P1MothershipTargets) > 0)
+                            Attack (SHIPS_P1MothershipTargets);
+                    ELSE
+                            Jump BackInPosition;
+                    ENDIF
+            ENDINIT
+            WATCH
+                    IF ( (ShipsCount (SHIPS_P1MothershipTargets) = 0) OR (ShipsOrder (TEAMSHIPS_P1Mothership) != 2) )
+                            Jump BackInPosition;
+                    ENDIF
+
+                    IF (NOT Nearby (POINT_NearDerelict, 35000))
+                            Jump BackInPosition;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE DefendYourself
+
+
+        STATE BackInPosition
+            INIT
+                    MoveTo (POINT_NearDerelict);
+            ENDINIT
+            WATCH
+                    IF (Nearby (POINT_NearDerelict, 3000))
+                            Jump InPosition;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE BackInPosition
+
+
+        STATE PatrolPlayerFleet
+            INIT
+                    PatrolPath (PATH_AroundPlayerFleet);
+                    TacticsNeutral ();
+            ENDINIT
+            WATCH
+                    IF (UnderAttack (SHIPS_AttackingP1Mothership))
+                            Jump Retreat2;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE PatrolPlayerFleet
+
+
+        STATE Retreat2
+            INIT
+
+                    VarCreateSet ("G_P1MothershipUnderAttack", TRUE);
+                    TacticsEvasive ();
+            ENDINIT
+            WATCH
+                    FindEnemiesNearTeam (SHIPS_NearP1Mothership, 16000);
+
+                    IF (NOT UnderAttack (SHIPS_AttackingP1Mothership))
+                            MsgSendAll ("P1MothershipSafe");
+                            Jump PatrolPlayerFleet;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE Retreat2
+
+
+        STATE OuttaHereLikeVladimir
+            INIT
+                    VarCreateSet ("G_P1MothershipGettinOut", TRUE);
+
+                    TimerCreateSetStart ("WaitingForEveryoneToDock", 120);
+                    TacticsEvasive ();
+            ENDINIT
+            WATCH
+                    IF ( ( (VarGet ("G_ACT3FightersHaveDocked") = TRUE) AND
+                           (VarGet ("G_ACT3Corvettes1HaveDocked") = TRUE) AND
+                           (VarGet ("G_ACT3Corvettes2HaveDocked") = TRUE) ) OR
+                           (TeamHealthAverage () < 30) OR
+                           (TimerExpiredDestroy ("WaitingForEveryoneToDock")) )
+                            Jump HyperspaceOut;
+                    ENDIF
+            ENDWATCH
+        ENDSTATE OuttaHereLikeVladimir
+
+
+        STATE HyperspaceOut
+            INIT
+                    VarCreateSet ("G_P1MothershipHasRetreated", TRUE);
+                    MusicStop (4);
+                    TeamHyperspaceOut ();
+                    Jump NullState;
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE HyperspaceOut
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+
+
+ENDFSM P1Mothership
+# 4311 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+INIT
+
+
+
+
+
+
+        FSMCreate (FleetIntel, TEAM_FleetIntel);
+
+        FSMCreate (P1Mothership, TEAM_P1Mothership);
+        FSMCreate (DoggedFighter, TEAM_DoggedFighter);
+        FSMCreate (SCFighters, TEAM_SCFighters);
+
+        FSMCreate (ACT3Fighters, TEAM_ACT3Fighters);
+        FSMCreate (ACT3Corvettes1, TEAM_ACT3Corvettes1);
+        FSMCreate (ACT3Corvettes2, TEAM_ACT3Corvettes2);
+# 4337 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        VarCreateSet ("G_TOTALDoggedFightersKilled", 0);
+        VarCreateSet ("G_TOTALOriginalDoggedFighters", 0);
+
+
+        VarCreateSet ("G_TOTALSCFightersKilled", 0);
+        VarCreateSet ("G_TOTALOriginalSCFighters", 0);
+
+
+        VarCreateSet ("G_TOTALACT3FightersKilled", 0);
+        VarCreateSet ("G_TOTALOriginalACT3Fighters", 0);
+
+
+        VarCreateSet ("G_TOTALACT3Corvettes1Killed", 0);
+        VarCreateSet ("G_TOTALOriginalACT3Corvettes1", 0);
+
+
+        VarCreateSet ("G_TOTALACT3Corvettes2Killed", 0);
+        VarCreateSet ("G_TOTALOriginalACT3Corvettes2", 0);
+# 4367 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        SaveLevel (2, LSTRING_Savegame);
+
+ENDINIT
+
+WATCH
+
+
+
+
+
+        IFONCE (TRUE)
+                TimerCreateSetStart ("LocationCardTimer", 1);
+        ENDIFONCE
+
+        IF (TimerExpiredDestroy ("LocationCardTimer"))
+                LocationCard (5000, LSTRING_LocationCard);
+        ENDIF
+# 4392 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        IFONCE (VarGet ("G_Nis2Complete"))
+
+
+
+            ShipsClear(SHIPS_NisTriggerShips);
+            VarSet ("G_NISISPlaying", FALSE);
+
+
+        ENDIFONCE
+# 4411 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        IFONCE (VarGet ("Null8458973") = FALSE)
+                TimerCreateSetStart ("StartWideScreen", 8);
+        ENDIFONCE
+
+
+        IF (TimerExpiredDestroy ("StartWideScreen"))
+
+                TimerCreateSetStart ("PlayProbeNISLet", 3);
+        ENDIF
+
+
+        IF (TimerExpiredDestroy ("PlayProbeNISLet"))
+
+
+        ENDIF
+
+
+        IF ( (NOT VarGet ("G_PlayedNis")) AND (FindEnemiesInside (VOLUME_nisVolume2, SHIPS_nisVolume2FOUND, 1000)) )
+                VarCreateSet ("G_nisVolume2SHIPS", ShipsCount (SHIPS_nisVolume2FOUND));
+                ShipsSelectType (SHIPS_PlayerProbes, SHIPS_nisVolume2FOUND, "Probe");
+                VarCreateSet ("G_PlayerProbesSHIPS", ShipsCount (SHIPS_PlayerProbes));
+                IF (ShipsCount (SHIPS_PlayerProbes) > 0)
+                        ShipsVelocityMaxSet (SHIPS_PlayerProbes, 1000);
+                ENDIF
+        ENDIF
+
+
+
+        IF (NOT VarGet("G_PlayedNis") AND FindEnemiesInside(VOLUME_nisVolume, SHIPS_nisVolumeFOUND, 13000))
+                TimerCreateSetStart ("WideScreenInBeforeNIS", 4);
+                wideScreenIn(90);
+                VarCreateSet ("G_NISISPlaying", TRUE);
+                VarCreateSet("G_PlayedNis", TRUE);
+        ENDIF
+
+
+
+        IF (TimerExpiredDestroy("WideScreenInBeforeNIS"))
+                ShipsSelectEnemy(SHIPS_NisTriggerShips, SHIPS_nisVolumeFOUND);
+                FindEnemiesInside (VOLUME_MothershipSphere, SHIPS_EntireFleet, 3000);
+                ShipsSelectClass (SHIPS_PlayerMothership, SHIPS_EntireFleet, "CLASS_Mothership");
+                VarCreateSet ("G_PlayNis",2);
+                PingRemove ("ServiceVesselPING");
+
+
+
+                TimerCreateSetStart ("CreateNISTeamsTimer", 3);
+        ENDIF
+
+
+
+        IFONCE (VarGet ("G_Nis2Complete"))
+                FSMCreate(NISTeamFighter, TEAM_NISTeamFighter);
+                FSMCreate(NISTeamCorvette, TEAM_NISTeamCorvette);
+        ENDIFONCE
+# 4491 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        IFONCE ( (VarGet ("G_Nis2Complete")) )
+                wideScreenOut (90);
+                TimerCreateSetStart ("G_PostNISEventTimer", 4);
+        ENDIFONCE
+
+
+
+
+        IFONCE (VarGet ("G_Nis2Complete"))
+                ResetDerelictRenderFlags ("Shipwreck");
+                VarCreateSet ("G_RenderedFlagsReset", TRUE);
+        ENDIFONCE
+        IFONCE ( (VarGet ("G_RenderedFlagsReset") = TRUE) AND
+
+                 ((RenderedDerelictType ("Shipwreck", 0)) OR
+                 (RenderedDerelictType ("Shipwreck", 1)) OR
+                 (RenderedDerelictType ("Shipwreck", 2)) OR
+                 (RenderedDerelictType ("Shipwreck", 3))) )
+                VarCreateSet ("G_ShipwreckHasBeenSeen", TRUE);
+        ENDIFONCE
+
+
+        IFONCE ( (VarGet ("G_FIProtectMothershipHasPlayed") = TRUE) AND
+
+                 (
+
+
+
+
+
+                 (VarGet ("G_ShipwreckHasBeenSeen") = TRUE)
+
+                 OR
+
+                 (VarGet ("G_PlayerHasFinishedACT1") = TRUE)
+
+                 )
+               )
+
+                VarCreateSet ("G_PlayKharSelimDestroyed", TRUE);
+        ENDIFONCE
+# 4546 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        IFONCE (TRUE)
+                TimerCreateSetStart ("G_FCHyperspaceSuccessful", 5);
+        ENDIFONCE
+
+
+        IF ( (VarGet ("G_TechRemoved") = 100) AND (VarGet ("PlaySCDeadEventOnce") = FALSE) )
+                VarCreateSet ("PlaySCDeadEventOnce", TRUE);
+                TimerCreateSetStart ("G_PlaySCDiedStillNeedDataEvent", 4);
+        ENDIF
+# 4563 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        IFONCE ( (RenderedShips (TEAMSHIPS_P1Mothership, 0)) OR
+                 (RenderedShips (TEAMSHIPS_P1Mothership, 1)) OR
+                 (RenderedShips (TEAMSHIPS_P1Mothership, 2)) OR
+                 (RenderedShips (TEAMSHIPS_P1Mothership, 3)) )
+                VarCreateSet ("G_PlayerHasSeenP1Mothership", TRUE);
+        ENDIFONCE
+
+
+
+        IFONCE (VarGet ("G_ReadyToHYPERSPACE") = TRUE)
+                TimerCreateSetStart ("G_WaitToPlayFinalEvent", 10);
+        ENDIFONCE
+# 4588 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        IFONCE (VarGet ("G_FleetIntelIntroHasPlayed") = TRUE)
+
+                ObjectiveCreate ("SendProbe", LSTRING_FISendProbeTASKBAR, LSTRING_FISendProbeTASKBAR);
+                VarCreateSet ("G_SendProbeObjectiveCreated", TRUE);
+        ENDIFONCE
+
+
+        IFONCE ( (VarGet ("G_Nis2Complete")) AND (VarGet ("G_FleetIntelIntroHasPlayed") = TRUE) )
+                ObjectiveSet ("SendProbe", TRUE);
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_FIReactionToN02HasPlayed") = TRUE)
+                ObjectiveCreate ("SalvageVessel", LSTRING_FISalvageVesselTASKBAR, LSTRING_FISalvageVesselTASKBAR);
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_FIProtectMothershipHasPlayed") = TRUE)
+                ObjectiveCreate ("ProtectMothership", LSTRING_FCProtectMothershipTASKBAR, LSTRING_FCProtectMothershipTASKBAR);
+        ENDIFONCE
+
+
+        IFONCE ( (VarGet ("G_Nis2Complete")) AND (ShipsCount (TEAMSHIPS_NISTeamFighter) = 0) AND (ShipsCount (TEAMSHIPS_NISTeamCorvette) = 0) )
+                MusicStop (4);
+                ObjectiveSet ("ProtectMothership", TRUE);
+                VarCreateSet ("G_NISTeamKilled", TRUE);
+        ENDIFONCE
+
+
+        IFONCE (TimerExpiredDestroy ("G_DoggedFighterOnItsWay"))
+                ObjectiveCreate ("DefendSalvageTeam", LSTRING_DefendSalvageTeamTASKBAR, LSTRING_DefendSalvageTeamTASKBAR);
+                VarCreateSet ("G_DefendSalvageTeamCreated", TRUE);
+        ENDIFONCE
+
+
+        IFONCE (TutGameSentMessage ("Game_TechnologyReturned"))
+                VarSet ("G_TechRemoved", 0);
+                ObjectiveSet ("DefendSalvageTeam", TRUE);
+                ObjectiveSet ("SalvageVessel", TRUE);
+                PingRemove ("ServiceVesselPING");
+                VarCreateSet ("G_SCDockedWithInfo", TRUE);
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_EnemyUnitsAdvancing") = TRUE)
+                ObjectiveCreate ("DefendMothership", LSTRING_FIDefendMothershipTASKBAR, LSTRING_FIDefendMothershipTASKBAR);
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_InvestigateP1Mothership") = TRUE)
+                ObjectiveCreateSecondary ("InvestigateP1Mothership", LSTRING_FIInvestigateP1MothershipTASKBAR, LSTRING_FIInvestigateP1MothershipTASKBAR);
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_PlayerHasSeenP1Mothership") = TRUE)
+                ObjectiveSet ("InvestigateP1Mothership", TRUE);
+        ENDIFONCE
+
+
+
+        IFONCE (VarGet ("G_TotalP1KilledInACT3") > 10)
+                VarCreateSet ("G_PlayerHasKilledEnoughP1", TRUE);
+        ENDIFONCE
+
+
+        IFONCE (VarGet ("G_PlayerHasKilledEnoughP1") = TRUE)
+                ObjectiveSet ("DefendMothership", TRUE);
+                ObjectiveCreate ("DestroyAllP1", LSTRING_FIDestroyAllP1TASKBAR, LSTRING_FIDestroyAllP1TASKBAR);
+        ENDIFONCE
+
+
+
+        IFONCE (TRUE)
+                VarCreateSet ("G_TotalP1KilledInACT3", 0);
+        ENDIFONCE
+
+        VarSet ("G_TotalP1KilledInACT3",
+        ( (VarGet ("G_TOTALACT3FightersKilled")) + 3*(VarGet ("G_TOTALACT3Corvettes1Killed")) + 3*(VarGet ("G_TOTALACT3Corvettes2Killed")) ) );
+
+        IFONCE ( VarGet ("G_TotalP1KilledInACT3") > 40 )
+                ObjectiveSet ("DestroyAllP1", TRUE);
+        ENDIFONCE
+
+
+
+
+        IFONCE ( (VarGet ("G_P1MothershipHasRetreated") = TRUE) AND
+                 (ObjectiveGet ("SalvageVessel") = TRUE) AND
+                 (ObjectiveGet ("ProtectMothership") = TRUE) AND
+                 (VarGet ("G_ReadyToHYPERSPACE") = FALSE) )
+                TimerCreateSetStart ("G_PlayNormalObjectivesComplete", 10);
+        ENDIFONCE
+
+
+
+        IF ( (VarGet ("G_SendProbeObjectiveCreated") = TRUE) AND (VarGet ("G_P1MothershipHasRetreated") = FALSE) )
+                IFONCE ( (ObjectiveGet ("SendProbe") = TRUE) AND
+                         (ObjectiveGet ("ProtectMothership") = TRUE) AND
+                         (ObjectiveGet ("SalvageVessel") = TRUE) AND
+                         (ObjectiveGet ("DefendSalvageTeam") = TRUE) AND
+                         (ObjectiveGet ("DestroyAllP1") = TRUE) )
+                         VarCreateSet ("G_ReadyToHYPERSPACE", TRUE);
+
+                ENDIFONCE
+        ELSEIF ( (VarGet ("G_SendProbeObjectiveCreated") = FALSE) AND (VarGet ("G_P1MothershipHasRetreated") = FALSE) )
+                IFONCE ( (ObjectiveGet ("ProtectMothership") = TRUE) AND
+                         (ObjectiveGet ("SalvageVessel") = TRUE) AND
+                         (ObjectiveGet ("DefendSalvageTeam") = TRUE) AND
+                         (ObjectiveGet ("DestroyAllP1") = TRUE) )
+                         VarCreateSet ("G_ReadyToHYPERSPACE", TRUE);
+
+                ENDIFONCE
+        ENDIF
+# 4779 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        ShipsAdd (SHIPS_KillingP1, SHIPS_LineTeamsUnderAttack);
+        ShipsAdd (SHIPS_KillingP1, SHIPS_NISTeamFighterUnderAttack);
+        ShipsAdd (SHIPS_KillingP1, SHIPS_DerelictTeam1UnderAttack);
+# 4846 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission02.kas"
+        IFONCE (TechGet ("MassDrive10Kt"))
+                TechSetResearch ("Chassis2");
+        ENDIFONCE
+
+
+        IF ((TechGet ("Chassis2")) AND (VarGet ("SetMediumGuns") = FALSE))
+                TechSetResearch ("MediumGuns");
+                VarCreateSet ("SetMediumGuns", TRUE);
+        ENDIF
+
+
+
+        IFONCE (TechGet ("Chassis1"))
+                TechSetResearch ("MassDrive10Kt");
+        ENDIFONCE
+
+
+
+
+ENDWATCH

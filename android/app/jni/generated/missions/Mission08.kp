@@ -1,0 +1,2050 @@
+# 0 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission08.kas"
+# 0 "<built-in>"
+# 0 "<command-line>"
+# 1 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission08.kas"
+# 12 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission08.kas"
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/CommandDefs.h" 1
+# 13 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission08.kas" 2
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/SoundMusic.h" 1
+# 14 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission08.kas" 2
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/SpeechEvent.h" 1
+# 15 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission08.kas" 2
+
+
+
+    LOCALIZATION
+
+
+        LSTRING_LCLocationCard
+            "THE CATHEDRAL OF KADESH"
+            "CATHEDRALE DE KADESH"
+            "DIE KATHEDRALE VON KADESH"
+            "LA CATEDRAL DE KADESH"
+   "LA CATTEDRALE DI KADESH"
+
+        LSTRING_FIIndeed
+            "It's a trap!  Sensors detect hyperspace inhibitors in a triangular formation.  Even one can keep us from entering hyperspace.  All of them must be destroyed. \n\nThe nebula is still scrambling our sensors but it looks like we have incoming hostiles."
+            "C'est un piège ! C'est en formation triangulaire que les détecteurs sont sensibles aux inhibiteurs d'hyperespace, alors qu'un seul pourrait nous en fermer l'accès. Il faut tous les détruire. \n\nLa nébuleuse continue de brouiller nos détecteurs mais des unités hostiles semblent se diriger vers nous."
+            "Das ist eine Falle! Die Sensoren zeigen Hyperraum-Inhibitoren in einer Dreiecksformation an. Schon einer alleine kann uns daran hindern, den Hyperraum zu erreichen. Sie müssen alle vernichtet werden, ausnahmslos. \n\nDer Nebel bringt unsere Sensoren noch immer durcheinander, aber trotzdem sieht es so aus, als würden sich feindliche Schiffe nähern."
+            "¡Es una trampa!  Los sensores detectan inhibidores de hiperespacio en formación triangular. Uno solo podría impedirnos entrar en el hiperespacio. Es necesario destruirlos todos. \n\nLa nebulosa sigue provocando interferencias, pero parece que se acercan más naves enemigas."
+   "Siamo caduti in trappola! I sensori rivelano degli inibitori iperspaziali disposti a triangolo: ognuno di essi ci può impedire di compiere il balzo. Devi distruggerli tutti.\n\nLa nebulosa disturba ancora i nostri strumenti, ma sembra che siano in arrivo delle forze nemiche."
+
+        LSTRING_FIWeCanLeave
+            "The inhibitor field has ceased.  Hyperspace module back on-line."
+            "Le champ inhibiteur s'est désactivé. Le module hyperspatial est opérationnel."
+            "Das Inhibitionsfeld besteht nicht mehr. Das Hypersprung-Modul ist wieder online."
+            "Se ha disipado el campo inhibidor. Ya funciona el módulo hiperespacial."
+   "Campo inibitore disattivato, il modulo dell'Iperspazio ha ripreso a funzionare."
+
+            LSTRING_OBDestroyInhibitors
+                "Destroy Hyperspace Inhibitors"
+                "Détruire les inhibiteurs d'hyperespace"
+                "Zerstöre Hyperraum-Inhibitore"
+                "Proteger la Nave nodriza"
+    "Proteggi l'Astronave Madre"
+
+            LSTRING_OBDestroyAttackers
+                "Destroy the Attackers"
+                "Détruire les assaillants"
+                "Zerstöre die Angreifer"
+    "Destruye a los atacantes"
+    "Distruggi gli attaccanti"
+
+            LSTRING_TBHyperspace
+                "                HYPERSPACE"
+                "                HYPERESPACE"
+                "        HYPERRAUMSPRUNG"
+                "              HIPERESPACIO"
+    "				IPERSPAZIO"
+
+        LSTRING_LevelSave
+            "08 - The Cathedral of Kadesh"
+            "08 - Cathédrale de Kadesh"
+            "08 – Die Kathedrale von Kadesh"
+            "08 - La catedral de Kadesh"
+   "08 - La cattedrale di Kadesh"
+
+
+    ENDL
+
+
+
+
+
+
+
+# 1 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Utilities.kash" 1
+# 80 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission08.kas" 2
+# 1 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Swarmer.kash" 1
+
+
+
+
+
+# 1 "C:/Users/marco/Desktop/gardens-of-kadesh-master/src/Game/Attributes.h" 1
+# 7 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Swarmer.kash" 2
+# 19 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Swarmer.kash"
+FSM HonourGuardSwarm
+
+    States Waiting, WaitingLeader, Attack, Dock, NullState;
+
+    INIT
+        VarCreateSet("DockCount", 0);
+        VarCreateSet("PodCount", 1);
+        IF (ThisTeamIs(TEAM_HighGuardSwarmers1))
+            JUMP WaitingLeader;
+        ELSEIF (ThisTeamIs(TEAM_HighGuardSwarmers2))
+            JUMP Waiting;
+        ENDIF
+    ENDINIT
+    WATCH
+        IFONCE (TeamCount() == 0)
+
+            JUMP NullState;
+        ENDIFONCE
+    ENDWATCH
+
+
+
+
+        STATE Waiting
+            INIT
+            ENDINIT
+            WATCH
+                IF (MsgReceived("HonourAttack"))
+                    JUMP WaitingLeader;
+                ENDIF
+            ENDWATCH
+        ENDSTATE Waiting
+
+
+
+
+        STATE WaitingLeader
+            INIT
+            ENDINIT
+            WATCH
+                IF (FindEnemiesInside(VOLUME_CheckVolume, SHIPS_Invaders, 4000))
+                    JUMP Attack;
+                ENDIF
+            ENDWATCH
+        ENDSTATE WaitingLeader
+
+
+
+
+        STATE Attack
+            INIT
+                TacticsAggressive();
+                Attack(SHIPS_Invaders);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy("DockTimer"))
+                    JUMP Dock;
+                ENDIF
+
+                IF (!TimerRemaining("DockTimer") &&
+                    ((ShipsCount(SHIPS_Invaders) == 0) ||
+                     (TeamFuelLowest() < 25)))
+                    TimerCreateSetStart("DockTimer", 3);
+                    MsgSendAll("HonourAttack");
+                ENDIF
+            ENDWATCH
+        ENDSTATE Attack
+
+
+
+
+        STATE Dock
+            INIT
+                IF ((ShipsCount(TEAMSHIPS_HighGuardFuelPod1)) &&
+                    (ShipsCount(TEAMSHIPS_HighGuardFuelPod2)))
+                    ShipsAdd(SHIPS_DockShips, TEAMSHIPS_HighGuardFuelPod1);
+                    ShipsAdd(SHIPS_DockShips, TEAMSHIPS_HighGuardFuelPod2);
+                    ShipsDockSupportWith(THISTEAMSHIPS, SHIPS_DockShips);
+# 111 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Swarmer.kash"
+                ELSEIF (ShipsCount(TEAMSHIPS_HighGuardFuelPod1))
+                    DockSupportWith(TEAM_HighGuardFuelPod1);
+                ELSEIF (ShipsCount(TEAMSHIPS_HighGuardFuelPod2))
+                    DockSupportWith(TEAM_HighGuardFuelPod2);
+                ELSE
+
+                ENDIF
+            ENDINIT
+            WATCH
+                IF (!TeamDocking())
+                    JUMP Waiting;
+                ENDIF
+            ENDWATCH
+        ENDSTATE Dock
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM HonourGuardSwarm
+
+
+
+
+
+
+
+FSM GenericSwarmAttack
+
+    States NullState;
+
+    INIT
+        ShipsAdd(SHIPS_GenericSwarmers,THISTEAMSHIPS);
+        TeamGiveToAI();
+        JUMP NullState;
+    ENDINIT
+    WATCH
+
+
+
+
+    ENDWATCH
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM GenericSwarmAttack
+
+
+
+
+
+
+FSM GenericMothershipSwarm
+
+    States NullState;
+
+    INIT
+        VarCreateSet("DeadMoSwarmers", 0);
+        ShipsAdd(SHIPS_MothershipSwarm,THISTEAMSHIPS);
+        VarCreateSet("LastMoSwarmers", ShipsCount(SHIPS_MothershipSwarm));
+        FindEnemyShipsOfType(SHIPS_Temp, "Mothership");
+        FindEnemiesNearby(SHIPS_Temp, 10000);
+        ShipsSelectType(SHIPS_Moship, SHIPS_Temp, "Mothership");
+        ShipsRemove(SHIPS_Temp, SHIPS_Moship);
+
+        IF ((ShipsSelectClass(SHIPS_Targets, SHIPS_Temp, "CLASS_Fighter")) ||
+            (ShipsSelectClass(SHIPS_Targets, SHIPS_Temp, "CLASS_Corvette")) ||
+            (ShipsSelectCapital(SHIPS_Targets, SHIPS_Temp)) ||
+            (ShipsSelectClass(SHIPS_Targets, SHIPS_Temp, "CLASS_Resource")) ||
+            (ShipsSelectClass(SHIPS_Targets, SHIPS_Temp, "CLASS_NonCombat")))
+
+
+            IF (ShipsSelectType(SHIPS_Field, SHIPS_Targets, "DFGFrigate"))
+
+                ShipsRemove(SHIPS_Targets, SHIPS_Field);
+
+
+                IF (!ShipsCount(SHIPS_Targets))
+                    IF (ShipsSelectClass(SHIPS_Targets, SHIPS_Temp, "CLASS_Resource") ||
+                        ShipsSelectClass(SHIPS_Targets, SHIPS_Temp, "CLASS_NonCombat"))
+                    ENDIF
+                ENDIF
+            ENDIF
+
+            IF (ShipsSelectDamaged(SHIPS_Damaged, SHIPS_Targets, 50) ||
+                ShipsSelectDamaged(SHIPS_Damaged, SHIPS_Targets, 90))
+                ShipsClear(SHIPS_Targets);
+                ShipsAdd(SHIPS_Targets, SHIPS_Damaged);
+            ENDIF
+
+            SetSwarmTargets(SHIPS_Targets);
+        ENDIF
+        TeamGiveToAI();
+        JUMP NullState;
+    ENDINIT
+    WATCH
+        IF (ShipsCount(SHIPS_MothershipSwarm) < VarGet("LastMoSwarmers"))
+            VarSet("DeadMoSwarmers", VarGet("DeadMoSwarmers") + (VarGet("LastMoSwarmers") - ShipsCount(SHIPS_MothershipSwarm)));
+            VarSet("LastMoSwarmers", ShipsCount(SHIPS_MothershipSwarm));
+        ENDIF
+        IFONCE (ShipsCount(SHIPS_MothershipSwarm) < VarGet("DeadMoSwarmers"))
+            MsgSend(TEAM_Master, "MoSwarmersInTrouble");
+
+            MsgSend(TEAM_Events, "MoSwarmersInTrouble");
+        ENDIFONCE
+        IFONCE (!ShipsCount(SHIPS_MothershipSwarm))
+            MsgSend(TEAM_Master, "MoSwarmersDead");
+        ENDIFONCE
+    ENDWATCH
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM GenericMothershipSwarm
+
+
+
+
+
+
+FSM GenericResourcerSwarm
+
+    States NullState, MoveToTarget;
+
+    INIT
+        VarCreateSet("DeadResSwarmers", 0);
+        ShipsAdd(SHIPS_ResourcerSwarm,THISTEAMSHIPS);
+        VarCreateSet("LastResSwarmers", ShipsCount(SHIPS_ResourcerSwarm));
+
+        IF (FindEnemyShipsOfType(SHIPS_Coll, "ResourceCollector"))
+            VarCreateSet("TakingResourcers", TRUE);
+        ELSE
+            FindEnemyShipsOfType(SHIPS_Coll, "ResourceController");
+        ENDIF
+        TimerCreateSetStart("ResSwarm", 40);
+        JUMP MoveToTarget;
+    ENDINIT
+    WATCH
+        IF (ShipsCount(SHIPS_ResourcerSwarm) < VarGet("LastResSwarmers"))
+            VarSet("DeadResSwarmers", VarGet("DeadResSwarmers") + (VarGet("LastResSwarmers") - ShipsCount(SHIPS_ResourcerSwarm)));
+            VarSet("LastResSwarmers", ShipsCount(SHIPS_ResourcerSwarm));
+        ENDIF
+        IFONCE (ShipsCount(SHIPS_ResourcerSwarm) < VarGet("DeadResSwarmers"))
+            MsgSend(TEAM_Master, "ResSwarmersInTrouble");
+            MsgSend(TEAM_Events, "ResSwarmersInTrouble");
+        ENDIFONCE
+        IFONCE (!ShipsCount(SHIPS_ResourcerSwarm))
+            MsgSend(TEAM_Master, "ResSwarmersDead");
+        ENDIFONCE
+    ENDWATCH
+
+
+
+
+        STATE MoveToTarget
+            INIT
+                SwarmMoveTo(SHIPS_Coll);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy("ResSwarm"))
+                    IF (VarGet("TakingResourcers"))
+                        MsgSendAll("ImTakingTheResourcers");
+                    ENDIF
+                    Stop();
+                    SetSwarmTargets(SHIPS_Coll);
+                    TeamGiveToAI();
+                    JUMP NullState;
+                ENDIF
+            ENDWATCH
+        ENDSTATE MoveToTarget
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM GenericResourcerSwarm
+
+
+
+
+
+FSM ResourceDefenderSwarm
+
+    States NullState, MoveToTarget;
+
+    INIT
+        VarCreateSet("DeadResDefSwarmers", 0);
+        ShipsAdd(SHIPS_ResourceDefSwarm,THISTEAMSHIPS);
+        VarCreateSet("LastResDefSwarmers", ShipsCount(SHIPS_ResourceDefSwarm));
+
+        IF ((FindEnemyShipsOfType(SHIPS_Temp1, "ResourceController")) ||
+            (FindEnemyShipsOfType(SHIPS_Temp2, "ResourceCollector")))
+
+            ShipsAdd(SHIPS_Resource, SHIPS_Temp1);
+            ShipsAdd(SHIPS_Resource, SHIPS_Temp2);
+
+
+            ShipsAdd(SHIPS_Defenders, SHIPS_Resource);
+            FindEnemiesNearby(SHIPS_Defenders, 5000);
+
+
+            ShipsRemove(SHIPS_Defenders, SHIPS_Temp);
+        ENDIF
+        TimerCreateSetStart("ResDefSwarm", 20);
+        JUMP MoveToTarget;
+    ENDINIT
+    WATCH
+        IF (ShipsCount(SHIPS_ResourceDefSwarm) < VarGet("LastResDefSwarmers"))
+            VarSet("DeadResDefSwarmers", VarGet("DeadResSwarmers") + (VarGet("LastResSwarmers") - ShipsCount(SHIPS_ResourceDefSwarm)));
+            VarSet("LastResDefSwarmers", ShipsCount(SHIPS_ResourceDefSwarm));
+        ENDIF
+        IFONCE (ShipsCount(SHIPS_ResourceDefSwarm) < VarGet("DeadResDefSwarmers"))
+            MsgSend(TEAM_Master, "ResDefSwarmersInTrouble");
+            MsgSend(TEAM_Dummy1, "ResDefSwarmersInTrouble");
+        ENDIFONCE
+        IFONCE (!ShipsCount(SHIPS_ResourceDefSwarm))
+            MsgSend(TEAM_Master, "ResDefSwarmersDead");
+        ENDIFONCE
+    ENDWATCH
+
+
+
+
+        STATE MoveToTarget
+            INIT
+                SwarmMoveTo(SHIPS_Defenders);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy("ResDefSwarm"))
+                    Stop();
+                    SetSwarmTargets(SHIPS_Defenders);
+                    TeamGiveToAI();
+                    JUMP NullState;
+                ENDIF
+            ENDWATCH
+        ENDSTATE MoveToTarget
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM ResourceDefenderSwarm
+
+
+
+
+
+
+FSM DefendMothership
+
+    States NullState;
+
+    INIT
+
+
+
+        IF (VarGet("G_MothershipUnderAttack") == 1)
+            UnderAttackElsewhere(TEAM_MSTeam1, SHIPS_Attackers);
+        ELSEIF (VarGet("G_MothershipUnderAttack") == 2)
+            UnderAttackElsewhere(TEAM_MSTeam2, SHIPS_Attackers);
+        ELSEIF (VarGet("G_MothershipUnderAttack") == 3)
+            UnderAttackElsewhere(TEAM_MSTeam3, SHIPS_Attackers);
+        ENDIF
+
+        SetSwarmTargets(SHIPS_Attackers);
+        ShipsAdd(SHIPS_DefendMothership, THISTEAMSHIPS);
+        TeamGiveToAI();
+        JUMP NullState;
+    ENDINIT
+    WATCH
+        IFONCE (TeamCount() == 0)
+
+            JUMP NullState;
+        ENDIFONCE
+    ENDWATCH
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM DefendMothership
+
+
+
+
+
+FSM IntroAttack
+
+    States GetStarted, WaitForAttack, NullState;
+
+    INIT
+        ShipsSetNonRetaliation(THISTEAMSHIPS);
+        JUMP GetStarted;
+    ENDINIT
+    WATCH
+        IFONCE (TeamCount() == 0)
+
+            JUMP NullState;
+        ENDIFONCE
+    ENDWATCH
+
+
+
+
+        STATE GetStarted
+            INIT
+                AttackMothership();
+            ENDINIT
+            WATCH
+                IF (Nearby(POINT_StartPointPlayer, 10000))
+                    JUMP WaitForAttack;
+                ENDIF
+                IF (MsgReceived("Attack"))
+                    Stop();
+                    ShipsSetRetaliation(THISTEAMSHIPS);
+                    FSMCreate(GenericMothershipSwarm, THISTEAM);
+                ENDIF
+                IF (UnderAttack(SHIPS_PartyPoopers))
+                    Stop();
+                    ShipsSetRetaliation(THISTEAMSHIPS);
+                    MsgSend(TEAM_Events, "UnderAttack");
+                    FSMCreate(GenericMothershipSwarm, THISTEAM);
+                ENDIF
+            ENDWATCH
+        ENDSTATE GetStarted
+
+
+
+
+
+
+        STATE WaitForAttack
+            INIT
+                MsgSend(TEAM_Events, "Stopped");
+                Stop();
+            ENDINIT
+            WATCH
+                IF (MsgReceived("Attack"))
+                    ShipsSetRetaliation(THISTEAMSHIPS);
+                    FSMCreate(GenericMothershipSwarm, THISTEAM);
+                ENDIF
+                IF (UnderAttack(SHIPS_PartyPoopers))
+                    ShipsSetRetaliation(THISTEAMSHIPS);
+                    MsgSendAll("Attack");
+                    MsgSend(TEAM_Events, "UnderAttack");
+                    FSMCreate(GenericMothershipSwarm, THISTEAM);
+                ENDIF
+            ENDWATCH
+        ENDSTATE WaitForAttack
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM IntroAttack
+
+
+
+
+
+FSM PreAttackPod
+
+    States Dock, WaitToLaunch, Launch, GetOrders, NullState;
+
+    INIT
+        JUMP Dock;
+    ENDINIT
+    WATCH
+        IF (MsgReceived ("DockNow"))
+            JUMP NullState;
+        ENDIF
+    ENDWATCH
+
+
+
+
+        STATE Dock
+            INIT
+                TeamHyperspaceOut();
+            ENDINIT
+            WATCH
+                IF (MsgReceived("DefendMothership"))
+                    VarCreateSet("DefendMothership", TRUE);
+                    JUMP WaitToLaunch;
+                ELSEIF (MsgReceived("MothershipSwarm"))
+                    VarCreateSet("MothershipSwarm", TRUE);
+                    JUMP WaitToLaunch;
+                ELSEIF (MsgReceived("ResourceSwarm"))
+                    VarCreateSet("ResourceSwarm", TRUE);
+                    JUMP WaitToLaunch;
+                ELSEIF (MsgReceived("ResourceDefenderSwarm"))
+                    VarCreateSet("ResourceDefenderSwarm", TRUE);
+                    JUMP WaitToLaunch;
+                ELSEIF (MsgReceived("IntroAttack"))
+                    VarCreateSet("IntroAttack", TRUE);
+                    JUMP WaitToLaunch;
+                ENDIF
+            ENDWATCH
+        ENDSTATE Dock
+
+
+
+
+        STATE WaitToLaunch
+            INIT
+                TimerCreateSetStart ("WaitToLaunch",5);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy ("WaitToLaunch"))
+                    Jump Launch;
+                ENDIF
+            ENDWATCH
+        ENDSTATE WaitToLaunch
+
+
+
+
+        STATE Launch
+            INIT
+                TeamHyperspaceInNear (TEAMSPOINT_MsgSender, 1000);
+                TimerCreateSetStart ("GiveToAI",10);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy ("GiveToAI"))
+                    Jump GetOrders;
+                ENDIF
+            ENDWATCH
+        ENDSTATE Launch
+
+
+
+
+
+        STATE GetOrders
+            INIT
+                IF (VarGet("DefendMothership"))
+                    FSMCreate(DefendMothership, THISTEAM);
+                ELSEIF (VarGet("MothershipSwarm"))
+                    FSMCreate(GenericMothershipSwarm, THISTEAM);
+                ELSEIF (VarGet("ResourceSwarm"))
+                    FSMCreate(GenericResourcerSwarm, THISTEAM);
+                ELSEIF (VarGet("ResourceDefenderSwarm"))
+                    FSMCreate(ResourceDefenderSwarm, THISTEAM);
+                ELSEIF (VarGet("IntroAttack"))
+                    FSMCreate(IntroAttack, THISTEAM);
+                ENDIF
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE GetOrders
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+                IF (ShipsCount(THISTEAMSHIPS) && MsgReceived("P2MothershipBlowin"))
+                    TeamHyperspaceOut();
+                ENDIF
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM PreAttackPod
+
+
+
+
+
+FSM PreAttackSwarm
+
+    States NullState, Dock, Launch, WaitToLaunch, GetOrders, DockAgain;
+
+    INIT
+        JUMP Dock;
+    ENDINIT
+    WATCH
+    ENDWATCH
+
+
+
+
+        STATE Dock
+            INIT
+
+
+
+                    IF (VarGet("G_MothershipCount") == 1)
+                        DockInstant(TEAM_MSTeam1);
+                    ELSEIF (VarGet("G_MothershipCount") == 2)
+                        DockInstant(TEAM_MSTeam2);
+                    ELSE
+                        DockInstant(TEAM_MSTeam3);
+                    ENDIF
+
+                    VarInc("G_MothershipCount"); IF (VarGet("G_MothershipCount") > (3)) VarSet("G_MothershipCount", (1)); ENDIF
+
+            ENDINIT
+            WATCH
+                IF (MsgReceived("DefendMothership"))
+                    VarCreateSet("DefendMothership", TRUE);
+                    JUMP WaitToLaunch;
+                ELSEIF (MsgReceived("MothershipSwarm"))
+                    VarCreateSet("MothershipSwarm", TRUE);
+                    JUMP WaitToLaunch;
+                ELSEIF (MsgReceived("ResourceSwarm"))
+                    VarCreateSet("ResourceSwarm", TRUE);
+                    JUMP WaitToLaunch;
+                ELSEIF (MsgReceived("ResourceDefenderSwarm"))
+                    VarCreateSet("ResourceDefenderSwarm", TRUE);
+                    JUMP WaitToLaunch;
+                ELSEIF (MsgReceived("IntroAttack"))
+                    VarCreateSet("IntroAttack", TRUE);
+                    JUMP WaitToLaunch;
+                ENDIF
+
+                IF (MsgReceived ("DockNow"))
+                    JUMP NullState;
+                ENDIF
+            ENDWATCH
+        ENDSTATE Dock
+
+
+
+
+
+        STATE WaitToLaunch
+            INIT
+                TimerCreateSetStart ("WaitToLaunch",5);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy ("WaitToLaunch"))
+                    Jump Launch;
+                ENDIF
+            ENDWATCH
+        ENDSTATE WaitToLaunch
+
+
+
+
+
+        STATE Launch
+            INIT
+                Launch ();
+                TimerCreateSetStart ("GiveToAI",10);
+            ENDINIT
+            WATCH
+                IF (MsgReceived ("DockNow"))
+                    JUMP DockAgain;
+                ENDIF
+                IF (TimerExpiredDestroy ("GiveToAI"))
+                    Jump GetOrders;
+                ENDIF
+            ENDWATCH
+        ENDSTATE Launch
+
+
+
+
+
+        STATE DockAgain
+            INIT
+                DockStay(TEAM_MsgSender);
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE DockAgain
+
+
+
+
+
+        STATE GetOrders
+            INIT
+                IF (VarGet("DefendMothership"))
+                    FSMCreate(DefendMothership, THISTEAM);
+                ELSEIF (VarGet("MothershipSwarm"))
+                    FSMCreate(GenericMothershipSwarm, THISTEAM);
+                ELSEIF (VarGet("ResourceSwarm"))
+                    FSMCreate(GenericResourcerSwarm, THISTEAM);
+                ELSEIF (VarGet("ResourceDefenderSwarm"))
+                    FSMCreate(ResourceDefenderSwarm, THISTEAM);
+                ELSEIF (VarGet("IntroAttack"))
+                    FSMCreate(IntroAttack, THISTEAM);
+                ENDIF
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE GetOrders
+
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM PreAttackSwarm
+# 81 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission08.kas" 2
+
+
+
+
+
+
+FSM Events
+
+    States NullState, LocationCard, Wait1, LBXIn0, ImLost, ItsATrap, Inhibitors, Indeed, WaitForStopped, LBXIn0a, LastChance, WereTheSame,
+           YoullFail, WeveGotColonists, WhoCares, AttackBegunDelay, AttackBegun, AddedResearch, LBXIn1, EnemyGoingHere, LBXIn2,
+           JustLikeKharToba, YeahYoureRight, TheyreUs, WeCanLeave;
+
+    INIT
+        VarCreateSet("IntelEnded", 0);
+        IntelEventNotEnded();
+        JUMP LocationCard;
+    ENDINIT
+    WATCH
+        IFONCE (MsgReceived("ImOuttaHere"))
+            MusicStop(4);
+            TimerCreateSetStart("EscapingTimer", 30);
+        ENDIFONCE
+
+        IF (TimerExpiredDestroy("EscapingTimer"))
+            VarCreateSet("Escaping", TRUE);
+            VarSet("InNullState", FALSE);
+            JUMP LBXIn1;
+        ENDIF
+
+        IFONCE (VarGet("G_MothershipsDead") == 3)
+            VarSet("InNullState", FALSE);
+            JUMP WeCanLeave;
+        ENDIFONCE
+
+        IFONCE (MsgReceived("WaveAll"))
+            TimerCreateSetStart("Research", Random(180, 250));
+        ENDIFONCE
+
+        IF (VarGet("InNullState") && TimerExpiredDestroy("Research"))
+            IF (!TechGet("DDDFDFGFTech"))
+                VarSet("InNullState", FALSE);
+                JUMP AddedResearch;
+            ENDIF
+        ENDIF
+
+        IFONCE (RenderedDerelictType("PrisonShipOld", 3) ||
+                RenderedDerelictType("PrisonShipOld", 2) ||
+                RenderedDerelictType("PrisonShipOld", 1) ||
+                RenderedDerelictType("PrisonShipOld", 0))
+            VarSet("InNullState", FALSE);
+            JUMP LBXIn2;
+        ENDIFONCE
+
+        IF (VarGet("G_CLICK_DestroyP2"))
+            VarDestroy("G_CLICK_DestroyP2");
+            IF (VarGet("Escaping"))
+                VarSet("InNullState", FALSE);
+                JUMP EnemyGoingHere;
+            ELSE
+                VarCreateSet("Playback", TRUE);
+                VarSet("InNullState", FALSE);
+                OpenSensors(45000);
+                JUMP Inhibitors;
+            ENDIF
+        ELSEIF (VarGet("G_CLICK_DestroyAtt"))
+            VarDestroy("G_CLICK_DestroyAtt");
+            VarSet("InNullState", FALSE);
+            JUMP AttackBegun;
+        ENDIF
+
+    ENDWATCH
+
+
+
+
+        STATE LocationCard
+            INIT
+                TimerCreateSetStart("LocationCardTimer", 2);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy("LocationCardTimer"))
+                    LocationCard(5000, LSTRING_LCLocationCard);
+                    JUMP Wait1;
+                ENDIF
+            ENDWATCH
+        ENDSTATE LocationCard
+
+
+
+
+        STATE Wait1
+            INIT
+                TimerCreateSetStart("Launching", 8);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy("Launching"))
+                    JUMP ImLost;
+                ENDIF
+            ENDWATCH
+        ENDSTATE Wait1
+
+
+
+
+
+        STATE LBXIn0
+            INIT
+                wideScreenIn(30);
+                TimerCreateSetStart("LBXTimer", 3);
+            ENDINIT
+            WATCH
+                IF ((TimerRemaining("LBXTimer") == 0))
+                    JUMP ImLost;
+                ENDIF
+            ENDWATCH
+        ENDSTATE LBXIn0
+
+
+
+
+
+        STATE ImLost
+            INIT
+                SpeechEvent((565 + 0x00000800 + 0x10000000), 0);
+                TimerCreateSetStart("LBX", 8);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy("LBX"))
+                    wideScreenIn(90);
+                ENDIF
+                IF (IntelEventEnded())
+                    MsgSendAll("WaveAll");
+                    JUMP ItsATrap;
+                ENDIF
+            ENDWATCH
+        ENDSTATE ImLost
+
+
+
+
+        STATE ItsATrap
+            INIT
+                OpenSensors(45000);
+                SpeechEvent((566 + 0x00001000 + 0x10000000), 0);
+            ENDINIT
+            WATCH
+                VarSet("IntelEnded", IntelEventEnded());
+
+                IF (VarGet("IntelEnded") == 1)
+                    JUMP Inhibitors;
+                ELSEIF (VarGet("IntelEnded") == 2)
+                    PingAddShips(TEAMSHIPS_MSTeam1, "MS1");
+                    PingAddShips(TEAMSHIPS_MSTeam2, "MS2");
+                    PingAddShips(TEAMSHIPS_MSTeam3, "MS3");
+                    JUMP WaitForStopped;
+                ENDIF
+            ENDWATCH
+        ENDSTATE ItsATrap
+
+
+
+
+
+        STATE Inhibitors
+            INIT
+                SpeechEvent((567 + 0x00001000 + 0x10000000), 0);
+                TutSetPointerTargetShipSelection("MoShip1", TEAMSHIPS_MSTeam1);
+                TutSetPointerTargetShipSelection("MoShip2", TEAMSHIPS_MSTeam2);
+                TutSetPointerTargetShipSelection("MoShip3", TEAMSHIPS_MSTeam3);
+                IF (!VarGet("Playback"))
+                    PingAddShips(TEAMSHIPS_MSTeam1, "MS1");
+                    PingAddShips(TEAMSHIPS_MSTeam2, "MS2");
+                    PingAddShips(TEAMSHIPS_MSTeam3, "MS3");
+                ENDIF
+            ENDINIT
+            WATCH
+                VarSet("IntelEnded", IntelEventEnded());
+
+                IF (VarGet("IntelEnded"))
+
+                    TutRemoveAllPointers();
+                    IF (VarGet("Playback"))
+                        VarDestroy("Playback");
+                        wideScreenOut(30);
+                        CloseSensors(TRUE);
+                        TutRemoveAllPointers();
+                        JUMP NullState;
+                    ELSEIF (VarGet("IntelEnded") == 2)
+                        JUMP WaitForStopped;
+                    ENDIF
+                    JUMP Indeed;
+                ENDIF
+            ENDWATCH
+        ENDSTATE Inhibitors
+
+
+
+
+
+        STATE Indeed
+            INIT
+
+                SpeechEvent((568 + 0x00001000 + 0x10000000), 0);
+            ENDINIT
+            WATCH
+                IF (IntelEventEnded())
+                    JUMP WaitForStopped;
+                ENDIF
+
+            ENDWATCH
+        ENDSTATE Indeed
+
+
+
+
+        STATE WaitForStopped
+            INIT
+                ObjectiveCreate("DestroyP2", LSTRING_OBDestroyInhibitors, LSTRING_FIIndeed);
+                wideScreenOut(30);
+                CloseSensors(TRUE);
+                TutRemoveAllPointers();
+            ENDINIT
+            WATCH
+
+
+                IF (MsgReceived("Stopped"))
+                    JUMP LBXIn0a;
+                ENDIF
+            ENDWATCH
+        ENDSTATE WaitForStopped
+
+
+
+
+
+        STATE LBXIn0a
+            INIT
+                wideScreenIn(30);
+                TimerCreateSetStart("LBXTimer", 4);
+            ENDINIT
+            WATCH
+                IFONCE (TimerRemaining("LBXTimer") <= 2)
+                    SoundEvent(262);
+                    TutCameraFocus(TEAMSHIPS_Swarmer1TeamLeader);
+                    TutCameraFocus(TEAMSHIPS_Swarmer1TeamLeader);
+                ENDIFONCE
+
+
+                IF ((TimerRemaining("LBXTimer") == 0))
+                    JUMP LastChance;
+                ENDIF
+            ENDWATCH
+        ENDSTATE LBXIn0a
+
+
+
+
+
+        STATE LastChance
+            INIT
+                SpeechEvent((571 + 0x00004000 + 0x10000000), 0);
+                MusicPlay(14);
+            ENDINIT
+            WATCH
+                IF (!VarGet("SkipCancelFocus") &&
+                    TutGameSentMessage ("Game_BandBoxFocus,Game_ClickFocus,KB_FocusMothership,KB_CancelFocus,KB_Focus,KB_Sensors,TB_SensorsManager"))
+                    VarCreateSet("SkipCancelFocus",TRUE);
+                    wideScreenOut(30);
+                ENDIF
+
+                IF (IntelEventEnded())
+                    JUMP WereTheSame;
+                ENDIF
+
+                IF (MsgReceived("UnderAttack"))
+                    JUMP AttackBegunDelay;
+                ENDIF
+            ENDWATCH
+        ENDSTATE LastChance
+
+
+
+
+        STATE WereTheSame
+            INIT
+                SpeechEvent((791 + 0x00000800 + 0x10000000), 0);
+            ENDINIT
+            WATCH
+                IF (!VarGet("SkipCancelFocus") &&
+                    TutGameSentMessage ("Game_BandBoxFocus,Game_ClickFocus,KB_FocusMothership,KB_CancelFocus,KB_Focus,KB_Sensors,TB_SensorsManager"))
+                    VarCreateSet("SkipCancelFocus",TRUE);
+                    wideScreenOut(30);
+                ENDIF
+
+                IF (IntelEventEnded())
+                    JUMP YoullFail;
+                ENDIF
+
+                IF (MsgReceived("UnderAttack"))
+                    JUMP AttackBegunDelay;
+                ENDIF
+            ENDWATCH
+        ENDSTATE WereTheSame
+
+
+
+
+        STATE YoullFail
+            INIT
+                SpeechEvent((573 + 0x00004000 + 0x10000000), 0);
+            ENDINIT
+            WATCH
+                IF (!VarGet("SkipCancelFocus") &&
+                    TutGameSentMessage ("Game_BandBoxFocus,Game_ClickFocus,KB_FocusMothership,KB_CancelFocus,KB_Focus,KB_Sensors,TB_SensorsManager"))
+                    VarCreateSet("SkipCancelFocus",TRUE);
+                    wideScreenOut(30);
+                ENDIF
+
+                IF (IntelEventEnded())
+                    JUMP AttackBegunDelay;
+                ENDIF
+            ENDWATCH
+        ENDSTATE YoullFail
+
+
+
+
+        STATE AttackBegunDelay
+            INIT
+                MsgSendAll("Attack");
+                IF (!VarGet("SkipCancelFocus"))
+                    wideScreenOut(30);
+                ENDIF
+                TimerCreateSetStart("AttackMessageDelay", 3);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy("AttackMessageDelay"))
+                    JUMP AttackBegun;
+                ENDIF
+            ENDWATCH
+        ENDSTATE AttackBegunDelay
+
+
+
+
+        STATE AttackBegun
+            INIT
+                IF (TutCameraFocusedOnShipType("P2AdvanceSwarmer") &&
+                    (!VarGet("SkipCancelFocus")))
+                    SoundEvent(262);
+                    tutCameraFocusCancel();
+                    tutCameraFocusCancel();
+                ENDIF
+                SpeechEvent((771 + 0x00001000 + 0x10000000), 0);
+                ObjectiveCreate("DestroyAtt", LSTRING_OBDestroyAttackers, LSTRING_FIIndeed);
+            ENDINIT
+            WATCH
+                IF (IntelEventEnded())
+                    VarDestroy("SkipCancelFocus");
+                    JUMP NullState;
+                ENDIF
+            ENDWATCH
+        ENDSTATE AttackBegun
+
+
+
+
+        STATE AddedResearch
+            INIT
+                IF (RaceOfHuman())
+                    SpeechEvent((570 + 0x00001000 + 0x10000000), 0);
+                ELSE
+                    SpeechEvent((569 + 0x00001000 + 0x10000000), 0);
+                ENDIF
+                TechSetResearch("DDDFDFGFTech");
+            ENDINIT
+            WATCH
+                JUMP NullState;
+            ENDWATCH
+        ENDSTATE AddedResearch
+
+
+
+
+
+        STATE LBXIn1
+            INIT
+                wideScreenIn(30);
+                TimerCreateSetStart("LBXTimer", 4);
+            ENDINIT
+            WATCH
+                IF ((TimerRemaining("LBXTimer") == 0))
+                    JUMP EnemyGoingHere;
+                ENDIF
+            ENDWATCH
+        ENDSTATE LBXIn1
+
+
+
+
+        STATE EnemyGoingHere
+            INIT
+                OpenSensors(45000);
+                PauseUniverse();
+                SpeechEvent((575 + 0x00001000 + 0x10000000), 0);
+                PingAddPoint(POINT_GhostshipPointy, "Ghostship");
+                TimerCreateSetStart("PointerSwitch", 2);
+                TimerCreateSetStart("MoShipPointerKill", 3);
+                ObjectiveSet("DestroyAtt",TRUE);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy("PointerSwitch"))
+                    TutSetPointerTargetAIVolume("CheckVol", VOLUME_PointVolume);
+                ENDIF
+
+                IF (TimerExpiredDestroy("MoShipPointerKill"))
+                    TutRemovePointer("Moship");
+                ENDIF
+                IF (IntelEventEnded())
+                    TutRemoveAllPointers();
+                    CloseSensors(TRUE);
+                    WideScreenOut(90);
+                    UnPauseUniverse();
+                    JUMP NullState;
+                ENDIF
+            ENDWATCH
+        ENDSTATE EnemyGoingHere
+
+
+
+
+        STATE LBXIn2
+            INIT
+                wideScreenIn(30);
+                TimerCreateSetStart("LBXTimer", 4);
+            ENDINIT
+            WATCH
+                IF ((TimerRemaining("LBXTimer") == 0))
+                    JUMP JustLikeKharToba;
+                ENDIF
+            ENDWATCH
+        ENDSTATE LBXIn2
+
+
+
+
+        STATE JustLikeKharToba
+            INIT
+                SpeechEvent((773 + 0x00000800 + 0x10000000), 0);
+                TutCameraFocusDerelictType("PrisonShipOld");
+            ENDINIT
+            WATCH
+                IF (IntelEventEnded())
+                    JUMP YeahYoureRight;
+                ENDIF
+            ENDWATCH
+        ENDSTATE JustLikeKharToba
+
+
+
+
+        STATE YeahYoureRight
+            INIT
+                SpeechEvent((774 + 0x00001000 + 0x10000000), 0);
+            ENDINIT
+            WATCH
+                IF (IntelEventEnded())
+
+                    WideScreenOut(90);
+                    SoundEvent(262);
+                    tutCameraFocusCancel();
+                    PingRemove("Ghostship");
+                    JUMP NullState;
+                ENDIF
+            ENDWATCH
+        ENDSTATE YeahYoureRight
+
+
+
+
+        STATE WeCanLeave
+            INIT
+                SpeechEvent((772 + 0x00001000 + 0x10000000), 0);
+                ObjectiveCreate("Hyperspace", LSTRING_TBHyperspace, LSTRING_FIWeCanLeave);
+                ObjectiveSet("DestroyP2", TRUE);
+            ENDINIT
+            WATCH
+                IF (IntelEventEnded())
+                    JUMP NullState;
+                ENDIF
+            ENDWATCH
+        ENDSTATE WeCanLeave
+
+
+
+
+        STATE NullState
+            INIT
+                VarCreateSet("InNullState", TRUE);
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM Events
+
+
+
+
+
+
+FSM MBTeam
+
+    States WaitForAttack, AttackDelay, PriorityAttack, Attack, NullState;
+
+    INIT
+        JUMP WaitForAttack;
+    ENDINIT
+    WATCH
+        IFONCE (TeamCount() == 0)
+
+            JUMP NullState;
+        ENDIFONCE
+    ENDWATCH
+
+
+
+
+        STATE WaitForAttack
+            INIT
+                TeamHyperspaceOut();
+            ENDINIT
+            WATCH
+                IF (MsgReceived("MultiBeamsGoToIt"))
+                    IF (ThisTeamIs(TEAM_MB1Team))
+                        TimerCreateSetStart("MultiBeamDelay", 5);
+                    ELSEIF (ThisTeamIs(TEAM_MB2Team))
+                        TimerCreateSetStart("MultiBeamDelay", Random(80, 100));
+                    ELSEIF (ThisTeamIs(TEAM_MB3Team))
+                        TimerCreateSetStart("MultiBeamDelay", Random(160, 200));
+                    ELSEIF (ThisTeamIs(TEAM_MB4Team))
+                        TimerCreateSetStart("MultiBeamDelay", Random(250, 270));
+                    ENDIF
+                ENDIF
+                IF (TimerExpiredDestroy("MultiBeamDelay"))
+                    IF (ThisTeamIs(TEAM_MB1Team))
+                        TeamHyperspaceIn(POINT_MultibeamPoint2);
+                    ELSEIF (ThisTeamIs(TEAM_MB2Team))
+                        TeamHyperspaceIn(POINT_MultibeamPoint1);
+                    ELSEIF (ThisTeamIs(TEAM_MB3Team))
+                        TeamHyperspaceIn(POINT_MultibeamPoint4);
+                    ELSEIF (ThisTeamIs(TEAM_MB4Team))
+                        TeamHyperspaceIn(POINT_MultibeamPoint3);
+                    ENDIF
+                    Jump AttackDelay;
+                ENDIF
+            ENDWATCH
+        ENDSTATE WaitForAttack
+
+
+
+
+
+        STATE AttackDelay
+            INIT
+                TimerCreateSetStart("HyperspaceDelay", 10);
+            ENDINIT
+            WATCH
+                IF (TimerExpiredDestroy("HyperspaceDelay"))
+                    IF (ThisTeamIs(TEAM_MB1Team) ||
+                        ThisTeamIs(TEAM_MB3Team))
+                        JUMP PriorityAttack;
+                    ENDIF
+                    JUMP Attack;
+                ENDIF
+            ENDWATCH
+        ENDSTATE
+
+
+
+
+        STATE PriorityAttack
+            INIT
+                IF (FindEnemyShipsOfClass(SHIPS_MBTargets, "CLASS_Destroyer") ||
+                    FindEnemyShipsOfClass(SHIPS_MBTargets, "CLASS_Frigate") ||
+                    FindEnemyShipsOfType(SHIPS_MBTargets, "Carrier") ||
+                    FindEnemyShipsOfClass(SHIPS_MBTargets, "CLASS_Mothership"))
+                    MoveAttack(SHIPS_MBTargets);
+                ENDIF
+            ENDINIT
+            WATCH
+                IF (!ShipsCount(SHIPS_MBTargets))
+                    JUMP PriorityAttack;
+                ENDIF
+            ENDWATCH
+        ENDSTATE PriorityAttack
+
+
+
+
+        STATE Attack
+            INIT
+                AttackMothership();
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM MBTeam
+
+
+
+
+
+
+FSM HonourGuardMB
+
+    States Waiting, Attack, NullState;
+
+    INIT
+        TacticsAggressive();
+        JUMP Waiting;
+    ENDINIT
+    WATCH
+        IFONCE (TeamCount() == 0)
+
+            JUMP NullState;
+        ENDIFONCE
+    ENDWATCH
+
+
+
+
+        STATE Waiting
+            INIT
+            ENDINIT
+            WATCH
+                FindEnemiesInside(VOLUME_CheckVolume, SHIPS_Invaders, 4000);
+                IF (ShipsSelectCapital(SHIPS_HGTargets, SHIPS_Invaders))
+                    JUMP Attack;
+                ENDIF
+            ENDWATCH
+        ENDSTATE Waiting
+
+
+
+
+        STATE Attack
+            INIT
+                MoveAttack(SHIPS_HGTargets);
+            ENDINIT
+            WATCH
+                IF (!ShipsCount(SHIPS_HGTargets))
+                    JUMP Waiting;
+                ENDIF
+            ENDWATCH
+        ENDSTATE Attack
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM HonourGuardMB
+
+
+
+
+
+
+FSM Master
+
+    States InitialAttack, PreMBBattle, NullState;
+
+    INIT
+        TimerCreateSetStart("MultiBeamTimer", 30);
+        TimerCreate("WaveTimer");
+        TimerSet("WaveTimer", 0);
+    ENDINIT
+    WATCH
+        IF (MsgReceived("WaveAll"))
+            JUMP InitialAttack;
+        ENDIF
+
+        IF (TimerExpiredDestroy("MultiBeamTimer"))
+            MsgSendAll("MultiBeamsGoToIt");
+        ENDIF
+
+    ENDWATCH
+
+
+
+
+        STATE InitialAttack
+            INIT
+                TimerCreateSetStart("PreMB",120);
+            ENDINIT
+            WATCH
+                IF (TimerExpired("PreMB") &&
+                    ((ShipsCount(SHIPS_MothershipSwarm) < 7) ||
+                     (ShipsSelectType(SHIPS_Pods, SHIPS_MothershipSwarm, "P2FuelPod") < 2)))
+                    JUMP PreMBBattle;
+                ENDIF
+            ENDWATCH
+        ENDSTATE InitialAttack
+
+
+
+
+        STATE PreMBBattle
+            INIT
+                MsgSendAll("Wave");
+                TimerSet("WaveTimer", 40);
+                TimerStart("WaveTimer");
+            ENDINIT
+            WATCH
+                IF (TimerExpired("WaveTimer") &&
+                    ((ShipsCount(SHIPS_MothershipSwarm) < 7) ||
+                     (ShipsSelectType(SHIPS_Pods, SHIPS_MothershipSwarm, "P2FuelPod") < 2)))
+                    JUMP PreMBBattle;
+                ENDIF
+            ENDWATCH
+        ENDSTATE PreMBBattle
+
+
+
+
+        STATE NullState
+            INIT
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM Master
+
+
+
+
+
+
+FSM Mothership
+
+    States GotSwarmers, SendSwarm1, SendSwarm2, SendSwarm3, DefendSelf, DefendSelf1, DefendSelf2, DefendSelf3,
+           ReturnToState, AttackMothership, OuttaHere, Standoff, FendOffBaddies, NullState;
+
+    INIT
+        VarCreateSet("WaveNum", 1);
+        JUMP GotSwarmers;
+    ENDINIT
+    WATCH
+        IFONCE (TeamCount() == 0)
+
+            VarCreateSet("ImDead", TRUE);
+            JUMP NullState;
+        ENDIFONCE
+
+        IF (!VarGet("ImDead"))
+            IFONCE (UnderAttack(SHIPS_Poopyheads))
+                JUMP DefendSelf;
+            ENDIFONCE
+
+            IFONCE (TeamHealthLowest() < 30)
+                VarCreateSet("ImHurt", TRUE);
+                VarInc("G_MothershipsHurt");
+                JUMP DefendSelf;
+            ENDIFONCE
+
+            VarCreateSet("DeadOrAttacking", (VarGet("G_MothershipsAttacking") + VarGet("G_MothershipsDead")));
+            IFONCE ((VarGet("DeadOrAttacking") == 2) ||
+                    ((!VarGet("ImHurt")) &&
+                     ((VarGet("DeadOrAttacking") == 1) &&
+                      (VarGet("G_MothershipsHurt") == 1)) ||
+                     (VarGet("G_MothershipsHurt") == 2)))
+                VarCreateSet("GettingOutOfHere", TRUE);
+                MsgSend(THISTEAM, "Wave");
+            ENDIFONCE
+        ENDIF
+
+    ENDWATCH
+
+
+
+
+        STATE GotSwarmers
+            INIT
+            ENDINIT
+            WATCH
+                IF (MsgReceived("WaveAll"))
+                    VarCreateSet("WaveAll", TRUE);
+
+
+                ELSEIF (MsgReceived("Wave") || VarGet("WaveAll"))
+                    IF ((ThisTeamIs(TEAM_MSTeam1)) &&
+                        (VarGet("G_MothershipCount") == 1))
+                        VarSet("WaveAll", FALSE);
+                        JUMP SendSwarm1;
+                    ELSEIF ((ThisTeamIs(TEAM_MSTeam2)) &&
+                            (VarGet("G_MothershipCount") == 2))
+                        VarSet("WaveAll", FALSE);
+                        JUMP SendSwarm2;
+                    ELSEIF ((ThisTeamIs(TEAM_MSTeam3)) &&
+                            (VarGet("G_MothershipCount") == 3))
+                        VarSet("WaveAll", FALSE);
+                        JUMP SendSwarm3;
+                    ELSE
+                        JUMP ReturnToState;
+                    ENDIF
+                ENDIF
+            ENDWATCH
+        ENDSTATE GotSwarmers
+
+
+
+
+        STATE DefendSelf
+            INIT
+                IF (ThisTeamIs(TEAM_MSTeam1))
+                    VarCreateSet("G_MothershipUnderAttack", 1);
+                    JUMP DefendSelf1;
+                ELSEIF (ThisTeamIs(TEAM_MSTeam2))
+                    VarCreateSet("G_MothershipUnderAttack", 2);
+                    JUMP DefendSelf2;
+                ELSEIF (ThisTeamIs(TEAM_MSTeam3))
+                    VarCreateSet("G_MothershipUnderAttack", 3);
+                    JUMP DefendSelf3;
+                ENDIF
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE DefendSelf
+
+
+
+
+        STATE SendSwarm1
+            INIT
+                IF (VarGet("WaveNum") == 1)
+                    MsgSend(TEAM_Swarmer1Team, "IntroAttack");
+                    MsgSend(TEAM_Swarmer1TeamLeader, "IntroAttack");
+                    MsgSend(TEAM_FuelPod1Team, "IntroAttack");
+                ELSEIF (VarGet("WaveNum") == 2)
+                    MsgSend(TEAM_Swarmer4Team, "MothershipSwarm");
+                    MsgSend(TEAM_Swarmer4TeamLeader, "MothershipSwarm");
+                    MsgSend(TEAM_FuelPod4Team, "MothershipSwarm");
+                ELSEIF (VarGet("WaveNum") == 3)
+                    MsgSend(TEAM_Swarmer7Team, "MothershipSwarm");
+                    MsgSend(TEAM_Swarmer7TeamLeader, "MothershipSwarm");
+                    MsgSend(TEAM_FuelPod7Team, "MothershipSwarm");
+                ELSEIF (VarGet("WaveNum") == 4)
+                    MsgSend(TEAM_Swarmer10Team, "MothershipSwarm");
+                    MsgSend(TEAM_Swarmer10TeamLeader, "MothershipSwarm");
+                    MsgSend(TEAM_FuelPod10Team, "MothershipSwarm");
+                ENDIF
+            ENDINIT
+            WATCH
+                VarInc("G_MothershipCount"); IF (VarGet("G_MothershipCount") > (3)) VarSet("G_MothershipCount", (1)); ENDIF
+                VarInc("WaveNum");
+                JUMP ReturnToState;
+            ENDWATCH
+        ENDSTATE SendSwarm1
+
+
+
+
+        STATE SendSwarm2
+            INIT
+                IF (VarGet("WaveNum") == 1)
+                    MsgSend(TEAM_Swarmer2Team, "IntroAttack");
+                    MsgSend(TEAM_Swarmer2TeamLeader, "IntroAttack");
+                    MsgSend(TEAM_FuelPod2Team, "IntroAttack");
+                ELSEIF (VarGet("WaveNum") == 2)
+                    MsgSend(TEAM_Swarmer5Team, "MothershipSwarm");
+                    MsgSend(TEAM_Swarmer5TeamLeader, "MothershipSwarm");
+                    MsgSend(TEAM_FuelPod5Team, "MothershipSwarm");
+                ELSEIF (VarGet("WaveNum") == 3)
+                    MsgSend(TEAM_Swarmer8Team, "MothershipSwarm");
+                    MsgSend(TEAM_Swarmer8TeamLeader, "MothershipSwarm");
+                    MsgSend(TEAM_FuelPod8Team, "MothershipSwarm");
+                ELSEIF (VarGet("WaveNum") == 4)
+                    MsgSend(TEAM_Swarmer11Team, "MothershipSwarm");
+                    MsgSend(TEAM_Swarmer11TeamLeader, "MothershipSwarm");
+                    MsgSend(TEAM_FuelPod11Team, "MothershipSwarm");
+                ENDIF
+            ENDINIT
+            WATCH
+                VarInc("G_MothershipCount"); IF (VarGet("G_MothershipCount") > (3)) VarSet("G_MothershipCount", (1)); ENDIF
+                VarInc("WaveNum");
+                JUMP ReturnToState;
+            ENDWATCH
+        ENDSTATE SendSwarm2
+
+
+
+
+        STATE SendSwarm3
+            INIT
+                IF (VarGet("WaveNum") == 1)
+                    MsgSend(TEAM_Swarmer3Team, "IntroAttack");
+                    MsgSend(TEAM_Swarmer3TeamLeader, "IntroAttack");
+                    MsgSend(TEAM_FuelPod3Team, "IntroAttack");
+                ELSEIF (VarGet("WaveNum") == 2)
+                    MsgSend(TEAM_Swarmer6Team, "MothershipSwarm");
+                    MsgSend(TEAM_Swarmer6TeamLeader, "MothershipSwarm");
+                    MsgSend(TEAM_FuelPod6Team, "MothershipSwarm");
+                ELSEIF (VarGet("WaveNum") == 3)
+                    MsgSend(TEAM_Swarmer9Team, "MothershipSwarm");
+                    MsgSend(TEAM_Swarmer9TeamLeader, "MothershipSwarm");
+                    MsgSend(TEAM_FuelPod9Team, "MothershipSwarm");
+                ELSEIF (VarGet("WaveNum") == 4)
+                    MsgSend(TEAM_Swarmer12Team, "MothershipSwarm");
+                    MsgSend(TEAM_Swarmer12TeamLeader, "MothershipSwarm");
+                    MsgSend(TEAM_FuelPod12Team, "MothershipSwarm");
+                ENDIF
+            ENDINIT
+            WATCH
+                VarInc("G_MothershipCount"); IF (VarGet("G_MothershipCount") > (3)) VarSet("G_MothershipCount", (1)); ENDIF
+                VarInc("WaveNum");
+                JUMP ReturnToState;
+            ENDWATCH
+        ENDSTATE SendSwarm3
+
+
+
+
+        STATE DefendSelf1
+            INIT
+                IF (VarGet("WaveNum") == 2)
+                    MsgSend(TEAM_Swarmer4Team, "DefendMothership");
+                    MsgSend(TEAM_Swarmer4TeamLeader, "DefendMothership");
+                    MsgSend(TEAM_FuelPod4Team, "DefendMothership");
+                ELSEIF (VarGet("WaveNum") == 3)
+                    MsgSend(TEAM_Swarmer7Team, "DefendMothership");
+                    MsgSend(TEAM_Swarmer7TeamLeader, "DefendMothership");
+                    MsgSend(TEAM_FuelPod7Team, "DefendMothership");
+                ELSEIF (VarGet("WaveNum") == 4)
+                    MsgSend(TEAM_Swarmer10Team, "DefendMothership");
+                    MsgSend(TEAM_Swarmer10TeamLeader, "DefendMothership");
+                    MsgSend(TEAM_FuelPod10Team, "DefendMothership");
+                ENDIF
+            ENDINIT
+            WATCH
+                VarInc("G_MothershipCount"); IF (VarGet("G_MothershipCount") > (3)) VarSet("G_MothershipCount", (1)); ENDIF
+                VarInc("WaveNum");
+                JUMP ReturnToState;
+            ENDWATCH
+        ENDSTATE DefendSelf1
+
+
+
+
+        STATE DefendSelf2
+            INIT
+                IF (VarGet("WaveNum") == 2)
+                    MsgSend(TEAM_Swarmer5Team, "DefendMothership");
+                    MsgSend(TEAM_Swarmer5TeamLeader, "DefendMothership");
+                    MsgSend(TEAM_FuelPod5Team, "DefendMothership");
+                ELSEIF (VarGet("WaveNum") == 3)
+                    MsgSend(TEAM_Swarmer8Team, "DefendMothership");
+                    MsgSend(TEAM_Swarmer8TeamLeader, "DefendMothership");
+                    MsgSend(TEAM_FuelPod8Team, "DefendMothership");
+                ELSEIF (VarGet("WaveNum") == 4)
+                    MsgSend(TEAM_Swarmer11Team, "DefendMothership");
+                    MsgSend(TEAM_Swarmer11TeamLeader, "DefendMothership");
+                    MsgSend(TEAM_FuelPod11Team, "DefendMothership");
+                ENDIF
+            ENDINIT
+            WATCH
+                VarInc("G_MothershipCount"); IF (VarGet("G_MothershipCount") > (3)) VarSet("G_MothershipCount", (1)); ENDIF
+                VarInc("WaveNum");
+                JUMP ReturnToState;
+            ENDWATCH
+        ENDSTATE DefendSelf2
+
+
+
+
+        STATE DefendSelf3
+            INIT
+                IF (VarGet("WaveNum") == 2)
+                    MsgSend(TEAM_Swarmer6Team, "DefendMothership");
+                    MsgSend(TEAM_Swarmer6TeamLeader, "DefendMothership");
+                    MsgSend(TEAM_FuelPod6Team, "DefendMothership");
+                ELSEIF (VarGet("WaveNum") == 3)
+                    MsgSend(TEAM_Swarmer9Team, "DefendMothership");
+                    MsgSend(TEAM_Swarmer9TeamLeader, "DefendMothership");
+                    MsgSend(TEAM_FuelPod9Team, "DefendMothership");
+                ELSEIF (VarGet("WaveNum") == 4)
+                    MsgSend(TEAM_Swarmer12Team, "DefendMothership");
+                    MsgSend(TEAM_Swarmer12TeamLeader, "DefendMothership");
+                    MsgSend(TEAM_FuelPod12Team, "DefendMothership");
+                ENDIF
+            ENDINIT
+            WATCH
+                VarInc("G_MothershipCount"); IF (VarGet("G_MothershipCount") > (3)) VarSet("G_MothershipCount", (1)); ENDIF
+                VarInc("WaveNum");
+                JUMP ReturnToState;
+            ENDWATCH
+        ENDSTATE DefendSelf3
+
+
+
+
+        STATE ReturnToState
+            INIT
+                IF (VarGet("ImStandingOff"))
+                    JUMP Standoff;
+                ELSEIF (VarGet("GettingOutOfHere"))
+                    JUMP OuttaHere;
+                ELSEIF (VarGet("WaveNum") == 5)
+                    JUMP AttackMothership;
+                ELSE
+                    JUMP GotSwarmers;
+                ENDIF
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE ReturnToState
+
+
+
+
+
+        STATE AttackMothership
+            INIT
+                VarInc("G_MothershipsAttacking");
+                AttackMothership();
+            ENDINIT
+            WATCH
+            ENDWATCH
+        ENDSTATE AttackMothership
+
+
+
+
+        STATE OuttaHere
+            INIT
+                MsgSend(TEAM_Events, "ImOuttaHere");
+                TeamVelocityMaxSet(450);
+                MoveTo(POINT_FuckOffToHere);
+            ENDINIT
+            WATCH
+                IF (TeamHealthLowest() < 10)
+                    TeamHealthSet(15);
+                ENDIF
+
+                IF (Nearby(POINT_FuckOffToHere, 5000))
+                    JUMP Standoff;
+                ENDIF
+            ENDWATCH
+        ENDSTATE OuttaHere
+
+
+
+
+
+        STATE Standoff
+            INIT
+                TimerCreateSetStart("StandoffDelay", Random(10, 20));
+                VarCreateSet("ImStandingOff", TRUE);
+            ENDINIT
+            WATCH
+                IF (UnderAttack(SHIPS_Poopyheads) &&
+                    VarGet("WaveNum") < 5)
+                    JUMP DefendSelf;
+                ENDIF
+                IF (TimerExpired("StandoffDelay") &&
+                    FindEnemiesNearTeam(SHIPS_Nearby, 10000))
+                    JUMP FendOffBaddies;
+                ENDIF
+            ENDWATCH
+        ENDSTATE Standoff
+
+
+
+
+        STATE FendOffBaddies
+            INIT
+                IF (ShipsSelectType(SHIPS_MTargets, SHIPS_Nearby, "HeavyCruiser") ||
+                    ShipsSelectType(SHIPS_MTargets, SHIPS_Nearby, "Carrier") ||
+                    ShipsSelectType(SHIPS_MTargets, SHIPS_Nearby, "StandardDestroyer") ||
+                    ShipsSelectType(SHIPS_MTargets, SHIPS_Nearby, "MissileDestroyer") ||
+                    ShipsSelectClass(SHIPS_MTargets, SHIPS_Nearby, "CLASS_Frigate"))
+                    Attack(SHIPS_MTargets);
+                ELSE
+                    JUMP Standoff;
+                ENDIF
+            ENDINIT
+            WATCH
+                IF (ShipsOrder(THISTEAMSHIPS) != 2)
+                    JUMP FendOffBaddies;
+                ENDIF
+            ENDWATCH
+        ENDSTATE FendOffBaddies
+
+
+
+
+        STATE NullState
+            INIT
+                VarSet("ImDead", FALSE);
+                VarDec("G_MothershipsHurt");
+                VarInc("G_MothershipsDead");
+            ENDINIT
+            WATCH
+
+                IF (((ThisTeamIs(TEAM_MSTeam1)) &&
+                     (VarGet("G_MothershipCount") == 1)) ||
+                    ((ThisTeamIs(TEAM_MSTeam2)) &&
+                     (VarGet("G_MothershipCount") == 2)) ||
+                    ((ThisTeamIs(TEAM_MSTeam3)) &&
+                     (VarGet("G_MothershipCount") == 3)))
+                    VarInc("G_MothershipCount"); IF (VarGet("G_MothershipCount") > (3)) VarSet("G_MothershipCount", (1)); ENDIF;
+                ENDIF
+            ENDWATCH
+        ENDSTATE NullState
+
+ENDFSM Mothership
+
+
+
+INIT
+       RotateDerelictType("Junk0_antenna", 0, 0, 0, 180);
+       RotateDerelictType("Junk2_panelC", 0, 0, 0, 180);
+       RotateDerelictType("FragmentStrut", 0, 0, 0, 180);
+       RotateDerelictType("Junk3_BoilerCasing", 0, 0, 0, 180);
+       RotateDerelictType("FragmentPanel0c", 0, 0, 0, 70);
+       RotateDerelictType("Junk1_shell", 0, 0, 0, 180);
+       RotateDerelictType("Carrier", 0, 0, 0, 60);
+       RotateDerelictType("Junk0_antenna", 0, 0, 0, 180);
+       RotateDerelictType("PrisonShipOld", 20, 20, 0, 0);
+
+
+
+        VarCreateSet("G_MothershipCount", 1);
+        VarCreateSet("G_MothershipsDead", 0);
+
+FSMCreate(Events, TEAM_Events);
+FSMCreate(Master, TEAM_Master);
+FSMCreate(MBTeam, TEAM_MB1Team);
+FSMCreate(MBTeam, TEAM_MB2Team);
+FSMCreate(MBTeam, TEAM_MB3Team);
+FSMCreate(MBTeam, TEAM_MB4Team);
+FSMCreate(Mothership, TEAM_MSTeam1);
+FSMCreate(Mothership, TEAM_MSTeam2);
+FSMCreate(Mothership, TEAM_MSTeam3);
+
+
+FSMCreate(PreAttackSwarm, TEAM_Swarmer1Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer2Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer3Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer4Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer5Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer6Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer1TeamLeader);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer2TeamLeader);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer3TeamLeader);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer4TeamLeader);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer5TeamLeader);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer6TeamLeader);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer7TeamLeader);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer8TeamLeader);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer9TeamLeader);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer10TeamLeader);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer11TeamLeader);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer12TeamLeader);
+FSMCreate(PreAttackPod, TEAM_FuelPod1Team);
+FSMCreate(PreAttackPod, TEAM_FuelPod2Team);
+FSMCreate(PreAttackPod, TEAM_FuelPod3Team);
+FSMCreate(PreAttackPod, TEAM_FuelPod4Team);
+FSMCreate(PreAttackPod, TEAM_FuelPod5Team);
+FSMCreate(PreAttackPod, TEAM_FuelPod6Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer7Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer8Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer9Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer10Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer11Team);
+FSMCreate(PreAttackSwarm, TEAM_Swarmer12Team);
+FSMCreate(PreAttackPod, TEAM_FuelPod7Team);
+FSMCreate(PreAttackPod, TEAM_FuelPod8Team);
+FSMCreate(PreAttackPod, TEAM_FuelPod9Team);
+FSMCreate(PreAttackPod, TEAM_FuelPod10Team);
+FSMCreate(PreAttackPod, TEAM_FuelPod11Team);
+FSMCreate(PreAttackPod, TEAM_FuelPod12Team);
+FSMCreate(HonourGuardSwarm, TEAM_HighGuardSwarmers1);
+FSMCreate(HonourGuardSwarm, TEAM_HighGuardSwarmers2);
+FSMCreate(HonourGuardMB, TEAM_HighGuardGinsu);
+# 1293 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission08.kas"
+        TechSetResearch ("PlasmaWeapons");
+# 1306 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission08.kas"
+        SensorsWeirdness(350);
+        VarCreateSet ("WorldStartRUs", GetWorldResources());
+
+        SaveLevel(8, LSTRING_LevelSave);
+
+
+
+ENDINIT
+
+WATCH
+
+        SensorsWeirdness((350 * GetWorldResources()) / VarGet("WorldStartRUs"));
+# 1326 "C:\\Users\\marco\\Desktop\\gardens-of-kadesh-master\\src\\Missions\\SinglePlayer\\Mission08.kas"
+        IFONCE (TechGet ("MassDrive10Kt"))
+                TechSetResearch ("Chassis2");
+        ENDIFONCE
+
+
+        IF ((TechGet ("Chassis2")) AND (VarGet ("SetMediumGuns") = FALSE))
+                TechSetResearch ("MediumGuns");
+                VarCreateSet ("SetMediumGuns", TRUE);
+        ENDIF
+
+
+
+        IFONCE (TechGet ("Chassis1"))
+                TechSetResearch ("MassDrive10Kt");
+        ENDIFONCE
+
+
+ENDWATCH

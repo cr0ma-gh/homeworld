@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs wc -l)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(ls '/c/GOG Games/Homeworld Remastered/Homeworld1Classic/Data/' 2>&1 | head -40)",
+      "Bash(export MSYS_NO_PATHCONV=1)",
+      "Bash(cp '__TRACKED_VAR__\\\\Homeworld.big' android/app/src/main/assets/Homeworld.big)",
+      "Bash(cp '__TRACKED_VAR__\\\\HW_Music.wxd' android/app/src/main/assets/HW_Music.wxd)",
+      "Bash(cp '__TRACKED_VAR__\\\\HW_Comp.vce' android/app/src/main/assets/HW_comp.vce)",
+      "Bash(./gradlew assembleRelease)",
+      "PowerShell(Add-Type -AssemblyName System.Drawing; $src = [System.Drawing.Image]::FromFile\\('C:\\\\Users\\\\marco\\\\Desktop\\\\gardens-of-kadesh-master\\\\appicon.png'\\); $sizes = @{ 'mdpi'=48; 'hdpi'=72; 'xhdpi'=96; 'xxhdpi'=144; 'xxxhdpi'=192 }; foreach \\($k in $sizes.Keys\\) { $sz = $sizes[$k]; $bmp = New-Object System.Drawing.Bitmap\\($sz,$sz\\); $g = [System.Drawing.Graphics]::FromImage\\($bmp\\); $g.InterpolationMode = 'HighQualityBicubic'; $g.SmoothingMode = 'HighQuality'; $g.PixelOffsetMode = 'HighQuality'; $g.DrawImage\\($src,0,0,$sz,$sz\\); $out = \"C:\\\\Users\\\\marco\\\\Desktop\\\\gardens-of-kadesh-master\\\\android\\\\app\\\\src\\\\main\\\\res\\\\mipmap-$k\\\\ic_launcher.png\"; $bmp.Save\\($out,[System.Drawing.Imaging.ImageFormat]::Png\\); $g.Dispose\\(\\); $bmp.Dispose\\(\\); Write-Output \"$k -> $sz\" }; $src.Dispose\\(\\))"
+    ]
+  }
+}

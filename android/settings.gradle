@@ -1,0 +1,2 @@
+rootProject.name = 'GardensOfKadesh'
+include ':app'
