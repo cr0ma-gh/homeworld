@@ -2745,6 +2745,12 @@ void ferDrawDecorative(regionhandle region)
     lifheader *texture;
 
     texture = ferTextureRegisterSpecial((char *)region->userID, decorative, none);
+    if (texture == NULL)
+    {
+        /* Optional decorative texture missing (e.g. the WON lobby logo that
+           isn't in this Homeworld.big) -- skip drawing it instead of NULL-deref. */
+        return;
+    }
     if (texture->width > 256 || texture->height > 256)
     {
         if (hrRunning && bitTest(texture->flags, TRF_Alpha))
@@ -2833,5 +2839,9 @@ void ferDrawBitmapButton(regionhandle region, ferbitmapbuttonstate state)
         break;
     }
     texture = ferTextureRegisterSpecial(name, decorative, none);
+    if (texture == NULL)
+    {
+        return;   /* optional texture missing -- skip rather than crash in ferDraw */
+    }
     ferDraw(region->rect.x0, region->rect.y1, texture);
 }
