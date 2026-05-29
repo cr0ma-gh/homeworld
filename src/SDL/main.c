@@ -1758,7 +1758,14 @@ static float        gokFingerY[2] = { 0.0f, 0.0f };
 static SDL_FingerID gokFingerId[2] = { 0, 0 };
 
 extern sdword feMenuLevel;  /* >0 when a front-end menu is on top */
+extern sdword feStackIndex; /* >0 when a front-end screen/dialog is on the stack
+                               (incl. the in-game ESC "Game Options" menu) */
 extern bool32 gameIsRunning;  /* TRUE only inside an active mission           */
+
+/* TRUE when a menu/dialog is up (or no mission running): the on-screen overlay
+   is hidden and touch acts as a direct pointer. FALSE only during live
+   gameplay with nothing layered on top. */
+#define GOK_IN_GAMEPLAY() (gameIsRunning && feMenuLevel == 0 && feStackIndex == 0)
 extern sdword piePointSpecMode;  /* 0=PSM_Idle. Non-zero = movement disk up. */
 #define GOK_PSM_IDLE 0           /* mirrors PSM_Idle from PiePlate.h         */
 
@@ -1884,7 +1891,7 @@ JNIEXPORT jboolean JNICALL
 Java_org_homeworld_gok_HomeworldActivity_nativeIsInMenu(JNIEnv *env, jobject obj)
 {
     (void)env; (void)obj;
-    return (gameIsRunning && feMenuLevel == 0) ? JNI_FALSE : JNI_TRUE;
+    return GOK_IN_GAMEPLAY() ? JNI_FALSE : JNI_TRUE;
 }
 
 /* Called every frame from render.c rndFlush(). After a band-attack drag the
@@ -1943,12 +1950,14 @@ void HandleEvent(SDL_Event const* pEvent) {
                 gokLongPressFired = FALSE;
                 gokFinger0LmbDown = FALSE;
                 gokMenuPointer    = FALSE;
-                /* In a menu/front-end: DIRECT-POINTER touch. Jump the cursor
-                   straight to the finger and press LMB now, so tapping a menu
-                   item presses it directly (release on FINGERUP -> a real click
-                   across frames). In-game we keep trackpad behaviour (no jump)
-                   for precise aiming; a drag there still band-selects. */
-                if (!(gameIsRunning && feMenuLevel == 0) && !mouseDisabled)
+                /* In a menu/front-end (incl. the in-game ESC "Game Options"
+                   dialog, which leaves gameIsRunning TRUE but pushes a screen ->
+                   feStackIndex>0): DIRECT-POINTER touch. Jump the cursor straight
+                   to the finger and press LMB now, so tapping a menu item presses
+                   it directly (release on FINGERUP -> a real click across frames).
+                   In-game we keep trackpad behaviour (no jump) for precise aiming;
+                   a drag there still band-selects. */
+                if (!GOK_IN_GAMEPLAY() && !mouseDisabled)
                 {
                     sdword cx = (sdword)(pEvent->tfinger.x * (float)MAIN_WindowWidth);
                     sdword cy = (sdword)(pEvent->tfinger.y * (float)MAIN_WindowHeight);
