@@ -1135,15 +1135,22 @@ void lgSeeDetails(char*name,featom*atom)
 #endif
 }
 
+/* LAN-join breadcrumb logging via SDL_Log (reaches Android logcat). */
+extern void SDL_Log(const char *fmt, ...);
+
 void lgRequestJoinGame(tpscenario *game)
 {
+    SDL_Log("hwnet: lgRequestJoinGame START -> mgShowScreen(Connecting)");
     mgShowScreen(MGS_Connecting,FALSE);
+    SDL_Log("hwnet: lgRequestJoinGame: Connecting screen shown");
 
     mgConnectingScreenGoto = LGS_Channel_Chat;
 
     lgDisplayMessage(strGetString(strRequestingToJoin));
 
+    SDL_Log("hwnet: lgRequestJoinGame -> titanJoinGameRequest");
     titanJoinGameRequest(game);
+    SDL_Log("hwnet: lgRequestJoinGame: titanJoinGameRequest returned");
     listDeleteAll(&listofgamechatinfo);
     listDeleteAll(&listofplayers);
     listDeleteAll(&listofplayersold);

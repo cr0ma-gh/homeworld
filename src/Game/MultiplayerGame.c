@@ -382,8 +382,8 @@ mgCommandInfo mgCommandSpanish[] =
 {
     {"Ignorar",     mgProcessIgnore,    1,  0,  1,  0   },
     {"Acabar",      mgProcessKick,      1,  1,  0,  1   },
-    {"Prohibición", mgProcessBan,       1,  1,  0,  1   },
-    {"Límite",      mgProcessLimit,     0,  1,  0,  1   },
+    {"Prohibiciï¿½n", mgProcessBan,       1,  1,  0,  1   },
+    {"Lï¿½mite",      mgProcessLimit,     0,  1,  0,  1   },
     {"",            NULL,               0,  1,  0,  1   }
 };
 
@@ -3136,10 +3136,15 @@ void mgSeeDetails(char*name,featom*atom)
 
 }
 
+/* LAN-join breadcrumb logging (SDL_Log reaches Android logcat; this file has no
+   SDL include, so declare it locally -- the linker resolves it from libSDL2). */
+extern void SDL_Log(const char *fmt, ...);
+
 void titanJoinGameRequest(tpscenario *gametojoin)
 {
     PlayerJoinInfo pInfo;
 
+    SDL_Log("hwnet: titanJoinGameRequest START (name interested + pInfo)");
     mgGameInterestedIn(gametojoin->Name);
 
     pInfo.baseColor = utyBaseColor;
@@ -3154,8 +3159,11 @@ void titanJoinGameRequest(tpscenario *gametojoin)
         titanSetGameKey(gametojoin->directoryCustomInfo.sessionKey);
     }
 
+    SDL_Log("hwnet: titanJoinGameRequest -> titanConnectToClient");
     titanConnectToClient(&gametojoin->directoryCustomInfo.captainAddress);
+    SDL_Log("hwnet: titanJoinGameRequest -> send JOINGAMEREQUEST (%d bytes)", (int)sizeof(pInfo));
     titanSendPacketTo(&gametojoin->directoryCustomInfo.captainAddress,TITANMSGTYPE_JOINGAMEREQUEST,&pInfo,sizeof(pInfo));
+    SDL_Log("hwnet: titanJoinGameRequest DONE");
 }
 
 void mgRequestJoinGame(tpscenario *game)

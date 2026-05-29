@@ -827,13 +827,16 @@ lifheader *ferTextureRegister(tex_holder holder, textype newtype, textype origty
 
         element->lif = trLIFFileLoad(tex_names[holder], NonVolatile);
 
-        ferMirrorBitmapVert((udword *)element->lif->data, element->lif->width, element->lif->height);
-
         if (element->lif == NULL)
         {
-            //error loading file
+            //error loading file (e.g. a missing optional FE texture such as the
+            //WON lobby logo). Was checked AFTER the deref below -> crash once
+            //trLIFFileLoad started returning NULL instead of dbgFatal'ing.
+            memFree(element);
             return NULL;
         }
+
+        ferMirrorBitmapVert((udword *)element->lif->data, element->lif->width, element->lif->height);
         element->name        = holder;
         element->nUsageCount = 0;
         element->glhandle    = 0;
@@ -944,15 +947,17 @@ lifheader *ferTextureRegisterSpecial(char *fileName, textype newtype, textype or
 
         element->lif = trLIFFileLoad(fileName, NonVolatile);
 
+        if (element->lif == NULL)
+        {
+            //error loading file (missing optional texture) -- check BEFORE the
+            //deref below so a NULL from trLIFFileLoad doesn't crash.
+            memFree(element);
+            return NULL;
+        }
+
         if (newtype==decorative)
         {
             ferMirrorBitmapVert((udword *)element->lif->data, element->lif->width, element->lif->height);
-        }
-
-        if (element->lif == NULL)
-        {
-            //error loading file
-            return NULL;
         }
         element->name        = holder;
         memStrncpy(element->stringname, fileName, FER_MaxFileName);
@@ -2740,6 +2745,12 @@ void ferDrawDecorative(regionhandle region)
     lifheader *texture;
 
     texture = ferTextureRegisterSpecial((char *)region->userID, decorative, none);
+    if (texture == NULL)
+    {
+        /* Optional decorative texture missing (e.g. the WON lobby logo that
+           isn't in this Homeworld.big) -- skip drawing it instead of NULL-deref. */
+        return;
+    }
     if (texture->width > 256 || texture->height > 256)
     {
         if (hrRunning && bitTest(texture->flags, TRF_Alpha))
@@ -2828,5 +2839,9 @@ void ferDrawBitmapButton(regionhandle region, ferbitmapbuttonstate state)
         break;
     }
     texture = ferTextureRegisterSpecial(name, decorative, none);
+    if (texture == NULL)
+    {
+        return;   /* optional texture missing -- skip rather than crash in ferDraw */
+    }
     ferDraw(region->rect.x0, region->rect.y1, texture);
 }

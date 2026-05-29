@@ -1545,6 +1545,18 @@ lifheader *trLIFFileLoad(char *fileName, udword flags)
 {
     lifheader *newHeader;
 
+    /* Tolerate a missing texture instead of dbgFatal'ing deep in fileSizeGet.
+       Some FE screens (notably the WON/LAN multiplayer lobby) reference .lif
+       textures, e.g. Won_logo_small_fade.lif, that aren't present in every
+       Homeworld.big distribution. Returning NULL lets the FE skip that one
+       decorative element rather than killing the whole game. Callers in
+       FEReg.c now NULL-check before dereferencing. */
+    if (!fileExists(fileName, 0))
+    {
+        SDL_Log("trLIFFileLoad: texture '%s' not found -- skipping (NULL)", fileName);
+        return NULL;
+    }
+
 #ifdef HW_PTR_64
     sdword loadLength= 0;
     lifheader *oldHeader;

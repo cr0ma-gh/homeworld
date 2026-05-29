@@ -931,7 +931,11 @@ void gcStartup(void)
         textentrypos.x1     = gcScreenHandle->atoms[1].x+gcScreenHandle->atoms[1].width;
         textentrypos.y1     = gcScreenHandle->atoms[1].y+gcScreenHandle->atoms[1].height;
 
-        chatdrawregion = regChildAlloc(ghMainRegion, (sdword)&chatdrawatom, chatdrawatom.x, chatdrawatom.y,
+        /* 64-bit fix: the region userID holds the atom POINTER (read back by
+           feUserRegionDraw). Casting to (sdword) truncated it to 32 bits and
+           sign-extended on read -> garbage atom -> SIGSEGV in the LAN-lobby
+           chat draw. Use smemsize so the full pointer survives. */
+        chatdrawregion = regChildAlloc(ghMainRegion, (smemsize)&chatdrawatom, chatdrawatom.x, chatdrawatom.y,
                                        chatdrawatom.width, chatdrawatom.height, 0, 0);
         chatdrawatom.region = (void*)chatdrawregion;
         regDrawFunctionSet(chatdrawregion, feUserRegionDraw);

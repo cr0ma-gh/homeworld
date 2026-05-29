@@ -2068,6 +2068,14 @@ void etgEffectCodeStart(etgeffectstatic *stat, Effect *effect, sdword nParams, .
             stat->variableInitData[index];
     }
     //init the user parameters, if any
+    // Defense in depth: this writes into the effect->variable heap buffer for
+    // each of nParams; a garbage nParams (out of range) would both over-read the
+    // varargs and overrun the heap buffer. All callers now clamp, but bound it
+    // here too so no path can corrupt memory through this loop.
+    if (nParams < 0 || nParams > ETG_NumberParameters)
+    {
+        nParams = ETG_NumberParameters;
+    }
     va_start(marker, nParams);
     for (index = 0; index < nParams; index++)
     {
@@ -7343,6 +7351,15 @@ void etgCreateEffects(Effect *effect, etgeffectstatic *stat, sdword number, sdwo
     {
         number = ranRandom(RANDOM_ETG) % (dist * 2) + number - dist;
     }
+    /* Clamp nParams once up front: the per-particle loop below fills the
+       fixed-size stack array arg[ETG_NumberParameters] from the varargs, and
+       the dbgAssertOrIgnore() guard is a no-op in the distribution build, so an
+       out-of-range nParams would smash the stack (see etgEffectCreate). */
+    if (nParams < 0 || nParams > ETG_NumberParameters)
+    {
+        dbgMessagef("etgCreateEffects: clamping out-of-range nParams=%d", nParams);
+        nParams = ETG_NumberParameters;
+    }
     partSetPosition(&effect->posinfo.position);
     partSetCoordSys(&effect->rotinfo.coordsys);
     partSetWorldVel(&effect->posinfo.velocity);
@@ -7524,7 +7541,25 @@ Effect* etgEffectCreate(etgeffectstatic* stat, Ship* owner, vector* pos, vector*
     newEffect->magnitudeSquared = nLips;                    //set initial nLips value
 
     //prepare to pass the parameters through
+    //
+    // 64-bit / distribution-build hardening: the dbgAssertOrIgnore() bound below
+    // is compiled to a no-op in HW_BUILD_FOR_DISTRIBUTION, so a caller that
+    // passes an out-of-range nParams (observed on the salvage-capture path on
+    // arm64) ran this loop past the fixed-size arg[] array and overwrote the
+    // saved return address -> SIGSEGV in va_arg. Clamp into range and zero-fill
+    // arg[] so we can never index past it. Reading up to ETG_NumberParameters
+    // (8) variadic slots is always safe on AArch64 (they live in the GP/VR
+    // register save area); only reading beyond that walks into unmapped stack.
     dbgAssertOrIgnore(nParams >= 0 && nParams <= ETG_NumberParameters);
+    if (nParams < 0 || nParams > ETG_NumberParameters)
+    {
+        dbgMessagef("etgEffectCreate: clamping out-of-range nParams=%d", nParams);
+        nParams = ETG_NumberParameters;
+    }
+    for (index = 0; index < ETG_NumberParameters; index++)
+    {
+        arg[index] = 0;
+    }
     va_start(argList, nParams);
     for (index = 0; index < nParams; index++)
     {
@@ -7745,7 +7780,19 @@ memsize etgSpawnNewEffect(Effect *effect, etgeffectstatic *stat, sdword nParams,
     univUpdateObjRotInfo((SpaceObjRot *)newEffect);
 
     //get the parameters
+    // (see etgEffectCreate for why this clamp + zero-fill is required on a
+    //  distribution build: the assert is a no-op and an out-of-range nParams
+    //  would smash the stack via the arg[] write loop.)
     dbgAssertOrIgnore(nParams >= 0 && nParams <= ETG_NumberParameters);
+    if (nParams < 0 || nParams > ETG_NumberParameters)
+    {
+        dbgMessagef("etgSpawnNewEffect: clamping out-of-range nParams=%d", nParams);
+        nParams = ETG_NumberParameters;
+    }
+    for (index = 0; index < ETG_NumberParameters; index++)
+    {
+        arg[index] = 0;
+    }
     va_start(argList, nParams);
     for (index = 0; index < nParams; index++)
     {

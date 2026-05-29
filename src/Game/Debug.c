@@ -24,6 +24,12 @@
 
 #define DBG_ExitCode            0xfed5   // default exit code
 
+/* On Android the engine's printf/dbgMessage output does NOT reach logcat, so
+   fatal-error messages were invisible (the app just exit()ed with code 0xd5).
+   Mirror fatal/non-fatal messages to SDL_Log, which DOES reach logcat, so we
+   can see WHAT failed. Declared locally to avoid pulling SDL into Debug.c. */
+extern void SDL_Log(const char *fmt, ...);
+
 /*=============================================================================
     Data:
 =============================================================================*/
@@ -195,6 +201,7 @@ void dbgFatal(char *file, sdword line, char *string)
         snprintf(dbgFatalErrorString, DBG_BufferMax, "\n%s (%d): Fatal error - %s", file, line, string);
     }
 
+    SDL_Log("FATAL: %s", dbgFatalErrorString);
     dbgMessage(dbgFatalErrorString);
 
     if (dbgAllowInterrupts)
@@ -238,6 +245,7 @@ void dbgNonFatal(char *file, sdword line, char *string)
 {
     snprintf(dbgFatalErrorString, DBG_BufferMax, "\n%s (%d): Non-fatal error - %s", file, line, string);
 
+    SDL_Log("NONFATAL: %s", dbgFatalErrorString);
     dbgMessage(dbgFatalErrorString);
 
     if (dbgAllowInterrupts)
