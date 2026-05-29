@@ -783,7 +783,15 @@ void feUserRegionDraw(regionhandle region)
     featom *atom = (featom *)region->userID;
     fedrawfunction function;
 
+    if (atom == NULL)                                       //no atom -> nothing to draw
+    {
+        return;
+    }
     function = (fedrawfunction)atom->pData;                 //get draw function
+    if (function == NULL)                                   //unresolved user-draw callback
+    {
+        return;                                             //skip rather than call NULL
+    }
     function(atom, region);                                 //call the draw function
 }
 
@@ -799,6 +807,10 @@ void feBaseRegionDraw(regionhandle region)
     featom *atom = (featom *)region->userID;
 
     dbgAssertOrIgnore(atom != NULL);                                //verify there is an atom
+    if (atom == NULL)                                              //distribution build: assert is a no-op
+    {
+        return;
+    }
 
 //    primRectSolid2(&region->rect, atom->contentColor);
 //    primRectOutline2(&region->rect, 3, atom->borderColor);
