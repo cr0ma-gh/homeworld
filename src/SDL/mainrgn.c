@@ -1374,6 +1374,85 @@ void gokCameraFocusSelection(void)
 }
 
 /*-----------------------------------------------------------------------------
+    Name        : gokPointInPolyGL
+    Description : Standard even-odd point-in-polygon test, all coordinates in the
+                  GL/device space used by ship selection-circle centres.
+----------------------------------------------------------------------------*/
+static bool32 gokPointInPolyGL(real32 px, real32 py, real32 *vx, real32 *vy, sdword n)
+{
+    sdword i, j;
+    bool32 inside = FALSE;
+    for (i = 0, j = n - 1; i < n; j = i++)
+    {
+        if (((vy[i] > py) != (vy[j] > py)) &&
+            (px < (vx[j] - vx[i]) * (py - vy[i]) / (vy[j] - vy[i]) + vx[i]))
+        {
+            inside = !inside;
+        }
+    }
+    return inside;
+}
+
+/*-----------------------------------------------------------------------------
+    Name        : gokLassoSelectShips
+    Description : Touch gesture (freehand loop / "lasso"): select the player's
+                  own ships whose on-screen position lies inside the traced loop.
+                  Mirrors selRectDragFunction's filtering but tests each ship's
+                  selection-circle centre against the polygon instead of a rect.
+    Inputs      : screenX/screenY - loop vertices in SCREEN PIXELS, n of them
+    Outputs     : rebuilds selSelected from the enclosed own ships
+    Return      : number of ships selected
+----------------------------------------------------------------------------*/
+#define GOK_LASSO_MAXPTS 256
+sdword gokLassoSelectShips(sdword *screenX, sdword *screenY, sdword n)
+{
+    static real32 vx[GOK_LASSO_MAXPTS];
+    static real32 vy[GOK_LASSO_MAXPTS];
+    Node *node;
+    SpaceObjRotImpTarg *target;
+    sdword i;
+
+    if (!gameIsRunning || n < 3)
+    {
+        return 0;
+    }
+    if (n > GOK_LASSO_MAXPTS) n = GOK_LASSO_MAXPTS;
+    for (i = 0; i < n; i++)
+    {                                                       //loop -> GL/device space
+        vx[i] = primScreenToGLX(screenX[i]);
+        vy[i] = primScreenToGLY(screenY[i]);
+    }
+
+    selSelected.numShips = 0;
+    node = universe.RenderList.head;
+    while (node != NULL)
+    {
+        target = (SpaceObjRotImpTarg *)listGetStructOfNode(node);
+        node = node->next;
+
+        if ((target->flags & (SOF_Selectable | SOF_Targetable)) == 0) continue;
+        if (target->collInfo.selCircleRadius <= 0.0f)                 continue;
+        if (target->flags & SOF_Dead)                                 continue;
+        if (target->objtype != OBJ_ShipType)                          continue;
+        if (!(target->flags & SOF_Selectable))                        continue;
+        if (((Ship *)target)->playerowner != universe.curPlayerPtr)   continue;   //own ships only
+        if (bitTest(target->flags, SOF_Slaveable) &&
+            !bitTest(((Ship *)target)->slaveinfo->flags, SF_MASTER))  continue;   //masters only
+
+        if (gokPointInPolyGL(target->collInfo.selCircleX, target->collInfo.selCircleY, vx, vy, n))
+        {
+            if (selSelected.numShips < COMMAND_MAX_SHIPS)
+            {
+                selSelected.ShipPtr[selSelected.numShips] = (ShipPtr)target;
+                selSelected.numShips++;
+            }
+        }
+    }
+    ioUpdateShipTotals();
+    return selSelected.numShips;
+}
+
+/*-----------------------------------------------------------------------------
     Name        : mrKeyRelease
     Description : handle key releases
     Inputs      : ID - keyindex of key being released
