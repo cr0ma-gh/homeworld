@@ -2685,13 +2685,28 @@ udword feMenuItemProcess(regionhandle region, smemsize ID, udword event, udword 
 ----------------------------------------------------------------------------*/
 udword feMenuBaseRegionProcess(regionhandle region, sdword ID, udword event, udword data)
 {
-    /* In-game right-click context menu: a click on the empty area around the
-       menu (its base region) used to dismiss it, which on touch is usually an
-       accidental near-miss. Keep it open; it is dismissed by choosing an item
-       or by right-clicking again (mrRightClickMenu toggles it). Other (non
-       context-menu) popups keep the original click-outside-to-close behaviour. */
+    /* In-game right-click context menu: a tap on the empty area around the menu
+       used to dismiss it, which on touch is often an accidental near-miss on an
+       item. But ALWAYS keeping it open trapped the user, who then had to pick an
+       entry just to get out. Compromise: keep it open only while the tap is over
+       the menu itself (its panel or one of its items, i.e. any child region of
+       this full-screen base region); a tap clearly OUTSIDE backs out one level
+       (closing a submenu first, then the menu) without selecting anything.
+       Other (non context-menu) popups keep the original click-to-close. */
     if (feTempMenuScreen != NULL)
     {
+        sdword cx = mouseCursorX();
+        sdword cy = mouseCursorY();
+        regionhandle child;
+        for (child = region->child; child != NULL; child = child->next)
+        {
+            if ((cx >= child->rect.x0) && (cx <= child->rect.x1) &&
+                (cy >= child->rect.y0) && (cy <= child->rect.y1))
+            {
+                return(0);                                  //tapped on the menu: keep it open
+            }
+        }
+        feMenuDisappear(NULL, NULL);                         //tapped outside: back out one level
         return(0);
     }
     feMenuDisappear(NULL, NULL);                                //kill this menu
