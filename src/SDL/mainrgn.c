@@ -3038,29 +3038,12 @@ void mrMenuDisplay(udword actionMask, TypeOfFormation currentFormation, udword t
         }
         newScreen->atoms[0].height -= gap[index].height;//decrease height of screen
     }
-    //scale the popup to match the enlarged UI font (fontDrawScale) so the bigger
-    //right-click-menu text fits its boxes. Atoms here are menu-relative (feMenuStart
-    //adds the cursor offset via feMenuRegionsAdd), and this runs after the gap
-    //removal above, so a uniform x/y/width/height scale simply enlarges the menu.
-    {
-        extern real32 fontDrawScale;
-        /* Make the context-menu boxes noticeably bigger (easier touch targets):
-           1.6x more than the already-enlarged font, so the items are roomy.
-           NOTE: keep this factor in sync with FER_MENU_HIGHLIGHT_SCALE in
-           FEReg.c (ferDrawMenuItemSelected) so the blue hover sprite that fills
-           each item box scales identically to the box itself. */
-        real32 menuScale = fontDrawScale * 1.60f;
-        if (menuScale != 1.0f)
-        {
-            for (index = 0; index < newScreen->nAtoms; index++)
-            {
-                newScreen->atoms[index].x      = (sdword)(newScreen->atoms[index].x      * menuScale);
-                newScreen->atoms[index].y      = (sdword)(newScreen->atoms[index].y      * menuScale);
-                newScreen->atoms[index].width  = (sdword)(newScreen->atoms[index].width  * menuScale);
-                newScreen->atoms[index].height = (sdword)(newScreen->atoms[index].height * menuScale);
-            }
-        }
-    }
+    //NOTE: the popup is NOT scaled here anymore. Enlarging the context menu
+    //(and, crucially, its pop-out SUBMENUS, which come from shared persistent
+    //screens via feScreenFind and so must not be mutated in place) is now done
+    //uniformly inside feMenuRegionsAdd (FEFlow.c) for every popup menu. That
+    //keeps the top menu and its submenus at the exact same scale so nothing
+    //looks distorted. See FE_MENU_SCALE in FEFlow.c.
 
     //start the actual menu
     feMenuStart(ghMainRegion, newScreen, mouseCursorX(), mouseCursorY());

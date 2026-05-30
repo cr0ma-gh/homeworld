@@ -2066,9 +2066,15 @@ void ferDrawMenuItemSelected(rectangle *rect)
 void ferDrawPopoutArrow(rectangle *rect)
 {
     lifheader *texture;
+    real32 oldScale = ferDrawScale;
 
+    // Scale the submenu pop-out arrow and its inset margins with the enlarged
+    // menu boxes (same factor as FE_MENU_SCALE) so it isn't a tiny distorted dot.
+    ferDrawScale = fontDrawScale * FER_MENU_HIGHLIGHT_SCALE;
     texture = ferTextureRegister(MENU_POPOUT_ARROW, none, none);
-    ferDraw(rect->x1 - ferPopoutArrowMarginX, rect->y1 - ferPopoutArrowMarginY, texture);
+    ferDraw(rect->x1 - (sdword)((real32)ferPopoutArrowMarginX * ferDrawScale),
+            rect->y1 - (sdword)((real32)ferPopoutArrowMarginY * ferDrawScale), texture);
+    ferDrawScale = oldScale;
 }
 
 /*-----------------------------------------------------------------------------
@@ -2081,9 +2087,15 @@ void ferDrawPopoutArrow(rectangle *rect)
 void ferDrawSelectedDot(rectangle *rect)
 {
     lifheader *texture;
+    real32 oldScale = ferDrawScale;
 
+    // Scale the "checked" dot and its inset margins with the enlarged menu boxes
+    // (same factor as FE_MENU_SCALE) so it stays proportional to the bigger item.
+    ferDrawScale = fontDrawScale * FER_MENU_HIGHLIGHT_SCALE;
     texture = ferTextureRegister(MENU_SELECTED_DOT, none, none);
-    ferDraw(rect->x0 + ferSelectedDotMarginX, rect->y1 - ferSelectedDotMarginY, texture);
+    ferDraw(rect->x0 + (sdword)((real32)ferSelectedDotMarginX * ferDrawScale),
+            rect->y1 - (sdword)((real32)ferSelectedDotMarginY * ferDrawScale), texture);
+    ferDrawScale = oldScale;
 }
 
 /*-----------------------------------------------------------------------------

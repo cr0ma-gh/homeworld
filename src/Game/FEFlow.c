@@ -85,6 +85,17 @@ color feMenuSelectedColor = FE_MenuSelectedColor;
 sdword feMenuLevel = 0;
 fescreen *feTempMenuScreen = NULL;
 
+// Uniform enlargement applied to every pop-up menu (the in-game right-click
+// context menu, its pop-out submenus and the tactics menu) when laying out its
+// regions in feMenuRegionsAdd. We scale the REGION geometry only, never the
+// shared atom data, so persistent screens reused for submenus stay intact.
+// fontDrawScale (font.c) is the global UI font enlargement; the 1.60f makes the
+// boxes roomier than the text. KEEP THIS FACTOR IN SYNC with
+// FER_MENU_HIGHLIGHT_SCALE in FEReg.c so the blue hover sprite / selected dot /
+// pop-out arrow (drawn via ferDrawScale) match the enlarged boxes exactly.
+extern real32 fontDrawScale;
+#define FE_MENU_SCALE (fontDrawScale * 1.60f)
+
 //tabstop
 udword feTabStop = 1;
 
@@ -716,7 +727,9 @@ void feStaticTextDraw(regionhandle region)
             break;
         case FAM_JustCentre:
             width = fontWidth(string);
-            x = (atom->width - width) / 2 + region->rect.x0;
+            //centre within the (possibly scaled) region, not the native atom width,
+            //so centred menu labels stay centred when pop-up menus are enlarged.
+            x = ((region->rect.x1 - region->rect.x0) - width) / 2 + region->rect.x0;
             break;
 #if FEF_ERROR_CHECKING
         default:
@@ -2580,10 +2593,14 @@ udword feMenuItemProcess(regionhandle region, smemsize ID, udword event, udword 
                 screentodraw = feScreenFind(link->linkToName);
                 if (screentodraw->atoms->flags&FAF_Popup)
                 {
-                    if (region->rect.x1 + feMenuOverlapMarginX + screentodraw->atoms->width > MAIN_WindowWidth)
+                    //the submenu will be laid out at FE_MENU_SCALE, so use its
+                    //SCALED width to decide whether it fits to the right and to
+                    //position it when it has to open to the left.
+                    sdword subW = (sdword)((real32)screentodraw->atoms->width * FE_MENU_SCALE);
+                    if (region->rect.x1 + feMenuOverlapMarginX + subW > MAIN_WindowWidth)
                     {
                         feMenuStart(feStack[feStackIndex].parentRegion, screentodraw,
-                                    region->rect.x0 - feMenuOverlapMarginX - screentodraw->atoms->width,
+                                    region->rect.x0 - feMenuOverlapMarginX - subW,
                                     region->rect.y0 + feMenuOverlapMarginY);//start new menu
                     }
                     else
@@ -2756,45 +2773,61 @@ regionhandle feMenuRegionsAdd(regionhandle parent, fescreen *screen, sdword x, s
     baseRegion->drawstyle[0] = atom->drawstyle[0];
     baseRegion->drawstyle[1] = atom->drawstyle[1];
 
-    if (x + atom->x - feMenuScreenMarginX < 0)
+    // Enlarge every pop-up menu uniformly (see FE_MENU_SCALE). We scale the
+    // region geometry derived from the atoms, never the atoms themselves, so
+    // the shared screens reused for submenus are never mutated. The on-screen
+    // clamp below must use the SCALED panel size so the bigger menu is kept on
+    // screen correctly.
+    real32 mScale = FE_MENU_SCALE;
+    sdword baseX = (sdword)((real32)atom->x      * mScale);
+    sdword baseY = (sdword)((real32)atom->y      * mScale);
+    sdword baseW = (sdword)((real32)atom->width  * mScale);
+    sdword baseH = (sdword)((real32)atom->height * mScale);
+
+    if (x + baseX - feMenuScreenMarginX < 0)
     {
-        x -= x + atom->x;
+        x -= x + baseX;
     }
-    if (y + atom->y - feMenuScreenMarginY < 0)
+    if (y + baseY - feMenuScreenMarginY < 0)
     {
-        y -= y + atom->y;
+        y -= y + baseY;
     }
-    if (x + atom->x + atom->width + feMenuScreenMarginX > MAIN_WindowWidth)
+    if (x + baseX + baseW + feMenuScreenMarginX > MAIN_WindowWidth)
     {
-        x -= x + atom->x + atom->width + feMenuScreenMarginX - MAIN_WindowWidth;
+        x -= x + baseX + baseW + feMenuScreenMarginX - MAIN_WindowWidth;
     }
-    if (y + atom->y + atom->height + feMenuScreenMarginY > MAIN_WindowHeight)
+    if (y + baseY + baseH + feMenuScreenMarginY > MAIN_WindowHeight)
     {
-        y -= y + atom->y + atom->height + feMenuScreenMarginY - MAIN_WindowHeight;
+        y -= y + baseY + baseH + feMenuScreenMarginY - MAIN_WindowHeight;
     }
     atom = &screen->atoms[screen->nAtoms - 1];
 
     for (index = 0; index < screen->nAtoms; index++, atom--)
     {
         atom->region = NULL;                            //assume no region for this atom
+        // Scaled, origin-offset geometry for this atom's region (see FE_MENU_SCALE).
+        sdword ax = (sdword)((real32)atom->x      * mScale) + x;
+        sdword ay = (sdword)((real32)atom->y      * mScale) + y;
+        sdword aw = (sdword)((real32)atom->width  * mScale);
+        sdword ah = (sdword)((real32)atom->height * mScale);
         switch (atom->type)
         {
             case FA_MenuItem:                               //menu item
                 region = regChildAlloc(baseRegion, (smemsize)atom,
-                            atom->x + x, atom->y + y, atom->width, atom->height, 0, FE_MenuFlags);
+                            ax, ay, aw, ah, 0, FE_MenuFlags);
                 regDrawFunctionSet(region, feMenuItemDraw);
                 regFunctionSet(region, feMenuItemProcess);
                 break;
             case FA_StaticText:                             //static text message
-                region = regChildAlloc(baseRegion, (smemsize)atom, atom->x + x, atom->y + y,
-                               atom->width, atom->height, 0, 0);
+                region = regChildAlloc(baseRegion, (smemsize)atom, ax, ay,
+                               aw, ah, 0, 0);
                 regDrawFunctionSet(region, feStaticTextDraw);
                 break;
             case FA_Button:                                 //button
             case FA_ToggleButton:
             case FA_CheckBox:
-                button = uicChildButtonAlloc(baseRegion, (smemsize)atom, atom->x + x, atom->y + y,
-                               atom->width, atom->height, feButtonProcess, atom->type | CM_ButtonClick);
+                button = uicChildButtonAlloc(baseRegion, (smemsize)atom, ax, ay,
+                               aw, ah, feButtonProcess, atom->type | CM_ButtonClick);
                 feAcceleratorSet(&button->reg, atom);
 /*
                 for (nKeys = 0; nKeys < 4 && atom->accelerator[nKeys] != 0; nKeys++)
@@ -2813,12 +2846,12 @@ regionhandle feMenuRegionsAdd(regionhandle parent, fescreen *screen, sdword x, s
                 break;
             case FA_Divider:
                 region = regChildAlloc(baseRegion, (smemsize)atom,
-                            atom->x + x, atom->y + y, atom->width, atom->height, 0, 0);
+                            ax, ay, aw, ah, 0, 0);
                 regDrawFunctionSet(region, feDividerDraw);
                 break;
             default:                                        //anything else is a plain rectangle
-                region = regChildAlloc(baseRegion, (smemsize)atom, atom->x + x, atom->y + y,
-                               atom->width, atom->height, 0, 0);
+                region = regChildAlloc(baseRegion, (smemsize)atom, ax, ay,
+                               aw, ah, 0, 0);
                 regDrawFunctionSet(region, feStaticRectangleDraw);
                 break;
         }
