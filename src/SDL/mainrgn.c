@@ -3044,14 +3044,17 @@ void mrMenuDisplay(udword actionMask, TypeOfFormation currentFormation, udword t
     //removal above, so a uniform x/y/width/height scale simply enlarges the menu.
     {
         extern real32 fontDrawScale;
-        if (fontDrawScale != 1.0f)
+        /* Make the context-menu boxes noticeably bigger (easier touch targets):
+           1.3x more than the already-enlarged font, so the items are roomy. */
+        real32 menuScale = fontDrawScale * 1.30f;
+        if (menuScale != 1.0f)
         {
             for (index = 0; index < newScreen->nAtoms; index++)
             {
-                newScreen->atoms[index].x      = (sdword)(newScreen->atoms[index].x      * fontDrawScale);
-                newScreen->atoms[index].y      = (sdword)(newScreen->atoms[index].y      * fontDrawScale);
-                newScreen->atoms[index].width  = (sdword)(newScreen->atoms[index].width  * fontDrawScale);
-                newScreen->atoms[index].height = (sdword)(newScreen->atoms[index].height * fontDrawScale);
+                newScreen->atoms[index].x      = (sdword)(newScreen->atoms[index].x      * menuScale);
+                newScreen->atoms[index].y      = (sdword)(newScreen->atoms[index].y      * menuScale);
+                newScreen->atoms[index].width  = (sdword)(newScreen->atoms[index].width  * menuScale);
+                newScreen->atoms[index].height = (sdword)(newScreen->atoms[index].height * menuScale);
             }
         }
     }
@@ -3127,6 +3130,16 @@ void mrRightClickMenu(void)
 
     if((tutorial==TUTORIAL_ONLY) && !tutEnable.bContextMenus)
         return;
+
+    /* Toggle: a right-click while the context menu is already open dismisses it.
+       (Needed because a click outside the menu no longer closes it -- see
+       feMenuBaseRegionProcess.) */
+    if (feTempMenuScreen != NULL)
+    {
+        while (feMenuLevel)
+            feMenuDisappear(NULL, NULL);
+        return;
+    }
 
     /* Touch convenience: if the player already has ship(s) selected, a
        right-click opens the context menu for that SELECTION wherever the cursor

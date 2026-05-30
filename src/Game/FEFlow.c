@@ -2668,6 +2668,15 @@ udword feMenuItemProcess(regionhandle region, smemsize ID, udword event, udword 
 ----------------------------------------------------------------------------*/
 udword feMenuBaseRegionProcess(regionhandle region, sdword ID, udword event, udword data)
 {
+    /* In-game right-click context menu: a click on the empty area around the
+       menu (its base region) used to dismiss it, which on touch is usually an
+       accidental near-miss. Keep it open; it is dismissed by choosing an item
+       or by right-clicking again (mrRightClickMenu toggles it). Other (non
+       context-menu) popups keep the original click-outside-to-close behaviour. */
+    if (feTempMenuScreen != NULL)
+    {
+        return(0);
+    }
     feMenuDisappear(NULL, NULL);                                //kill this menu
     return(0);
 }
