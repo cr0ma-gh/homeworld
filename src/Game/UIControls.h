@@ -337,6 +337,11 @@ void uicTextBufferResize(textentryhandle entry, sdword size);
 void uicTextEntryCleanUp(textentryhandle entry);
 bool32 uicBackspaceCharacter(textentryhandle entry);
 
+// Touch / Android soft (on-screen) keyboard support.
+extern textentryhandle uicCurrentTextEntry;     //focused text entry, or NULL
+void uicTextEntrySyncSoftKeyboard(void);         //call once per frame to show/hide the keyboard
+void uicTextEntrySoftKeyboardInput(const char *utf8);  //feed an SDL_TEXTINPUT string to the focused entry
+
 // adjust attributes and manage the list window control
 void uicListWindowInit(listwindowhandle     listwindow,
                        listtitlebardraw     titledraw,

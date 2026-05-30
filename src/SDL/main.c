@@ -1914,6 +1914,12 @@ void gokAtkPerFrame(void)
 
 #endif
 
+// Touch/Android soft-keyboard bridge (implemented in src/Game/UIControls.c):
+// feed on-screen-keyboard text into the focused field, and keep the keyboard
+// shown/hidden in sync with text-entry focus.
+extern void uicTextEntrySoftKeyboardInput(const char *utf8);
+extern void uicTextEntrySyncSoftKeyboard(void);
+
 void HandleEvent(SDL_Event const* pEvent) {
     extern bool32 utilPlayingIntro;
 
@@ -2312,6 +2318,14 @@ void HandleEvent(SDL_Event const* pEvent) {
             {
                 keyPressDown(keyLanguageTranslate(pEvent->key.keysym.scancode));
             }
+            return;
+
+        case SDL_TEXTINPUT:
+            //printable characters typed on the on-screen (soft) keyboard arrive
+            //here as UTF-8 text rather than hardware scancodes; route them into
+            //the focused text-entry control. Backspace/Enter/arrows still come
+            //through SDL_KEYDOWN above.
+            uicTextEntrySoftKeyboardInput(pEvent->text.text);
             return;
 
         case SDL_USEREVENT:
@@ -2854,6 +2868,8 @@ int main (int argc, char* argv[])
                 }
             }
             if (breakMainLoop) break;
+
+            uicTextEntrySyncSoftKeyboard(); // show/hide on-screen keyboard with text-entry focus
 
             utyTasksDispatch(); // execute all tasks
 

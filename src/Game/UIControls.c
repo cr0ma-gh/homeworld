@@ -47,6 +47,13 @@ color FEC_ListItemInactive;
 color FEC_ListItemInvalid;
 color FEC_Background;
 
+// Android/touch soft-keyboard support: the text-entry control that currently
+// has keyboard focus, or NULL. SDL_TEXTINPUT characters coming from the on-screen
+// keyboard are inserted straight into this entry, and the on-screen keyboard is
+// shown/hidden once per frame by uicTextEntrySyncSoftKeyboard() based on the
+// engine's regKeysFocussed flag.
+textentryhandle uicCurrentTextEntry = NULL;
+
 color TB_SelectedColor = colRGB(255,255,255);
 color TB_HyperspaceColor = colRGB(32,220,32);
 color TB_CompleteColor = colRGB(0,160,200);
@@ -3635,6 +3642,89 @@ bool32 uicCursorWordRight(textentryhandle entry)
 udword keyLanguageTranslate(udword wParam);
 
 /*-----------------------------------------------------------------------------
+    Name        : uicTextEntrySyncSoftKeyboard
+    Description : Show/hide the platform on-screen (soft) keyboard so it matches
+                  whether a text-entry control currently has keyboard focus.
+                  Driven once per frame from the main loop; using the stable
+                  end-of-frame regKeysFocussed state avoids show/hide flicker
+                  when focus moves from one field to another within a frame.
+    Inputs      : none
+    Outputs     : may call SDL_StartTextInput/SDL_StopTextInput
+    Return      : void
+----------------------------------------------------------------------------*/
+void uicTextEntrySyncSoftKeyboard(void)
+{
+    bool32 active = SDL_IsTextInputActive();
+
+    if (regKeysFocussed && (uicCurrentTextEntry != NULL))
+    {                                                       //a text field is focused: keyboard should be up
+        if (!active)
+        {
+            SDL_StartTextInput();
+        }
+    }
+    else
+    {                                                       //nothing typeable focused: keyboard should be down
+        if (active)
+        {
+            SDL_StopTextInput();
+        }
+        uicCurrentTextEntry = NULL;
+    }
+}
+
+/*-----------------------------------------------------------------------------
+    Name        : uicTextEntrySoftKeyboardInput
+    Description : Inject UTF-8 text produced by the on-screen keyboard
+                  (SDL_TEXTINPUT) straight into the focused text-entry control.
+                  Soft keyboards deliver characters as text, not as hardware
+                  scancodes, so the normal keyBuffer/RPE_KeyDown path never sees
+                  them; this bridges that gap. Backspace/Enter still arrive as
+                  real SDL_KEYDOWN scancodes and flow through the usual path.
+    Inputs      : utf8 - NUL-terminated UTF-8 string from SDL_TEXTINPUT
+    Outputs     : inserts printable ASCII into the focused control's buffer
+    Return      : void
+----------------------------------------------------------------------------*/
+void uicTextEntrySoftKeyboardInput(const char *utf8)
+{
+    textentryhandle entry = uicCurrentTextEntry;
+    regionhandle    reg;
+    featom         *atom;
+    const char     *p;
+    bool32          inserted = FALSE;
+
+    if (!regKeysFocussed || (entry == NULL) || (utf8 == NULL))
+    {                                                       //no focused field (or stale): ignore
+        return;
+    }
+    reg  = (regionhandle)entry;
+    atom = (featom *)reg->userID;
+
+    for (p = utf8; *p != '\0'; p++)
+    {
+        ubyte ch = (ubyte)*p;
+        if ((ch >= 32) && (ch < 127))                       //printable ASCII (matches the bitmap fonts)
+        {
+            if (uicInsertCharacter(entry, (udword)ch))
+            {
+                inserted = TRUE;
+            }
+        }
+    }
+
+    if (inserted)
+    {
+        //chat fields update live via their user function on every keypress
+        if (bitTest(entry->textflags, UICTE_ChatTextEntry) && (atom != NULL))
+        {
+            entry->message = CM_KeyPressed;
+            feFunctionExecute(atom->name, atom, FALSE);
+        }
+        regRecursiveSetDirty(reg);
+    }
+}
+
+/*-----------------------------------------------------------------------------
     Name        : uicTextEntryProcess
     Description : Process messages for a text entry box.
     Inputs      : data - keystroke scancode with shift status
@@ -3667,6 +3757,10 @@ udword uicTextEntryProcess(regionhandle reg, smemsize ID, udword event, udword d
                     entry->message = CM_RejectText;
                     feFunctionExecute(atom->name, atom, FALSE);
                     uicEscProcess(reg,ID,event,data);
+                    if (uicCurrentTextEntry == entry)       //rejected: drop soft-keyboard target
+                    {
+                        uicCurrentTextEntry = NULL;
+                    }
                     break;
                 case RETURNKEY:
                 case ENTERKEY:
@@ -3676,6 +3770,10 @@ udword uicTextEntryProcess(regionhandle reg, smemsize ID, udword event, udword d
                     {
                         bitClear(reg->status, RSF_KeyCapture);
                         regKeysFocussed = FALSE;
+                        if (uicCurrentTextEntry == entry)   //accepted & unfocused: drop soft-keyboard target
+                        {
+                            uicCurrentTextEntry = NULL;
+                        }
                     }
                     break;
                 case BACKSPACEKEY:
@@ -3725,6 +3823,15 @@ udword uicTextEntryProcess(regionhandle reg, smemsize ID, udword event, udword d
                     }
                     break;
                 default:
+                    //When SDL text input is active for this field, printable
+                    //characters are inserted from SDL_TEXTINPUT (which handles
+                    //on-screen keyboards and keyboard layouts correctly). Skip
+                    //the scancode->character path here so each key isn't typed
+                    //twice (the soft keyboard can emit both events).
+                    if (SDL_IsTextInputActive() && (uicCurrentTextEntry == entry))
+                    {
+                        break;
+                    }
                     keycode = SDL_GetKeyFromScancode(data);
                     if (keycode >= 0 && keycode < KEY_TOTAL_KEYS)
                     {
@@ -4869,6 +4976,14 @@ void uicTextBufferResize(textentryhandle entry, sdword size)
 ----------------------------------------------------------------------------*/
 void uicTextEntryCleanUp(textentryhandle entry)
 {
+    if (uicCurrentTextEntry == entry)
+    {                                                       //this focused entry is being freed (screen change):
+        uicCurrentTextEntry = NULL;                         //avoid a dangling soft-keyboard target
+        if (SDL_IsTextInputActive())
+        {
+            SDL_StopTextInput();                            //and hide the on-screen keyboard
+        }
+    }
     if (entry->textBuffer != NULL)
     {
         memFree(entry->textBuffer);
@@ -5234,6 +5349,10 @@ bool32 uicClearCurrent(regionhandle reg)
             feFunctionExecute(atom->name, atom, FALSE);
             bitClear(temp->status,RSF_KeyCapture);
             regKeysFocussed = FALSE;
+            if (uicCurrentTextEntry == (textentryhandle)temp)
+            {                                               //losing focus: drop the soft-keyboard target
+                uicCurrentTextEntry = NULL;
+            }
         }
         if ( (((featom *)temp->userID) != NULL)             &&
              (((featom *)temp->userID)->type==FA_ListWindow) )
@@ -5314,6 +5433,7 @@ void uicSetCurrent(regionhandle reg, bool32 bUserInput)
             bitSet(reg->status, RSF_KeyCapture);
             keyBufferClear();
             regKeysFocussed = TRUE;
+            uicCurrentTextEntry = (textentryhandle)reg;     //remember focus for the soft keyboard
         }
         if (reg->processFunction == uicListWindowProcess)
         {
@@ -5700,6 +5820,7 @@ udword uicReturnProcess(struct tagRegion *reg, sdword num_buttons, udword event,
                 bitSet(temp->status, RSF_KeyCapture);
                 keyBufferClear();
                 regKeysFocussed = TRUE;
+                uicCurrentTextEntry = (textentryhandle)temp;    //remember focus for the soft keyboard
                 feFunctionExecute(((featom *)temp->userID)->name, (featom *)temp->userID, FALSE);
                 break;
             default:
