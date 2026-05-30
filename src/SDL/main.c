@@ -1758,6 +1758,32 @@ static float        gokCentroidPrevY = 0.0f;
 static float        gokFingerX[2] = { 0.0f, 0.0f };
 static float        gokFingerY[2] = { 0.0f, 0.0f };
 static SDL_FingerID gokFingerId[2] = { 0, 0 };
+static bool32       gokPanActive = FALSE;        /* TRUE while 3 fingers pan the camera */
+static float        gokPanPrevX = 0.0f;          /* previous 3-finger centroid (px)     */
+static float        gokPanPrevY = 0.0f;
+
+/* Translate the viewpoint across space by a screen-pixel delta (Game side,
+   src/Game/CameraCommand.c). real32 == float. */
+extern void gokCameraPanScreen(float dxPixels, float dyPixels);
+
+/* Centroid (in screen pixels) of all fingers currently down on the device.
+   Returns the finger count. Used for the 3-finger pan so it is robust to which
+   physical fingers are tracked in the 2-slot orbit arrays. */
+static int gokTouchCentroid(SDL_TouchID tid, float *cx, float *cy)
+{
+    int nf = SDL_GetNumTouchFingers(tid);
+    int i;
+    float sx = 0.0f, sy = 0.0f;
+    if (nf <= 0) return 0;
+    for (i = 0; i < nf; i++)
+    {
+        SDL_Finger *f = SDL_GetTouchFinger(tid, i);
+        if (f != NULL) { sx += f->x; sy += f->y; }
+    }
+    *cx = (sx / (float)nf) * (float)MAIN_WindowWidth;
+    *cy = (sy / (float)nf) * (float)MAIN_WindowHeight;
+    return nf;
+}
 
 extern sdword feMenuLevel;  /* >0 when a front-end menu is on top */
 extern sdword feStackIndex; /* >0 when a front-end screen/dialog is on the stack
@@ -1999,6 +2025,21 @@ void HandleEvent(SDL_Event const* pEvent) {
                 gokStartCenX = gokCentroidPrevX;
                 gokStartCenY = gokCentroidPrevY;
             }
+            if (gokTouchCount == 3 && !mouseDisabled && gameIsRunning)
+            {
+                /* Third finger: switch from 2-finger orbit/zoom to PAN (slide the
+                   viewpoint across space). Anchor at the current finger centroid;
+                   the orbit/zoom path is gated to exactly two fingers, and the
+                   held RMB is harmless until released on the drop below 2. */
+                float cx, cy;
+                if (gokTouchCentroid(pEvent->tfinger.touchId, &cx, &cy) >= 3)
+                {
+                    gokPanPrevX    = cx;
+                    gokPanPrevY    = cy;
+                    gokPanActive   = TRUE;
+                    gokGestureMode = 0;   /* drop any in-progress orbit/zoom classification */
+                }
+            }
             break;
 
         case SDL_FINGERMOTION:
@@ -2130,7 +2171,7 @@ void HandleEvent(SDL_Event const* pEvent) {
                 gokLastFingerX = pEvent->tfinger.x;
                 gokLastFingerY = pEvent->tfinger.y;
             }
-            if (gokTouchCamera && gokTouchCount >= 2 && !mouseDisabled)
+            if (gokTouchCamera && gokTouchCount == 2 && !mouseDisabled)
             {
                 float dist    = gokPinchDistance();
                 float dDist   = dist - gokPinchPrevDist;
@@ -2177,10 +2218,48 @@ void HandleEvent(SDL_Event const* pEvent) {
                 gokCentroidPrevX = cenX;
                 gokCentroidPrevY = cenY;
             }
+            if (gokPanActive && gokTouchCount >= 3 && !mouseDisabled && gameIsRunning)
+            {
+                /* Three (or more) fingers: pan the viewpoint by the change in the
+                   finger centroid. Feeds the screen-pixel delta to the camera so
+                   the scene slides under the fingers. */
+                float cx, cy;
+                if (gokTouchCentroid(pEvent->tfinger.touchId, &cx, &cy) >= 3)
+                {
+                    gokCameraPanScreen(cx - gokPanPrevX, cy - gokPanPrevY);
+                    gokPanPrevX = cx;
+                    gokPanPrevY = cy;
+                }
+            }
             break;
 
         case SDL_FINGERUP:
             if (gokTouchCount > 0) gokTouchCount--;
+            if (gokPanActive && gokTouchCount < 3)
+            {
+                /* A finger lifted out of the 3-finger pan. If two remain, resume
+                   orbit/zoom: re-bind the 2-finger tracking to whichever fingers
+                   are still down and re-anchor the references so the view doesn't
+                   jump on the next motion. */
+                gokPanActive = FALSE;
+                if (gokTouchCount == 2)
+                {
+                    SDL_Finger *f0 = SDL_GetTouchFinger(pEvent->tfinger.touchId, 0);
+                    SDL_Finger *f1 = SDL_GetTouchFinger(pEvent->tfinger.touchId, 1);
+                    if (f0 != NULL && f1 != NULL)
+                    {
+                        gokFingerId[0] = f0->id; gokFingerX[0] = f0->x; gokFingerY[0] = f0->y;
+                        gokFingerId[1] = f1->id; gokFingerX[1] = f1->x; gokFingerY[1] = f1->y;
+                        gokPinchPrevDist = gokPinchDistance();
+                        gokCentroidPrevX = (gokFingerX[0] + gokFingerX[1]) * 0.5f * (float)MAIN_WindowWidth;
+                        gokCentroidPrevY = (gokFingerY[0] + gokFingerY[1]) * 0.5f * (float)MAIN_WindowHeight;
+                        gokStartDist     = gokPinchPrevDist;
+                        gokStartCenX     = gokCentroidPrevX;
+                        gokStartCenY     = gokCentroidPrevY;
+                        gokGestureMode   = 0;
+                    }
+                }
+            }
             if (gokTouchCount == 1)
             {
                 /* Dropped from 2 fingers to 1: the trackpad reference still

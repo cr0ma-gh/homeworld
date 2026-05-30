@@ -729,6 +729,74 @@ void CameraChase(CameraCommand *cameracommand,real32 zoomfactor)
 }
 
 /*-----------------------------------------------------------------------------
+    Name        : gokCameraPanScreen
+    Description : Touch "pan": slide the viewpoint across space along the current
+                  view's right/up axes by a screen-pixel delta, keeping angle,
+                  declination and distance. Lets the player move the camera to a
+                  new area without having to select and focus on ships. Both the
+                  actual camera and the active camera-stack entry it chases are
+                  translated (lookatpoint + eyeposition + their old* values) so
+                  the move sticks and creates no spurious tracking velocity.
+    Inputs      : dxPixels,dyPixels - finger-centroid motion in screen pixels
+                  (screen +x = right, +y = down)
+    Outputs     : moves universe.mainCameraCommand's camera
+    Return      : void
+----------------------------------------------------------------------------*/
+void gokCameraPanScreen(real32 dxPixels, real32 dyPixels)
+{
+    extern sdword MAIN_WindowHeight;
+    CameraCommand *cc = &universe.mainCameraCommand;
+    Camera *cam = &cc->actualcamera;
+    vector fwd, right, up, worldUp, delta;
+    real32 worldPerPixel;
+
+    if (MAIN_WindowHeight <= 0)
+    {
+        return;
+    }
+
+    /* Build a screen-aligned basis from the current view. Homeworld space is
+       Z-up, so the world up vector is (0,0,1). */
+    vecSub(fwd, cam->lookatpoint, cam->eyeposition);
+    if (vecMagnitudeSquared(fwd) < 1.0e-6f)
+    {
+        return;
+    }
+    vecNormalize(&fwd);
+    vecSet(worldUp, 0.0f, 0.0f, 1.0f);
+    vecCrossProduct(right, fwd, worldUp);               /* points to screen-right */
+    if (vecMagnitudeSquared(right) < 1.0e-6f)
+    {                                                   /* looking straight up/down */
+        vecSet(right, 1.0f, 0.0f, 0.0f);
+    }
+    vecNormalize(&right);
+    vecCrossProduct(up, right, fwd);                    /* points to screen-up */
+    vecNormalize(&up);
+
+    /* World units spanned by one screen pixel at this zoom (camera distance).
+       The constant is tuned for feel (~2*tan(fov/2) for Homeworld's FOV). */
+    worldPerPixel = cam->distance * 1.20f / (real32)MAIN_WindowHeight;
+
+    /* Grab-the-world feel: dragging the fingers right slides the camera left,
+       dragging down slides it up, so the scene appears to follow the fingers. */
+    delta.x = (-dxPixels * right.x + dyPixels * up.x) * worldPerPixel;
+    delta.y = (-dxPixels * right.y + dyPixels * up.y) * worldPerPixel;
+    delta.z = (-dxPixels * right.z + dyPixels * up.z) * worldPerPixel;
+
+    vecAddTo(cam->lookatpoint,    delta);
+    vecAddTo(cam->oldlookatpoint, delta);
+    vecAddTo(cam->eyeposition,    delta);
+
+    if (cc->currentCameraStack != NULL)
+    {
+        Camera *rc = &cc->currentCameraStack->remembercam;
+        vecAddTo(rc->lookatpoint,    delta);
+        vecAddTo(rc->oldlookatpoint, delta);
+        vecAddTo(rc->eyeposition,    delta);
+    }
+}
+
+/*-----------------------------------------------------------------------------
     Name        : GetDistanceAngleDeclination
     Description : Sets the distance, angle and declination given the distvec
                   vector which is a vector pointing from the lookatpoint to
