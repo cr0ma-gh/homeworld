@@ -1355,6 +1355,25 @@ void mrCameraMotion(void)
 }
 
 /*-----------------------------------------------------------------------------
+    Name        : gokCameraFocusSelection
+    Description : Touch gesture helper (triple-tap): focus the camera on the
+                  player's current ship selection -- the same thing the "F"
+                  control does. No-op if nothing is selected. Called from the
+                  Android touch handler in main.c.
+    Inputs      : void
+    Outputs     : starts a focus transition on the main camera command
+    Return      : void
+----------------------------------------------------------------------------*/
+void gokCameraFocusSelection(void)
+{
+    if (gameIsRunning && (selSelected.numShips > 0))
+    {
+        ccFocus(&(universe.mainCameraCommand), (FocusCommand *)&selSelected);
+        soundEvent(NULL, UI_Click);
+    }
+}
+
+/*-----------------------------------------------------------------------------
     Name        : mrKeyRelease
     Description : handle key releases
     Inputs      : ID - keyindex of key being released

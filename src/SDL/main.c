@@ -1761,10 +1761,16 @@ static SDL_FingerID gokFingerId[2] = { 0, 0 };
 static bool32       gokPanActive = FALSE;        /* TRUE while 3 fingers pan the camera */
 static float        gokPanPrevX = 0.0f;          /* previous 3-finger centroid (px)     */
 static float        gokPanPrevY = 0.0f;
+static int          gokTapCount = 0;             /* consecutive quick single-finger taps */
+static Uint32       gokLastTapMs = 0;            /* timestamp of the previous tap         */
+static float        gokLastTapX = 0.0f;          /* normalized pos of the previous tap    */
+static float        gokLastTapY = 0.0f;
 
 /* Translate the viewpoint across space by a screen-pixel delta (Game side,
    src/Game/CameraCommand.c). real32 == float. */
 extern void gokCameraPanScreen(float dxPixels, float dyPixels);
+/* Focus the camera on the current ship selection (triple-tap; src/SDL/mainrgn.c). */
+extern void gokCameraFocusSelection(void);
 
 /* Centroid (in screen pixels) of all fingers currently down on the device.
    Returns the finger count. Used for the 3-finger pan so it is robust to which
@@ -2278,6 +2284,42 @@ void HandleEvent(SDL_Event const* pEvent) {
             }
             if (gokTouchCount == 0)
             {
+                /* Triple-tap (three quick single-finger taps at the same spot,
+                   in live gameplay) focuses the camera on the current selection.
+                   Evaluated BEFORE gokLongPressFired/gokFinger0LmbDown are reset
+                   below, so we only count genuine taps: no drag, no second
+                   finger and no long-press. */
+                if (GOK_IN_GAMEPLAY() && !gokLongPressFired && !gokFinger0LmbDown && !mouseDisabled)
+                {
+                    Uint32 nowTap = SDL_GetTicks();
+                    float mdx = (pEvent->tfinger.x - gokFinger0DownX) * (float)MAIN_WindowWidth;
+                    float mdy = (pEvent->tfinger.y - gokFinger0DownY) * (float)MAIN_WindowHeight;
+                    float tapMove = SDL_sqrtf(mdx * mdx + mdy * mdy);
+                    if ((nowTap - gokFinger0DownMs) <= 300 &&
+                        tapMove <= 0.02f * (float)MAIN_WindowWidth)
+                    {                                           /* a clean, quick tap */
+                        float sdx = (pEvent->tfinger.x - gokLastTapX) * (float)MAIN_WindowWidth;
+                        float sdy = (pEvent->tfinger.y - gokLastTapY) * (float)MAIN_WindowHeight;
+                        float tapSpread = SDL_sqrtf(sdx * sdx + sdy * sdy);
+                        if ((nowTap - gokLastTapMs) <= 450 &&
+                            tapSpread <= 0.06f * (float)MAIN_WindowWidth)
+                            gokTapCount++;                      /* part of a multi-tap */
+                        else
+                            gokTapCount = 1;                    /* a fresh first tap   */
+                        gokLastTapMs = nowTap;
+                        gokLastTapX  = pEvent->tfinger.x;
+                        gokLastTapY  = pEvent->tfinger.y;
+                        if (gokTapCount >= 3)
+                        {
+                            gokCameraFocusSelection();          /* focus current selection */
+                            gokTapCount = 0;
+                        }
+                    }
+                    else
+                    {
+                        gokTapCount = 0;                        /* held/dragged: not a tap */
+                    }
+                }
                 gokLongPressFired = FALSE;
                 if (gokMenuPointer)
                 {
