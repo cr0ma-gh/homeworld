@@ -2035,13 +2035,15 @@ void HandleEvent(SDL_Event const* pEvent) {
                 float dxe = (pEvent->tfinger.x - gokLastFingerX) * (float)MAIN_WindowWidth;
                 float dye = (pEvent->tfinger.y - gokLastFingerY) * (float)MAIN_WindowHeight;
 
-                /* Pointer-acceleration curve. A flat 1.30 base meant even the
-                   slowest drag moved the cursor >1:1, so fine positioning was
-                   imprecise. Use a LOW base (sub-1:1 -> precise when moving
-                   slowly) with a steeper slope (fast swipes still cross the
-                   screen). mag is the per-event finger delta in logical px. */
+                /* Pointer-acceleration curve. A flat 1.30 base moved the cursor
+                   >1:1 even at the slowest drag, so fine positioning was
+                   imprecise. Use a LOW base (well under 1:1 -> very fine/precise
+                   when moving slowly) with a steeper slope so fast swipes still
+                   cross the screen quickly. mag = per-event finger delta (logical
+                   px). Tune the base lower for finer control, the slope higher
+                   for quicker long swipes. */
                 float mag   = SDL_sqrtf(dxe * dxe + dye * dye);
-                float scale = 0.65f + mag * 0.05f;
+                float scale = 0.30f + mag * 0.07f;
                 dxe *= scale;
                 dye *= scale;
 
