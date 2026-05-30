@@ -1816,6 +1816,28 @@ static void gokTouchLassoFlush(void)
     }
 }
 
+/* Expose the in-progress freehand drag path so the renderer (mainrgn.c) can draw
+   the actual outline the finger is tracing instead of the rubber-band rectangle.
+   Returns 0 (nothing to draw) unless a single-finger drag is active in gameplay. */
+sdword gokTouchLassoPointCount(void)
+{
+    /* GOK_IN_GAMEPLAY() is #defined further down; declare its inputs locally so
+       this accessor (placed above the macro) needs no forward reference. */
+    extern bool32 gameIsRunning;
+    extern sdword feMenuLevel;
+    extern sdword feStackIndex;
+    if (gokTouchCount == 1 && gameIsRunning && feMenuLevel == 0 && feStackIndex == 0)
+    {
+        return (sdword)gokPathN;
+    }
+    return 0;
+}
+void gokTouchLassoPoint(sdword i, sdword *x, sdword *y)
+{
+    if (i >= 0 && i < gokPathN) { *x = gokPathX[i]; *y = gokPathY[i]; }
+    else                        { *x = 0;            *y = 0;            }
+}
+
 /* Centroid (in screen pixels) of all fingers currently down on the device.
    Returns the finger count. Used for the 3-finger pan so it is robust to which
    physical fingers are tracked in the 2-slot orbit arrays. */

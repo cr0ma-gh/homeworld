@@ -5673,7 +5673,36 @@ void mrRegionDraw(regionhandle reg)
     if (mrHoldLeft == mrSelectHold)                         //and then draw the current selection progress
     {
         selSelectingDraw();
+#ifdef __ANDROID__
+        {
+            /* On touch, draw the actual freehand path the finger is tracing (the
+               lasso outline) rather than the rubber-band rectangle, so what you
+               circle matches what gets selected. Falls back to the rectangle
+               before enough of a path exists. */
+            extern sdword gokTouchLassoPointCount(void);
+            extern void   gokTouchLassoPoint(sdword i, sdword *x, sdword *y);
+            sdword n = gokTouchLassoPointCount();
+            if (n >= 3)
+            {
+                sdword i, fx, fy, x0, y0, x1, y1;
+                gokTouchLassoPoint(0, &fx, &fy);
+                x0 = fx; y0 = fy;
+                for (i = 1; i < n; i++)
+                {
+                    gokTouchLassoPoint(i, &x1, &y1);
+                    primLine2(x0, y0, x1, y1, TW_SELECT_BOX_COLOR);
+                    x0 = x1; y0 = y1;
+                }
+                primLine2(x0, y0, fx, fy, TW_SELECT_BOX_COLOR);   //close the loop
+            }
+            else
+            {
+                primRectOutline2(&mrSelectionRect, 1, TW_SELECT_BOX_COLOR);
+            }
+        }
+#else
         primRectOutline2(&mrSelectionRect, 1, TW_SELECT_BOX_COLOR);
+#endif
     }
 
 #if SP_DEBUGKEYS
