@@ -3128,6 +3128,32 @@ void mrRightClickMenu(void)
     if((tutorial==TUTORIAL_ONLY) && !tutEnable.bContextMenus)
         return;
 
+    /* Touch convenience: if the player already has ship(s) selected, a
+       right-click opens the context menu for that SELECTION wherever the cursor
+       is -- no need to place it exactly over a ship (which is fiddly on touch).
+       Only fall through to the click-on-ship behaviour when nothing is selected. */
+    if (selSelected.numShips > 0)
+    {
+        bool32 anyOwn = FALSE;
+        for (index = 0; index < selSelected.numShips; index++)
+        {
+            if (selSelected.ShipPtr[index]->playerowner == universe.curPlayerPtr)
+                anyOwn = TRUE;
+            actionMask  |= mrMenuActionsByShipType[selSelected.ShipPtr[index]->shiptype];
+            tacticsBits |= 1 << selSelected.ShipPtr[index]->tacticstype;
+        }
+        if (anyOwn)
+        {
+            formation = clSelectionAlreadyInFormation(&universe.mainCommandLayer,
+                                                      (SelectCommand *)(&selSelected));
+            if (tutorial && selSelected.numShips > 0)
+                tutFEContextMenuShipType = selSelected.ShipPtr[0]->shiptype;
+            mrMenuDisplay(actionMask, formation, tacticsBits);
+            soundEvent(NULL, UI_Click);
+            return;
+        }
+    }
+
     if ((ship = selSelectionClick(universe.RenderList.head,
             &(universe.mainCameraCommand.actualcamera),
             mouseCursorX(), mouseCursorY(), FALSE, FALSE)) != NULL)
