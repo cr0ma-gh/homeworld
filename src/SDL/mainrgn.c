@@ -3045,8 +3045,11 @@ void mrMenuDisplay(udword actionMask, TypeOfFormation currentFormation, udword t
     {
         extern real32 fontDrawScale;
         /* Make the context-menu boxes noticeably bigger (easier touch targets):
-           1.3x more than the already-enlarged font, so the items are roomy. */
-        real32 menuScale = fontDrawScale * 1.30f;
+           1.6x more than the already-enlarged font, so the items are roomy.
+           NOTE: keep this factor in sync with FER_MENU_HIGHLIGHT_SCALE in
+           FEReg.c (ferDrawMenuItemSelected) so the blue hover sprite that fills
+           each item box scales identically to the box itself. */
+        real32 menuScale = fontDrawScale * 1.60f;
         if (menuScale != 1.0f)
         {
             for (index = 0; index < newScreen->nAtoms; index++)

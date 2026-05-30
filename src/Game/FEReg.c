@@ -29,6 +29,16 @@
 #define slider_end_width 8
 #define slider_vert_end_width 0
 
+// Uniform draw scale applied by ferDraw/ferDrawLine to the textured quad they
+// emit. Default 1.0 = native texture size (all existing callers unaffected).
+// ferDrawMenuItemSelected raises it so the blue right-click-menu hover sprite
+// scales together with the enlarged menu boxes (see mrMenuDisplay in
+// src/SDL/mainrgn.c, menuScale = fontDrawScale * 1.60f). Keep FER_MENU_HIGHLIGHT_SCALE
+// in sync with that menuScale factor so the highlight fills the item box.
+#define FER_MENU_HIGHLIGHT_SCALE 1.60f
+real32 ferDrawScale = 1.0f;
+extern real32 fontDrawScale;
+
 /*=============================================================================
     Data:
 =============================================================================*/
@@ -1108,11 +1118,16 @@ void ferDraw(sdword x, sdword y, lifheader *texture)
     oldTex = rndTextureEnable(TRUE);
     oldMode = rndTextureEnvironment(RTE_Replace);
 
+    // ferDrawScale lets the menu-hover highlight (ferDrawMenuItemSelected)
+    // enlarge the textured quad to match the scaled-up right-click menu boxes.
+    // Default 1.0 keeps every other caller pixel-identical to before.
+    sdword fdsW = (sdword)((real32)texture->width  * ferDrawScale);
+    sdword fdsH = (sdword)((real32)texture->height * ferDrawScale);
     GLfloat t[8] = { 0.0f, heightFrac, widthFrac, heightFrac, 0.0f, 0.0f, widthFrac, 0.0f };
     GLfloat v[8] = { primScreenToGLX(x), primScreenToGLY(y),
-                        primScreenToGLX(x + texture->width), primScreenToGLY(y),
-                        primScreenToGLX(x), primScreenToGLY(y - texture->height),
-                        primScreenToGLX(x + texture->width), primScreenToGLY(y - texture->height) };
+                        primScreenToGLX(x + fdsW), primScreenToGLY(y),
+                        primScreenToGLX(x), primScreenToGLY(y - fdsH),
+                        primScreenToGLX(x + fdsW), primScreenToGLY(y - fdsH) };
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glVertexPointer(2, GL_FLOAT, 0, v);
@@ -1931,20 +1946,25 @@ void ferDrawLine(sdword x0, sdword y0, sdword x1, sdword y1,
     sdword sub = 0;
     sdword dist_x = x1 - x0, dist_y = y1 - y0,                    // distance to travel
            dist_tx = 0, dist_ty = 0;                              // distance traveled
+    // Tile size honours the global ferDrawScale so the menu-hover highlight
+    // tiles at the same enlarged size that ferDraw renders each tile at
+    // (default 1.0 => identical to the original behaviour for all callers).
+    sdword tW = (sdword)((real32)texture->width  * ferDrawScale);
+    sdword tH = (sdword)((real32)texture->height * ferDrawScale);
 
     // set the starting values with respect to the corner texturemap
     if (y0 == y1)
     {
         x0     += (corner_width - sub);
         x1     -= (corner_width - sub);
-        dist_x -= (texture->width + 2*corner_width);
+        dist_x -= (tW + 2*corner_width);
 
     }
     else
     {
-        y0     += (corner_width + texture->height - sub);
-        y1     -= (corner_width + texture->height - sub);
-        dist_y -= (texture->height + 2*corner_width);
+        y0     += (corner_width + tH - sub);
+        y1     -= (corner_width + tH - sub);
+        dist_y -= (tH + 2*corner_width);
 
     }
 
@@ -1966,13 +1986,13 @@ void ferDrawLine(sdword x0, sdword y0, sdword x1, sdword y1,
         // increment the location values
         if (dist_x)
         {
-            x0      += texture->width - sub;
-            dist_tx += texture->width - sub;
+            x0      += tW - sub;
+            dist_tx += tW - sub;
         }
         else
         {
-            y0      += texture->height - sub;
-            dist_ty += texture->height - sub;
+            y0      += tH - sub;
+            dist_ty += tH - sub;
         }
     }
 
@@ -1991,11 +2011,11 @@ void ferDrawLine(sdword x0, sdword y0, sdword x1, sdword y1,
     {*/
         if (dist_x)
         {
-            ferDraw(x1 - texture->width, y1, texture);
+            ferDraw(x1 - tW, y1, texture);
         }
         else
         {
-            ferDraw(x1, y1 + texture->height, texture);
+            ferDraw(x1, y1 + tH, texture);
         }
 //    }
 }
@@ -2011,19 +2031,29 @@ void ferDrawMenuItemSelected(rectangle *rect)
 {
     lifheader *texture;
     udword end_width;
+    real32 oldScale = ferDrawScale;
 
-    //draw the left endcap
+    // Enlarge the blue hover sprite so it fills the scaled-up right-click menu
+    // item box. This factor MUST match menuScale in mrMenuDisplay
+    // (fontDrawScale * 1.60f) so the highlight tracks the bigger boxes instead
+    // of sitting tiny at its native texture size. The endcaps + tiled middle
+    // are all emitted through ferDraw/ferDrawLine, which honour ferDrawScale.
+    ferDrawScale = fontDrawScale * FER_MENU_HIGHLIGHT_SCALE;
+
+    //draw the left endcap (anchored at the box bottom-left, grows up/right)
     texture = ferTextureRegister(MENU_MOUSEOVER_LEFT_CAP, none, none);
     ferDraw(rect->x0, rect->y1, texture);
 
-    //draw the right endcap
+    //draw the right endcap (anchored so its scaled width ends at the box right)
     texture = ferTextureRegister(MENU_MOUSEOVER_RIGHT_CAP, none, none);
-    ferDraw(rect->x1 - texture->width, rect->y1, texture);
-    end_width = texture->width;
+    end_width = (udword)((real32)texture->width * ferDrawScale);
+    ferDraw(rect->x1 - (sdword)end_width, rect->y1, texture);
 
-    //draw the middle part
+    //draw the middle part (tiles between the two scaled endcaps)
     texture = ferTextureRegister(MENU_MOUSEOVER_CENTRE, none, none);
-    ferDrawLine(rect->x0, rect->y1, rect->x1, rect->y1, end_width, texture, 0);
+    ferDrawLine(rect->x0, rect->y1, rect->x1, rect->y1, (sdword)end_width, texture, 0);
+
+    ferDrawScale = oldScale;
 }
 
 /*-----------------------------------------------------------------------------
