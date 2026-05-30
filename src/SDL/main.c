@@ -1736,6 +1736,8 @@ static float        gokFinger0DownY = 0.0f;
 static bool32       gokLongPressFired = FALSE;
 static bool32       gokFinger0LmbDown = FALSE;  /* LMB held for a drag-band-select */
 static bool32       gokMenuPointer    = FALSE;  /* TRUE while a menu touch holds LMB (direct-pointer mode) */
+static sdword       gokTrackX = 0;              /* authoritative trackpad cursor pos (immune to engine drift) */
+static sdword       gokTrackY = 0;
 static bool32       gokAtkMode        = FALSE;  /* set from Java via nativeSetAtkMode */
 static bool32       gokAtkBandHeld    = FALSE;  /* TRUE while CTRL+SHIFT held for band-attack */
 static sdword       gokAtkReleaseDelay = 0;     /* frames remaining before releasing CTRL+SHIFT */
@@ -1947,6 +1949,8 @@ void HandleEvent(SDL_Event const* pEvent) {
                 gokAccumY         = 0.0f;
                 gokCursorAtDownX  = mouseCursorX();
                 gokCursorAtDownY  = mouseCursorY();
+                gokTrackX         = mouseCursorX();   /* sync authoritative pos to the real cursor */
+                gokTrackY         = mouseCursorY();
                 gokLongPressFired = FALSE;
                 gokFinger0LmbDown = FALSE;
                 gokMenuPointer    = FALSE;
@@ -2030,6 +2034,8 @@ void HandleEvent(SDL_Event const* pEvent) {
                     gokLastFingerY = pEvent->tfinger.y;
                     gokAccumX = 0.0f;
                     gokAccumY = 0.0f;
+                    gokTrackX = mouseCursorX();   /* resync after camera gesture */
+                    gokTrackY = mouseCursorY();
                 }
 
                 float dxe = (pEvent->tfinger.x - gokLastFingerX) * (float)MAIN_WindowWidth;
@@ -2055,14 +2061,22 @@ void HandleEvent(SDL_Event const* pEvent) {
                 sdword stepY = (sdword)gokAccumY;
                 gokAccumX -= (float)stepX;
                 gokAccumY -= (float)stepY;
-                sdword newX = mouseCursorX() + stepX;
-                sdword newY = mouseCursorY() + stepY;
+                /* Drive the cursor from OUR OWN tracked position, not the engine's
+                   live mouseCursorX/Y. During a band-select near a screen edge the
+                   engine auto-scrolls and drags its cursor sideways on its own; if
+                   we based the next step on that, a finger moving right could make
+                   the cursor crawl left. Tracking authoritatively keeps 1 finger
+                   move == 1 cursor move in the same direction. */
+                sdword newX = gokTrackX + stepX;
+                sdword newY = gokTrackY + stepY;
                 /* Clamp to screen so a flick can't push the cursor off the
                    visible area (invisible cursor = ATK aiming at nothing). */
                 if (newX < 0) newX = 0;
                 if (newY < 0) newY = 0;
                 if (newX > MAIN_WindowWidth  - 1) newX = MAIN_WindowWidth  - 1;
                 if (newY > MAIN_WindowHeight - 1) newY = MAIN_WindowHeight - 1;
+                gokTrackX = newX;
+                gokTrackY = newY;
 
                 if (gameIsRunning && feMenuLevel == 0 && !gokFinger0LmbDown
                     && piePointSpecMode == GOK_PSM_IDLE)
