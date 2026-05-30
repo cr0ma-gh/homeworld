@@ -1374,82 +1374,79 @@ void gokCameraFocusSelection(void)
 }
 
 /*-----------------------------------------------------------------------------
-    Name        : gokPointInPolyGL
-    Description : Standard even-odd point-in-polygon test, all coordinates in the
-                  GL/device space used by ship selection-circle centres.
+    Name        : gokLassoBegin
+    Description : Snapshot the current selection at the start of a one-finger drag
+                  so that, if the drag turns out to be an enemy-circling attack
+                  lasso, we still have the player's ships to attack WITH (the
+                  band-select that fires on release clobbers selSelected).
 ----------------------------------------------------------------------------*/
-static bool32 gokPointInPolyGL(real32 px, real32 py, real32 *vx, real32 *vy, sdword n)
+static MaxSelection gokLassoSavedSel;
+
+void gokLassoBegin(void)
 {
-    sdword i, j;
-    bool32 inside = FALSE;
-    for (i = 0, j = n - 1; i < n; j = i++)
-    {
-        if (((vy[i] > py) != (vy[j] > py)) &&
-            (px < (vx[j] - vx[i]) * (py - vy[i]) / (vy[j] - vy[i]) + vx[i]))
-        {
-            inside = !inside;
-        }
-    }
-    return inside;
+    gokLassoSavedSel = selSelected;
 }
 
 /*-----------------------------------------------------------------------------
-    Name        : gokLassoSelectShips
-    Description : Touch gesture (freehand loop / "lasso"): select the player's
-                  own ships whose on-screen position lies inside the traced loop.
-                  Mirrors selRectDragFunction's filtering but tests each ship's
-                  selection-circle centre against the polygon instead of a rect.
+    Name        : gokLassoApply
+    Description : Resolve a freehand loop ("lasso"). If it encloses the player's
+                  own ships -> select them. Otherwise, if it encloses attackable
+                  enemies and the player had ships selected when the drag began
+                  -> order those ships to attack the enclosed enemies. If nothing
+                  useful is enclosed, restore the pre-drag selection (so an empty
+                  loop doesn't deselect via the band-select rectangle).
     Inputs      : screenX/screenY - loop vertices in SCREEN PIXELS, n of them
-    Outputs     : rebuilds selSelected from the enclosed own ships
-    Return      : number of ships selected
+    Return      : >0 own ships selected, <0 attack issued, 0 nothing
 ----------------------------------------------------------------------------*/
-#define GOK_LASSO_MAXPTS 256
-sdword gokLassoSelectShips(sdword *screenX, sdword *screenY, sdword n)
+sdword gokLassoApply(sdword *screenX, sdword *screenY, sdword n)
 {
-    static real32 vx[GOK_LASSO_MAXPTS];
-    static real32 vy[GOK_LASSO_MAXPTS];
-    Node *node;
-    SpaceObjRotImpTarg *target;
-    sdword i;
+    static MaxSelection tempSelection;
 
     if (!gameIsRunning || n < 3)
     {
         return 0;
     }
-    if (n > GOK_LASSO_MAXPTS) n = GOK_LASSO_MAXPTS;
-    for (i = 0; i < n; i++)
-    {                                                       //loop -> GL/device space
-        vx[i] = primScreenToGLX(screenX[i]);
-        vy[i] = primScreenToGLY(screenY[i]);
+
+    //Pass 1: own ships inside the loop -> select them (like selRectSelect).
+    selLassoDragFunction(universe.RenderList.head, screenX, screenY, n,
+                         (SpaceObjRotImpTarg **)selSelected.ShipPtr, &selSelected.numShips,
+                         TRUE, FALSE, FALSE);
+    if (selSelected.numShips > 0)
+    {
+        ioUpdateShipTotals();
+        return selSelected.numShips;
     }
 
-    selSelected.numShips = 0;
-    node = universe.RenderList.head;
-    while (node != NULL)
+    //Pass 2: attackable targets inside the loop -> attack them with the pre-drag
+    //selection (restored, since the band-select on release clobbered selSelected).
+    selLassoDragFunction(universe.RenderList.head, screenX, screenY, n,
+                         selSelecting.TargetPtr, &selSelecting.numTargets,
+                         FALSE, TRUE, TRUE);
+    if ((selSelecting.numTargets > 0) && (gokLassoSavedSel.numShips > 0))
     {
-        target = (SpaceObjRotImpTarg *)listGetStructOfNode(node);
-        node = node->next;
-
-        if ((target->flags & (SOF_Selectable | SOF_Targetable)) == 0) continue;
-        if (target->collInfo.selCircleRadius <= 0.0f)                 continue;
-        if (target->flags & SOF_Dead)                                 continue;
-        if (target->objtype != OBJ_ShipType)                          continue;
-        if (!(target->flags & SOF_Selectable))                        continue;
-        if (((Ship *)target)->playerowner != universe.curPlayerPtr)   continue;   //own ships only
-        if (bitTest(target->flags, SOF_Slaveable) &&
-            !bitTest(((Ship *)target)->slaveinfo->flags, SF_MASTER))  continue;   //masters only
-
-        if (gokPointInPolyGL(target->collInfo.selCircleX, target->collInfo.selCircleY, vx, vy, n))
+        selSelected = gokLassoSavedSel;
+        ioUpdateShipTotals();
+        MakeTargetsOnlyNonForceAttackTargets((SelectAnyCommand *)&selSelecting, universe.curPlayerPtr); //enemies only
+        MakeShipsNotIncludeTheseShips((SelectCommand *)&selSelecting, (SelectCommand *)&selSelected);
+        MakeShipsAttackCapable((SelectCommand *)&tempSelection, (SelectCommand *)&selSelected);
+        MakeShipMastersIncludeSlaves((SelectCommand *)&selSelecting);
+        if ((selSelecting.numTargets > 0) && (tempSelection.numShips > 0))
         {
-            if (selSelected.numShips < COMMAND_MAX_SHIPS)
+            if (speechEventAttack())
             {
-                selSelected.ShipPtr[selSelected.numShips] = (ShipPtr)target;
-                selSelected.numShips++;
+                clWrapAttack(&universe.mainCommandLayer,
+                             (SelectCommand *)&tempSelection, (AttackCommand *)&selSelecting);
             }
         }
+        selSelecting.numTargets = 0;
+        return -1;
     }
+    selSelecting.numTargets = 0;
+
+    //Nothing useful enclosed: undo the band-select clobber, keep prior selection.
+    selSelected = gokLassoSavedSel;
     ioUpdateShipTotals();
-    return selSelected.numShips;
+    return 0;
 }
 
 /*-----------------------------------------------------------------------------
@@ -5690,10 +5687,10 @@ void mrRegionDraw(regionhandle reg)
                 for (i = 1; i < n; i++)
                 {
                     gokTouchLassoPoint(i, &x1, &y1);
-                    primLine2(x0, y0, x1, y1, TW_SELECT_BOX_COLOR);
+                    primLineThick2(x0, y0, x1, y1, 3, TW_SELECT_BOX_COLOR);
                     x0 = x1; y0 = y1;
                 }
-                primLine2(x0, y0, fx, fy, TW_SELECT_BOX_COLOR);   //close the loop
+                primLineThick2(x0, y0, fx, fy, 3, TW_SELECT_BOX_COLOR);   //close the loop
             }
             else
             {

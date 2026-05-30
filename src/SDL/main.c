@@ -1776,8 +1776,10 @@ static bool32       gokLassoPending = FALSE;     /* deferred: run the lasso afte
 extern void gokCameraPanScreen(float dxPixels, float dyPixels);
 /* Focus the camera on the current ship selection (triple-tap; src/SDL/mainrgn.c). */
 extern void gokCameraFocusSelection(void);
-/* Select own ships enclosed by a freehand loop (src/SDL/mainrgn.c). */
-extern sdword gokLassoSelectShips(sdword *screenX, sdword *screenY, sdword n);
+/* Freehand-loop (lasso) gesture (src/SDL/mainrgn.c): snapshot the selection at
+   drag start, then on release select enclosed own ships OR attack enclosed enemies. */
+extern void   gokLassoBegin(void);
+extern sdword gokLassoApply(sdword *screenX, sdword *screenY, sdword n);
 
 /* Append the current cursor position to the freehand drag path (throttled, with
    decimation when the buffer fills so the whole loop is kept at lower res). */
@@ -1812,7 +1814,7 @@ static void gokTouchLassoFlush(void)
     if (gokLassoPending)
     {
         gokLassoPending = FALSE;
-        gokLassoSelectShips(gokPathX, gokPathY, gokPathN);
+        gokLassoApply(gokPathX, gokPathY, gokPathN);
     }
 }
 
@@ -2057,6 +2059,10 @@ void HandleEvent(SDL_Event const* pEvent) {
                 gokTrackY         = mouseCursorY();
                 gokPathN          = 0;                /* start a fresh freehand path (lasso) */
                 gokPathAppend(mouseCursorX(), mouseCursorY());
+                if (GOK_IN_GAMEPLAY())
+                {
+                    gokLassoBegin();                  /* snapshot selection for a possible attack-lasso */
+                }
                 gokLongPressFired = FALSE;
                 gokFinger0LmbDown = FALSE;
                 gokMenuPointer    = FALSE;
