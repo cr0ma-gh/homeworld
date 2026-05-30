@@ -349,6 +349,119 @@ nexttarget:
 }
 
 /*-----------------------------------------------------------------------------
+    Name        : selLassoDragFunction
+    Description : Freehand-loop ("lasso") analogue of selRectDragFunction: fills
+                  destList with objects whose on-screen selection-circle centre
+                  lies inside the polygon. Uses the SAME target filtering as the
+                  rectangle version (playerSpecific / selectAnything / bAttack),
+                  so it can drive both selection and attack identically.
+    Inputs      : startNode  - render/space object list head
+                  screenX/Y  - polygon vertices in SCREEN PIXELS, nPoly of them
+                  destList,destCount - output target list (filled)
+                  playerSpecific, selectAnything, bAttack - as in selRectDragFunction
+    Return      : void
+----------------------------------------------------------------------------*/
+void selLassoDragFunction(Node *startNode, sdword *screenX, sdword *screenY, sdword nPoly,
+                          SpaceObjRotImpTarg **destList, sdword *destCount,
+                          sdword playerSpecific, bool32 selectAnything, bool32 bAttack)
+{
+    static real32 vx[256], vy[256];
+    Node *targetnode;
+    SpaceObjRotImpTarg *target;
+    sdword i, j;
+    real32 px, py;
+    bool32 inside;
+
+    *destCount = 0;
+    if (nPoly < 3) return;
+    if (nPoly > 256) nPoly = 256;
+    for (i = 0; i < nPoly; i++)
+    {
+        vx[i] = primScreenToGLX(screenX[i]);
+        vy[i] = primScreenToGLY(screenY[i]);
+    }
+
+    targetnode = startNode;
+    while (targetnode != NULL)
+    {
+        target = (SpaceObjRotImpTarg *)listGetStructOfNode(targetnode);
+        if ((target->flags & (SOF_Selectable|SOF_Targetable)) == 0) goto nextlasso;
+        if (target->collInfo.selCircleRadius <= 0.0f)               goto nextlasso;
+        if (target->flags & SOF_Dead)                               goto nextlasso;
+        if (!selectAnything)
+        {
+            if (target->objtype == OBJ_ShipType)
+            {
+                if (playerSpecific)
+                {
+                    if (!(target->flags & SOF_Selectable))                      goto nextlasso;
+                    if (((Ship *)target)->playerowner != universe.curPlayerPtr) goto nextlasso;
+                }
+            }
+            else if (target->objtype == OBJ_DerelictType)
+            {
+                if (playerSpecific) goto nextlasso;
+            }
+            else
+            {
+                goto nextlasso;
+            }
+        }
+        if (target->objtype == OBJ_ShipType)
+        {
+            if (bitTest(target->flags, SOF_Cloaked))
+            {
+                if (((Ship *)target)->playerowner != universe.curPlayerPtr)
+                {
+                    if (!proximityCanPlayerSeeShip(universe.curPlayerPtr, (Ship *)target)) goto nextlasso;
+                }
+            }
+            if (bitTest(target->flags, SOF_Slaveable))
+            {
+                if (!bitTest(((Ship *)target)->slaveinfo->flags, SF_MASTER)) goto nextlasso;
+            }
+            if (bAttack && ((Ship *)target)->staticinfo->cannotForceAttackIfOwnShip)
+            {
+                if (((Ship *)target)->playerowner == universe.curPlayerPtr) goto nextlasso;
+            }
+        }
+        else if (target->objtype == OBJ_AsteroidType)
+        {
+            if (playerSpecific) goto nextlasso;
+            if (selectAnything ||
+                (bAttack && (target->attributes & (ATTRIBUTES_KillerCollDamage|ATTRIBUTES_HeadShotKillerCollDamage))))
+            {
+                ;  /* allow */
+            }
+            else
+            {
+                goto nextlasso;
+            }
+        }
+
+        /* even-odd point-in-polygon on the selection-circle centre (GL space) */
+        px = target->collInfo.selCircleX;
+        py = target->collInfo.selCircleY;
+        inside = FALSE;
+        for (i = 0, j = nPoly - 1; i < nPoly; j = i++)
+        {
+            if (((vy[i] > py) != (vy[j] > py)) &&
+                (px < (vx[j] - vx[i]) * (py - vy[i]) / (vy[j] - vy[i]) + vx[i]))
+            {
+                inside = !inside;
+            }
+        }
+        if (inside && (*destCount < COMMAND_MAX_SHIPS))
+        {
+            destList[*destCount] = target;
+            (*destCount)++;
+        }
+nextlasso:
+        targetnode = targetnode->next;
+    }
+}
+
+/*-----------------------------------------------------------------------------
     Name        : selRectDragAddFunction
     Description : Update a list of ships being selected based upon
                     specified rectangle and camera.

@@ -52,6 +52,7 @@ public class HomeworldActivity extends SDLActivity {
     public native void nativeMoveShips();      /* M  = Homeworld movement disk */
     public native void nativeForceAttack();    /* ATK = Ctrl+Shift+LMB at cursor */
     public native void nativeSetAtkMode(boolean on);  /* drag-band turns into a band-attack */
+    public native boolean nativeIsInMenu();           /* true in front-end/menus, false in live gameplay */
 
     /* "Attack mode" toggle: when ON, the LMB overlay button issues
        Ctrl+Shift+LMB (force-attack) instead of a normal LMB click. Lets the
@@ -63,6 +64,8 @@ public class HomeworldActivity extends SDLActivity {
     /* Whole-overlay show/hide: the small chevron button toggles the visibility
        of the two-row button bar so the user can reclaim the bottom of the
        screen during gameplay. */
+    private LinearLayout overlayContainer = null;  /* whole [chevron][stack] bar; hidden in menus */
+    private android.os.Handler overlayPoll = null; /* polls nativeIsInMenu() to show/hide the bar */
     private LinearLayout overlayStack = null;
     private Button       overlayToggleBtn = null;
     private boolean      overlayVisible = true;
@@ -155,9 +158,35 @@ public class HomeworldActivity extends SDLActivity {
                 }
             }
             addControlOverlay();
+            startOverlayMenuPoll();
         }
 
         acquireMulticastLock();
+    }
+
+    /** Poll the engine a few times a second and hide the on-screen control
+     *  overlay while in menus/front-end (where it isn't needed -- menus are
+     *  tapped directly -- and would overlap the centred menu panel), showing it
+     *  again during live gameplay. */
+    private void startOverlayMenuPoll() {
+        overlayPoll = new android.os.Handler(getMainLooper());
+        final Runnable tick = new Runnable() {
+            private boolean lastInMenu = true;   /* start hidden until in-game */
+            @Override public void run() {
+                if (overlayContainer != null) {
+                    boolean inMenu;
+                    try { inMenu = nativeIsInMenu(); }
+                    catch (Throwable t) { inMenu = true; }
+                    if (inMenu != lastInMenu) {
+                        lastInMenu = inMenu;
+                        overlayContainer.setVisibility(inMenu ? View.GONE : View.VISIBLE);
+                    }
+                }
+                if (overlayPoll != null) overlayPoll.postDelayed(this, 250);
+            }
+        };
+        overlayContainer.setVisibility(View.GONE);   /* hidden at boot (main menu) */
+        overlayPoll.postDelayed(tick, 500);
     }
 
     /** Grab a WifiManager MulticastLock so the kernel delivers inbound UDP
@@ -180,6 +209,10 @@ public class HomeworldActivity extends SDLActivity {
 
     @Override
     protected void onDestroy() {
+        if (overlayPoll != null) {
+            overlayPoll.removeCallbacksAndMessages(null);
+            overlayPoll = null;
+        }
         if (multicastLock != null && multicastLock.isHeld()) {
             multicastLock.release();
         }
@@ -297,7 +330,8 @@ public class HomeworldActivity extends SDLActivity {
 
         /* Wrap [toggle][stack] in a horizontal container so the chevron stays
            in the same screen position whether the stack is shown or hidden. */
-        LinearLayout container = new LinearLayout(this);
+        overlayContainer = new LinearLayout(this);
+        LinearLayout container = overlayContainer;
         container.setOrientation(LinearLayout.HORIZONTAL);
         container.setGravity(Gravity.BOTTOM);
 

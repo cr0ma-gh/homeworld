@@ -1735,6 +1735,9 @@ static float        gokFinger0DownX = 0.0f;
 static float        gokFinger0DownY = 0.0f;
 static bool32       gokLongPressFired = FALSE;
 static bool32       gokFinger0LmbDown = FALSE;  /* LMB held for a drag-band-select */
+static bool32       gokMenuPointer    = FALSE;  /* TRUE while a menu touch holds LMB (direct-pointer mode) */
+static sdword       gokTrackX = 0;              /* authoritative trackpad cursor pos (immune to engine drift) */
+static sdword       gokTrackY = 0;
 static bool32       gokAtkMode        = FALSE;  /* set from Java via nativeSetAtkMode */
 static bool32       gokAtkBandHeld    = FALSE;  /* TRUE while CTRL+SHIFT held for band-attack */
 static sdword       gokAtkReleaseDelay = 0;     /* frames remaining before releasing CTRL+SHIFT */
@@ -1755,9 +1758,116 @@ static float        gokCentroidPrevY = 0.0f;
 static float        gokFingerX[2] = { 0.0f, 0.0f };
 static float        gokFingerY[2] = { 0.0f, 0.0f };
 static SDL_FingerID gokFingerId[2] = { 0, 0 };
+static bool32       gokPanActive = FALSE;        /* TRUE while 3 fingers pan the camera */
+static float        gokPanPrevX = 0.0f;          /* previous 3-finger centroid (px)     */
+static float        gokPanPrevY = 0.0f;
+static int          gokTapCount = 0;             /* consecutive quick single-finger taps */
+static Uint32       gokLastTapMs = 0;            /* timestamp of the previous tap         */
+static float        gokLastTapX = 0.0f;          /* normalized pos of the previous tap    */
+static float        gokLastTapY = 0.0f;
+#define GOK_LASSO_MAX 256
+static sdword       gokPathX[GOK_LASSO_MAX];     /* one-finger drag path (cursor px) for lasso */
+static sdword       gokPathY[GOK_LASSO_MAX];
+static int          gokPathN = 0;
+static bool32       gokLassoPending = FALSE;     /* deferred: run the lasso after this frame's tasks */
+
+/* Translate the viewpoint across space by a screen-pixel delta (Game side,
+   src/Game/CameraCommand.c). real32 == float. */
+extern void gokCameraPanScreen(float dxPixels, float dyPixels);
+/* Focus the camera on the current ship selection (triple-tap; src/SDL/mainrgn.c). */
+extern void gokCameraFocusSelection(void);
+/* Freehand-loop (lasso) gesture (src/SDL/mainrgn.c): snapshot the selection at
+   drag start, then on release select enclosed own ships OR attack enclosed enemies. */
+extern void   gokLassoBegin(void);
+extern sdword gokLassoApply(sdword *screenX, sdword *screenY, sdword n);
+
+/* Append the current cursor position to the freehand drag path (throttled, with
+   decimation when the buffer fills so the whole loop is kept at lower res). */
+static void gokPathAppend(sdword x, sdword y)
+{
+    if (gokPathN > 0)
+    {
+        sdword dx = x - gokPathX[gokPathN - 1];
+        sdword dy = y - gokPathY[gokPathN - 1];
+        if ((dx * dx + dy * dy) < 25) return;        /* < 5px: skip */
+    }
+    if (gokPathN >= GOK_LASSO_MAX)
+    {                                                /* full: decimate to half, keep shape */
+        int k;
+        for (k = 0; k < GOK_LASSO_MAX / 2; k++)
+        {
+            gokPathX[k] = gokPathX[2 * k];
+            gokPathY[k] = gokPathY[2 * k];
+        }
+        gokPathN = GOK_LASSO_MAX / 2;
+    }
+    gokPathX[gokPathN] = x;
+    gokPathY[gokPathN] = y;
+    gokPathN++;
+}
+
+/* Run a pending lasso selection. Called once per frame AFTER the game tasks, so
+   it overwrites the band-select rectangle result the engine produced this frame
+   from the same finger release. */
+static void gokTouchLassoFlush(void)
+{
+    if (gokLassoPending)
+    {
+        gokLassoPending = FALSE;
+        gokLassoApply(gokPathX, gokPathY, gokPathN);
+    }
+}
+
+/* Expose the in-progress freehand drag path so the renderer (mainrgn.c) can draw
+   the actual outline the finger is tracing instead of the rubber-band rectangle.
+   Returns 0 (nothing to draw) unless a single-finger drag is active in gameplay. */
+sdword gokTouchLassoPointCount(void)
+{
+    /* GOK_IN_GAMEPLAY() is #defined further down; declare its inputs locally so
+       this accessor (placed above the macro) needs no forward reference. */
+    extern bool32 gameIsRunning;
+    extern sdword feMenuLevel;
+    extern sdword feStackIndex;
+    if (gokTouchCount == 1 && gameIsRunning && feMenuLevel == 0 && feStackIndex == 0)
+    {
+        return (sdword)gokPathN;
+    }
+    return 0;
+}
+void gokTouchLassoPoint(sdword i, sdword *x, sdword *y)
+{
+    if (i >= 0 && i < gokPathN) { *x = gokPathX[i]; *y = gokPathY[i]; }
+    else                        { *x = 0;            *y = 0;            }
+}
+
+/* Centroid (in screen pixels) of all fingers currently down on the device.
+   Returns the finger count. Used for the 3-finger pan so it is robust to which
+   physical fingers are tracked in the 2-slot orbit arrays. */
+static int gokTouchCentroid(SDL_TouchID tid, float *cx, float *cy)
+{
+    int nf = SDL_GetNumTouchFingers(tid);
+    int i;
+    float sx = 0.0f, sy = 0.0f;
+    if (nf <= 0) return 0;
+    for (i = 0; i < nf; i++)
+    {
+        SDL_Finger *f = SDL_GetTouchFinger(tid, i);
+        if (f != NULL) { sx += f->x; sy += f->y; }
+    }
+    *cx = (sx / (float)nf) * (float)MAIN_WindowWidth;
+    *cy = (sy / (float)nf) * (float)MAIN_WindowHeight;
+    return nf;
+}
 
 extern sdword feMenuLevel;  /* >0 when a front-end menu is on top */
+extern sdword feStackIndex; /* >0 when a front-end screen/dialog is on the stack
+                               (incl. the in-game ESC "Game Options" menu) */
 extern bool32 gameIsRunning;  /* TRUE only inside an active mission           */
+
+/* TRUE when a menu/dialog is up (or no mission running): the on-screen overlay
+   is hidden and touch acts as a direct pointer. FALSE only during live
+   gameplay with nothing layered on top. */
+#define GOK_IN_GAMEPLAY() (gameIsRunning && feMenuLevel == 0 && feStackIndex == 0)
 extern sdword piePointSpecMode;  /* 0=PSM_Idle. Non-zero = movement disk up. */
 #define GOK_PSM_IDLE 0           /* mirrors PSM_Idle from PiePlate.h         */
 
@@ -1875,6 +1985,17 @@ Java_org_homeworld_gok_HomeworldActivity_nativeSetAtkMode(
     gokAtkMode = on ? TRUE : FALSE;
 }
 
+/* True when NOT in live gameplay (no mission running, or a front-end menu is
+   layered on top). Polled by the Java overlay so the on-screen control buttons
+   are shown only in-game and hidden in menus (where they just clutter/overlap
+   the menu and aren't needed -- menus are tapped directly, see FINGERUP). */
+JNIEXPORT jboolean JNICALL
+Java_org_homeworld_gok_HomeworldActivity_nativeIsInMenu(JNIEnv *env, jobject obj)
+{
+    (void)env; (void)obj;
+    return GOK_IN_GAMEPLAY() ? JNI_FALSE : JNI_TRUE;
+}
+
 /* Called every frame from render.c rndFlush(). After a band-attack drag the
    engine needs a couple of frames with CTRL still held so its RPE_ReleaseLeft
    dispatch sees the modifier and takes the CTRL-bandbox attack branch. */
@@ -1892,6 +2013,12 @@ void gokAtkPerFrame(void)
 }
 
 #endif
+
+// Touch/Android soft-keyboard bridge (implemented in src/Game/UIControls.c):
+// feed on-screen-keyboard text into the focused field, and keep the keyboard
+// shown/hidden in sync with text-entry focus.
+extern void uicTextEntrySoftKeyboardInput(const char *utf8);
+extern void uicTextEntrySyncSoftKeyboard(void);
 
 void HandleEvent(SDL_Event const* pEvent) {
     extern bool32 utilPlayingIntro;
@@ -1928,17 +2055,45 @@ void HandleEvent(SDL_Event const* pEvent) {
                 gokAccumY         = 0.0f;
                 gokCursorAtDownX  = mouseCursorX();
                 gokCursorAtDownY  = mouseCursorY();
+                gokTrackX         = mouseCursorX();   /* sync authoritative pos to the real cursor */
+                gokTrackY         = mouseCursorY();
+                gokPathN          = 0;                /* start a fresh freehand path (lasso) */
+                gokPathAppend(mouseCursorX(), mouseCursorY());
+                if (GOK_IN_GAMEPLAY())
+                {
+                    gokLassoBegin();                  /* snapshot selection for a possible attack-lasso */
+                }
                 gokLongPressFired = FALSE;
                 gokFinger0LmbDown = FALSE;
-                /* No cursor jump on touch — trackpad behaviour in both menu AND
-                   game. In-game a drag still triggers band-select (see FINGERMOTION)
-                   but anchored at the cursor's pre-touch position. */
+                gokMenuPointer    = FALSE;
+                /* In a menu/front-end (incl. the in-game ESC "Game Options"
+                   dialog, which leaves gameIsRunning TRUE but pushes a screen ->
+                   feStackIndex>0): DIRECT-POINTER touch. Jump the cursor straight
+                   to the finger and press LMB now, so tapping a menu item presses
+                   it directly (release on FINGERUP -> a real click across frames).
+                   In-game we keep trackpad behaviour (no jump) for precise aiming;
+                   a drag there still band-selects. */
+                if (!GOK_IN_GAMEPLAY() && !mouseDisabled)
+                {
+                    sdword cx = (sdword)(pEvent->tfinger.x * (float)MAIN_WindowWidth);
+                    sdword cy = (sdword)(pEvent->tfinger.y * (float)MAIN_WindowHeight);
+                    if (cx < 0) cx = 0; if (cy < 0) cy = 0;
+                    if (cx > MAIN_WindowWidth  - 1) cx = MAIN_WindowWidth  - 1;
+                    if (cy > MAIN_WindowHeight - 1) cy = MAIN_WindowHeight - 1;
+                    mousePositionSet(cx, cy);
+                    mouseCursorShow();
+                    mouseClipToRect(NULL);
+                    mouseLClick();
+                    keyPressDown(LMOUSE_BUTTON);
+                    gokMenuPointer = TRUE;
+                }
             }
             if (gokTouchCount == 2 && !mouseDisabled)
             {
                 gokLongPressFired = TRUE;        /* two fingers -> not a long-press  */
                 keyPressUp(LMOUSE_BUTTON);       /* cancel any single-finger select  */
                 gokFinger0LmbDown = FALSE;
+                gokMenuPointer    = FALSE;       /* cancel a menu tap if 2nd finger lands */
                 keyPressDown(RMOUSE_BUTTON);     /* enter camera orbit/zoom mode     */
                 gokTouchCamera = TRUE;
                 gokGestureMode = 0;
@@ -1949,6 +2104,21 @@ void HandleEvent(SDL_Event const* pEvent) {
                 gokStartDist = gokPinchPrevDist;
                 gokStartCenX = gokCentroidPrevX;
                 gokStartCenY = gokCentroidPrevY;
+            }
+            if (gokTouchCount == 3 && !mouseDisabled && gameIsRunning)
+            {
+                /* Third finger: switch from 2-finger orbit/zoom to PAN (slide the
+                   viewpoint across space). Anchor at the current finger centroid;
+                   the orbit/zoom path is gated to exactly two fingers, and the
+                   held RMB is harmless until released on the drop below 2. */
+                float cx, cy;
+                if (gokTouchCentroid(pEvent->tfinger.touchId, &cx, &cy) >= 3)
+                {
+                    gokPanPrevX    = cx;
+                    gokPanPrevY    = cy;
+                    gokPanActive   = TRUE;
+                    gokGestureMode = 0;   /* drop any in-progress orbit/zoom classification */
+                }
             }
             break;
 
@@ -1967,6 +2137,21 @@ void HandleEvent(SDL_Event const* pEvent) {
                position when the finger landed, then keep tracking. */
             if (gokTouchCount == 1 && !mouseDisabled)
             {
+                if (gokMenuPointer)
+                {
+                    /* Menu direct-pointer: cursor follows the finger absolutely
+                       (LMB held since FINGERDOWN), so you can slide onto an item
+                       and release to click it. Skips the in-game trackpad path. */
+                    sdword mcx = (sdword)(pEvent->tfinger.x * (float)MAIN_WindowWidth);
+                    sdword mcy = (sdword)(pEvent->tfinger.y * (float)MAIN_WindowHeight);
+                    if (mcx < 0) mcx = 0; if (mcy < 0) mcy = 0;
+                    if (mcx > MAIN_WindowWidth  - 1) mcx = MAIN_WindowWidth  - 1;
+                    if (mcy > MAIN_WindowHeight - 1) mcy = MAIN_WindowHeight - 1;
+                    mousePositionSet(mcx, mcy);
+                    mouseCursorShow();
+                    mouseClipToRect(NULL);
+                    break;
+                }
                 /* Re-anchor after a 2->1 finger transition (sentinel set on
                    FINGERUP): use this event's position as the new reference so
                    we don't jump the cursor by a huge stale-finger delta. */
@@ -1976,15 +2161,22 @@ void HandleEvent(SDL_Event const* pEvent) {
                     gokLastFingerY = pEvent->tfinger.y;
                     gokAccumX = 0.0f;
                     gokAccumY = 0.0f;
+                    gokTrackX = mouseCursorX();   /* resync after camera gesture */
+                    gokTrackY = mouseCursorY();
                 }
 
                 float dxe = (pEvent->tfinger.x - gokLastFingerX) * (float)MAIN_WindowWidth;
                 float dye = (pEvent->tfinger.y - gokLastFingerY) * (float)MAIN_WindowHeight;
 
-                /* Mild acceleration so a quick swipe crosses the screen without
-                   needing many small drags, while slow drags keep precision. */
+                /* Pointer-acceleration curve. A flat 1.30 base moved the cursor
+                   >1:1 even at the slowest drag, so fine positioning was
+                   imprecise. Use a LOW base (well under 1:1 -> very fine/precise
+                   when moving slowly) with a steeper slope so fast swipes still
+                   cross the screen quickly. mag = per-event finger delta (logical
+                   px). Tune the base lower for finer control, the slope higher
+                   for quicker long swipes. */
                 float mag   = SDL_sqrtf(dxe * dxe + dye * dye);
-                float scale = 1.30f + mag * 0.015f;
+                float scale = 0.30f + mag * 0.07f;
                 dxe *= scale;
                 dye *= scale;
 
@@ -1996,14 +2188,22 @@ void HandleEvent(SDL_Event const* pEvent) {
                 sdword stepY = (sdword)gokAccumY;
                 gokAccumX -= (float)stepX;
                 gokAccumY -= (float)stepY;
-                sdword newX = mouseCursorX() + stepX;
-                sdword newY = mouseCursorY() + stepY;
+                /* Drive the cursor from OUR OWN tracked position, not the engine's
+                   live mouseCursorX/Y. During a band-select near a screen edge the
+                   engine auto-scrolls and drags its cursor sideways on its own; if
+                   we based the next step on that, a finger moving right could make
+                   the cursor crawl left. Tracking authoritatively keeps 1 finger
+                   move == 1 cursor move in the same direction. */
+                sdword newX = gokTrackX + stepX;
+                sdword newY = gokTrackY + stepY;
                 /* Clamp to screen so a flick can't push the cursor off the
                    visible area (invisible cursor = ATK aiming at nothing). */
                 if (newX < 0) newX = 0;
                 if (newY < 0) newY = 0;
                 if (newX > MAIN_WindowWidth  - 1) newX = MAIN_WindowWidth  - 1;
                 if (newY > MAIN_WindowHeight - 1) newY = MAIN_WindowHeight - 1;
+                gokTrackX = newX;
+                gokTrackY = newY;
 
                 if (gameIsRunning && feMenuLevel == 0 && !gokFinger0LmbDown
                     && piePointSpecMode == GOK_PSM_IDLE)
@@ -2048,10 +2248,15 @@ void HandleEvent(SDL_Event const* pEvent) {
                 mouseCursorShow();
                 mouseClipToRect(NULL);
 
+                if (GOK_IN_GAMEPLAY())
+                {
+                    gokPathAppend(newX, newY);        /* record the freehand path for lasso */
+                }
+
                 gokLastFingerX = pEvent->tfinger.x;
                 gokLastFingerY = pEvent->tfinger.y;
             }
-            if (gokTouchCamera && gokTouchCount >= 2 && !mouseDisabled)
+            if (gokTouchCamera && gokTouchCount == 2 && !mouseDisabled)
             {
                 float dist    = gokPinchDistance();
                 float dDist   = dist - gokPinchPrevDist;
@@ -2098,10 +2303,48 @@ void HandleEvent(SDL_Event const* pEvent) {
                 gokCentroidPrevX = cenX;
                 gokCentroidPrevY = cenY;
             }
+            if (gokPanActive && gokTouchCount >= 3 && !mouseDisabled && gameIsRunning)
+            {
+                /* Three (or more) fingers: pan the viewpoint by the change in the
+                   finger centroid. Feeds the screen-pixel delta to the camera so
+                   the scene slides under the fingers. */
+                float cx, cy;
+                if (gokTouchCentroid(pEvent->tfinger.touchId, &cx, &cy) >= 3)
+                {
+                    gokCameraPanScreen(cx - gokPanPrevX, cy - gokPanPrevY);
+                    gokPanPrevX = cx;
+                    gokPanPrevY = cy;
+                }
+            }
             break;
 
         case SDL_FINGERUP:
             if (gokTouchCount > 0) gokTouchCount--;
+            if (gokPanActive && gokTouchCount < 3)
+            {
+                /* A finger lifted out of the 3-finger pan. If two remain, resume
+                   orbit/zoom: re-bind the 2-finger tracking to whichever fingers
+                   are still down and re-anchor the references so the view doesn't
+                   jump on the next motion. */
+                gokPanActive = FALSE;
+                if (gokTouchCount == 2)
+                {
+                    SDL_Finger *f0 = SDL_GetTouchFinger(pEvent->tfinger.touchId, 0);
+                    SDL_Finger *f1 = SDL_GetTouchFinger(pEvent->tfinger.touchId, 1);
+                    if (f0 != NULL && f1 != NULL)
+                    {
+                        gokFingerId[0] = f0->id; gokFingerX[0] = f0->x; gokFingerY[0] = f0->y;
+                        gokFingerId[1] = f1->id; gokFingerX[1] = f1->x; gokFingerY[1] = f1->y;
+                        gokPinchPrevDist = gokPinchDistance();
+                        gokCentroidPrevX = (gokFingerX[0] + gokFingerX[1]) * 0.5f * (float)MAIN_WindowWidth;
+                        gokCentroidPrevY = (gokFingerY[0] + gokFingerY[1]) * 0.5f * (float)MAIN_WindowHeight;
+                        gokStartDist     = gokPinchPrevDist;
+                        gokStartCenX     = gokCentroidPrevX;
+                        gokStartCenY     = gokCentroidPrevY;
+                        gokGestureMode   = 0;
+                    }
+                }
+            }
             if (gokTouchCount == 1)
             {
                 /* Dropped from 2 fingers to 1: the trackpad reference still
@@ -2120,8 +2363,88 @@ void HandleEvent(SDL_Event const* pEvent) {
             }
             if (gokTouchCount == 0)
             {
+                /* Triple-tap (three quick single-finger taps at the same spot,
+                   in live gameplay) focuses the camera on the current selection.
+                   Evaluated BEFORE gokLongPressFired/gokFinger0LmbDown are reset
+                   below, so we only count genuine taps: no drag, no second
+                   finger and no long-press. */
+                if (GOK_IN_GAMEPLAY() && !gokLongPressFired && !gokFinger0LmbDown && !mouseDisabled)
+                {
+                    Uint32 nowTap = SDL_GetTicks();
+                    float mdx = (pEvent->tfinger.x - gokFinger0DownX) * (float)MAIN_WindowWidth;
+                    float mdy = (pEvent->tfinger.y - gokFinger0DownY) * (float)MAIN_WindowHeight;
+                    float tapMove = SDL_sqrtf(mdx * mdx + mdy * mdy);
+                    if ((nowTap - gokFinger0DownMs) <= 300 &&
+                        tapMove <= 0.02f * (float)MAIN_WindowWidth)
+                    {                                           /* a clean, quick tap */
+                        float sdx = (pEvent->tfinger.x - gokLastTapX) * (float)MAIN_WindowWidth;
+                        float sdy = (pEvent->tfinger.y - gokLastTapY) * (float)MAIN_WindowHeight;
+                        float tapSpread = SDL_sqrtf(sdx * sdx + sdy * sdy);
+                        if ((nowTap - gokLastTapMs) <= 450 &&
+                            tapSpread <= 0.06f * (float)MAIN_WindowWidth)
+                            gokTapCount++;                      /* part of a multi-tap */
+                        else
+                            gokTapCount = 1;                    /* a fresh first tap   */
+                        gokLastTapMs = nowTap;
+                        gokLastTapX  = pEvent->tfinger.x;
+                        gokLastTapY  = pEvent->tfinger.y;
+                        if (gokTapCount >= 3)
+                        {
+                            gokCameraFocusSelection();          /* focus current selection */
+                            gokTapCount = 0;
+                        }
+                    }
+                    else
+                    {
+                        gokTapCount = 0;                        /* held/dragged: not a tap */
+                    }
+                }
+                /* Freehand closed loop ("lasso"): if the in-game one-finger drag
+                   came back near where it started and enclosed a meaningful area,
+                   queue a lasso selection. It runs after this frame's tasks so it
+                   replaces the band-select rectangle the same release produced. */
+                if (GOK_IN_GAMEPLAY() && !gokLongPressFired && gokPathN >= 12)
+                {
+                    sdword minx = gokPathX[0], maxx = gokPathX[0];
+                    sdword miny = gokPathY[0], maxy = gokPathY[0];
+                    int    k;
+                    float  w, h, diag, ex, ey, closeDist;
+                    for (k = 1; k < gokPathN; k++)
+                    {
+                        if (gokPathX[k] < minx) minx = gokPathX[k];
+                        if (gokPathX[k] > maxx) maxx = gokPathX[k];
+                        if (gokPathY[k] < miny) miny = gokPathY[k];
+                        if (gokPathY[k] > maxy) maxy = gokPathY[k];
+                    }
+                    w = (float)(maxx - minx);
+                    h = (float)(maxy - miny);
+                    diag = SDL_sqrtf(w * w + h * h);
+                    ex = (float)(gokPathX[gokPathN - 1] - gokPathX[0]);
+                    ey = (float)(gokPathY[gokPathN - 1] - gokPathY[0]);
+                    closeDist = SDL_sqrtf(ex * ex + ey * ey);
+                    if (diag >= 0.10f * (float)MAIN_WindowWidth &&  /* deliberate size */
+                        closeDist <= 0.28f * diag)                  /* returned near the start */
+                    {
+                        gokLassoPending = TRUE;
+                    }
+                }
                 gokLongPressFired = FALSE;
-                if (gokFinger0LmbDown)
+                if (gokMenuPointer)
+                {
+                    /* Menu direct-pointer release: snap the cursor exactly under
+                       the finger and release LMB -> the engine clicks the item
+                       there (press happened on FINGERDOWN, so it's a real
+                       press->release click across frames). */
+                    sdword cx = (sdword)(pEvent->tfinger.x * (float)MAIN_WindowWidth);
+                    sdword cy = (sdword)(pEvent->tfinger.y * (float)MAIN_WindowHeight);
+                    if (cx < 0) cx = 0; if (cy < 0) cy = 0;
+                    if (cx > MAIN_WindowWidth  - 1) cx = MAIN_WindowWidth  - 1;
+                    if (cy > MAIN_WindowHeight - 1) cy = MAIN_WindowHeight - 1;
+                    mousePositionSet(cx, cy);
+                    keyPressUp(LMOUSE_BUTTON);
+                    gokMenuPointer = FALSE;
+                }
+                else if (gokFinger0LmbDown)
                 {
                     keyPressUp(LMOUSE_BUTTON);   /* close the band-select drag */
                     gokFinger0LmbDown = FALSE;
@@ -2224,6 +2547,14 @@ void HandleEvent(SDL_Event const* pEvent) {
             {
                 keyPressDown(keyLanguageTranslate(pEvent->key.keysym.scancode));
             }
+            return;
+
+        case SDL_TEXTINPUT:
+            //printable characters typed on the on-screen (soft) keyboard arrive
+            //here as UTF-8 text rather than hardware scancodes; route them into
+            //the focused text-entry control. Backspace/Enter/arrows still come
+            //through SDL_KEYDOWN above.
+            uicTextEntrySoftKeyboardInput(pEvent->text.text);
             return;
 
         case SDL_USEREVENT:
@@ -2767,7 +3098,12 @@ int main (int argc, char* argv[])
             }
             if (breakMainLoop) break;
 
+            uicTextEntrySyncSoftKeyboard(); // show/hide on-screen keyboard with text-entry focus
+
             utyTasksDispatch(); // execute all tasks
+#ifdef __ANDROID__
+            gokTouchLassoFlush(); // apply a queued freehand-loop (lasso) selection after tasks
+#endif
 
             if (opTimerActive) {
                 if (taskTimeElapsed > (opTimerStart + opTimerLength)) {

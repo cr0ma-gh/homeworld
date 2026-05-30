@@ -19,6 +19,9 @@ android/app/src/main/assets/
 android/keystore.properties
 android/local.properties
 
+# ── Dev screenshots (may contain copyrighted in-game UI) — do not commit ──────
+gok_*.png
+
 # ── Android build outputs (Gradle / CMake / NDK) ─────────────────────────────
 android/.gradle/
 android/build/

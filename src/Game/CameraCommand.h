@@ -118,6 +118,10 @@ void ccViewToggleMissionSphere(CameraCommand *cameracommand);
 void ccControl(CameraCommand *cameracommand);
 void ccLockOnTargetNow(CameraCommand *cameracommand);
 
+// Touch pan: slide the viewpoint across space by a screen-pixel delta (3-finger
+// drag on Android). Keeps angle/declination/distance; see CameraCommand.c.
+void gokCameraPanScreen(real32 dxPixels, real32 dyPixels);
+
 void ccSetModeFlag(CameraCommand *cameracommand,udword ccModeFlag);     // use CCMODE_whatever flags
 void ccClearModeFlag(CameraCommand *cameracommand,udword ccModeFlag);   // use CCMODE_whatever flags
 

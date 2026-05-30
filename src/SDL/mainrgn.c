@@ -1355,6 +1355,101 @@ void mrCameraMotion(void)
 }
 
 /*-----------------------------------------------------------------------------
+    Name        : gokCameraFocusSelection
+    Description : Touch gesture helper (triple-tap): focus the camera on the
+                  player's current ship selection -- the same thing the "F"
+                  control does. No-op if nothing is selected. Called from the
+                  Android touch handler in main.c.
+    Inputs      : void
+    Outputs     : starts a focus transition on the main camera command
+    Return      : void
+----------------------------------------------------------------------------*/
+void gokCameraFocusSelection(void)
+{
+    if (gameIsRunning && (selSelected.numShips > 0))
+    {
+        ccFocus(&(universe.mainCameraCommand), (FocusCommand *)&selSelected);
+        soundEvent(NULL, UI_Click);
+    }
+}
+
+/*-----------------------------------------------------------------------------
+    Name        : gokLassoBegin
+    Description : Snapshot the current selection at the start of a one-finger drag
+                  so that, if the drag turns out to be an enemy-circling attack
+                  lasso, we still have the player's ships to attack WITH (the
+                  band-select that fires on release clobbers selSelected).
+----------------------------------------------------------------------------*/
+static MaxSelection gokLassoSavedSel;
+
+void gokLassoBegin(void)
+{
+    gokLassoSavedSel = selSelected;
+}
+
+/*-----------------------------------------------------------------------------
+    Name        : gokLassoApply
+    Description : Resolve a freehand loop ("lasso"). If it encloses the player's
+                  own ships -> select them. Otherwise, if it encloses attackable
+                  enemies and the player had ships selected when the drag began
+                  -> order those ships to attack the enclosed enemies. If nothing
+                  useful is enclosed, restore the pre-drag selection (so an empty
+                  loop doesn't deselect via the band-select rectangle).
+    Inputs      : screenX/screenY - loop vertices in SCREEN PIXELS, n of them
+    Return      : >0 own ships selected, <0 attack issued, 0 nothing
+----------------------------------------------------------------------------*/
+sdword gokLassoApply(sdword *screenX, sdword *screenY, sdword n)
+{
+    static MaxSelection tempSelection;
+
+    if (!gameIsRunning || n < 3)
+    {
+        return 0;
+    }
+
+    //Pass 1: own ships inside the loop -> select them (like selRectSelect).
+    selLassoDragFunction(universe.RenderList.head, screenX, screenY, n,
+                         (SpaceObjRotImpTarg **)selSelected.ShipPtr, &selSelected.numShips,
+                         TRUE, FALSE, FALSE);
+    if (selSelected.numShips > 0)
+    {
+        ioUpdateShipTotals();
+        return selSelected.numShips;
+    }
+
+    //Pass 2: attackable targets inside the loop -> attack them with the pre-drag
+    //selection (restored, since the band-select on release clobbered selSelected).
+    selLassoDragFunction(universe.RenderList.head, screenX, screenY, n,
+                         selSelecting.TargetPtr, &selSelecting.numTargets,
+                         FALSE, TRUE, TRUE);
+    if ((selSelecting.numTargets > 0) && (gokLassoSavedSel.numShips > 0))
+    {
+        selSelected = gokLassoSavedSel;
+        ioUpdateShipTotals();
+        MakeTargetsOnlyNonForceAttackTargets((SelectAnyCommand *)&selSelecting, universe.curPlayerPtr); //enemies only
+        MakeShipsNotIncludeTheseShips((SelectCommand *)&selSelecting, (SelectCommand *)&selSelected);
+        MakeShipsAttackCapable((SelectCommand *)&tempSelection, (SelectCommand *)&selSelected);
+        MakeShipMastersIncludeSlaves((SelectCommand *)&selSelecting);
+        if ((selSelecting.numTargets > 0) && (tempSelection.numShips > 0))
+        {
+            if (speechEventAttack())
+            {
+                clWrapAttack(&universe.mainCommandLayer,
+                             (SelectCommand *)&tempSelection, (AttackCommand *)&selSelecting);
+            }
+        }
+        selSelecting.numTargets = 0;
+        return -1;
+    }
+    selSelecting.numTargets = 0;
+
+    //Nothing useful enclosed: undo the band-select clobber, keep prior selection.
+    selSelected = gokLassoSavedSel;
+    ioUpdateShipTotals();
+    return 0;
+}
+
+/*-----------------------------------------------------------------------------
     Name        : mrKeyRelease
     Description : handle key releases
     Inputs      : ID - keyindex of key being released
@@ -3038,6 +3133,13 @@ void mrMenuDisplay(udword actionMask, TypeOfFormation currentFormation, udword t
         }
         newScreen->atoms[0].height -= gap[index].height;//decrease height of screen
     }
+    //NOTE: the popup is NOT scaled here anymore. Enlarging the context menu
+    //(and, crucially, its pop-out SUBMENUS, which come from shared persistent
+    //screens via feScreenFind and so must not be mutated in place) is now done
+    //uniformly inside feMenuRegionsAdd (FEFlow.c) for every popup menu. That
+    //keeps the top menu and its submenus at the exact same scale so nothing
+    //looks distorted. See FE_MENU_SCALE in FEFlow.c.
+
     //start the actual menu
     feMenuStart(ghMainRegion, newScreen, mouseCursorX(), mouseCursorY());
     feTempMenuScreen = newScreen;
@@ -3109,6 +3211,42 @@ void mrRightClickMenu(void)
 
     if((tutorial==TUTORIAL_ONLY) && !tutEnable.bContextMenus)
         return;
+
+    /* Toggle: a right-click while the context menu is already open dismisses it.
+       (Needed because a click outside the menu no longer closes it -- see
+       feMenuBaseRegionProcess.) */
+    if (feTempMenuScreen != NULL)
+    {
+        while (feMenuLevel)
+            feMenuDisappear(NULL, NULL);
+        return;
+    }
+
+    /* Touch convenience: if the player already has ship(s) selected, a
+       right-click opens the context menu for that SELECTION wherever the cursor
+       is -- no need to place it exactly over a ship (which is fiddly on touch).
+       Only fall through to the click-on-ship behaviour when nothing is selected. */
+    if (selSelected.numShips > 0)
+    {
+        bool32 anyOwn = FALSE;
+        for (index = 0; index < selSelected.numShips; index++)
+        {
+            if (selSelected.ShipPtr[index]->playerowner == universe.curPlayerPtr)
+                anyOwn = TRUE;
+            actionMask  |= mrMenuActionsByShipType[selSelected.ShipPtr[index]->shiptype];
+            tacticsBits |= 1 << selSelected.ShipPtr[index]->tacticstype;
+        }
+        if (anyOwn)
+        {
+            formation = clSelectionAlreadyInFormation(&universe.mainCommandLayer,
+                                                      (SelectCommand *)(&selSelected));
+            if (tutorial && selSelected.numShips > 0)
+                tutFEContextMenuShipType = selSelected.ShipPtr[0]->shiptype;
+            mrMenuDisplay(actionMask, formation, tacticsBits);
+            soundEvent(NULL, UI_Click);
+            return;
+        }
+    }
 
     if ((ship = selSelectionClick(universe.RenderList.head,
             &(universe.mainCameraCommand.actualcamera),
@@ -5532,7 +5670,36 @@ void mrRegionDraw(regionhandle reg)
     if (mrHoldLeft == mrSelectHold)                         //and then draw the current selection progress
     {
         selSelectingDraw();
+#ifdef __ANDROID__
+        {
+            /* On touch, draw the actual freehand path the finger is tracing (the
+               lasso outline) rather than the rubber-band rectangle, so what you
+               circle matches what gets selected. Falls back to the rectangle
+               before enough of a path exists. */
+            extern sdword gokTouchLassoPointCount(void);
+            extern void   gokTouchLassoPoint(sdword i, sdword *x, sdword *y);
+            sdword n = gokTouchLassoPointCount();
+            if (n >= 3)
+            {
+                sdword i, fx, fy, x0, y0, x1, y1;
+                gokTouchLassoPoint(0, &fx, &fy);
+                x0 = fx; y0 = fy;
+                for (i = 1; i < n; i++)
+                {
+                    gokTouchLassoPoint(i, &x1, &y1);
+                    primLineThick2(x0, y0, x1, y1, 3, TW_SELECT_BOX_COLOR);
+                    x0 = x1; y0 = y1;
+                }
+                primLineThick2(x0, y0, fx, fy, 3, TW_SELECT_BOX_COLOR);   //close the loop
+            }
+            else
+            {
+                primRectOutline2(&mrSelectionRect, 1, TW_SELECT_BOX_COLOR);
+            }
+        }
+#else
         primRectOutline2(&mrSelectionRect, 1, TW_SELECT_BOX_COLOR);
+#endif
     }
 
 #if SP_DEBUGKEYS
