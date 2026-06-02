@@ -1,5 +1,8 @@
 # Welcome to the Gardens of Kadesh
 
+[![CI](https://github.com/cr0ma-gh/homeworld/actions/workflows/ci.yml/badge.svg)](https://github.com/cr0ma-gh/homeworld/actions/workflows/ci.yml)
+[![WebAssembly](https://github.com/cr0ma-gh/homeworld/actions/workflows/wasm.yml/badge.svg)](https://github.com/cr0ma-gh/homeworld/actions/workflows/wasm.yml)
+
 Gardens of Kadesh (GoK) is a fan project to maintain and improve the 1999 classics RTS game [Homeworld].
 
 - [How do I play it?](/documentation/community/players-manual.md)

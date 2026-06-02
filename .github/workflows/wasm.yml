@@ -1,0 +1,99 @@
+name: WebAssembly
+
+# Cross-compile the engine to wasm32 with Emscripten and publish the playable
+# demo to GitHub Pages. This mirrors the existing GitLab "pages" job
+# (.gitlab-ci.yml) which builds the demo and serves it as a static site.
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: wasm-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (Emscripten)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            meson ninja-build pkg-config flex bison
+
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+          # Cache the emsdk install across runs to speed things up.
+          actions-cache-folder: emsdk-cache
+
+      - name: Configure (Meson cross build)
+        run: |
+          meson setup \
+            --cross-file wasm/wasm32-emscripten.meson-cross-build-definition.txt \
+            --buildtype=release \
+            -Db_sanitize=none \
+            -Ddemo=true \
+            -Dmovies=false \
+            Linux/build.emscripten .
+
+      - name: Build
+        working-directory: Linux/build.emscripten
+        run: |
+          # Emscripten needs a writable cache/temp dir; the runner has both,
+          # but we keep them local to the build dir as the GitLab CI does.
+          export EM_CACHE="$PWD/cache"
+          export TMP="$PWD"
+          meson compile
+
+      - name: Assemble Pages artifact
+        run: |
+          mkdir -p public
+          cp Linux/build.emscripten/*.wasm* public/
+          cp Linux/build.emscripten/*.js public/
+          cp Linux/build.emscripten/*.html public/
+          cp Linux/build.emscripten/*.data public/
+          # Cross-Origin isolation shim required for SharedArrayBuffer / pthreads
+          # https://github.com/gzuidhof/coi-serviceworker
+          cp wasm/coi-serviceworker.min.js public/
+          ls -lh public
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: homeworld-wasm
+          path: public
+          if-no-files-found: error
+
+      # Prepare the artifact for GitHub Pages (only consumed by the deploy job).
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    name: Deploy to GitHub Pages
+    # Only publish from main and tags, never from pull requests.
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
