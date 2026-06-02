@@ -55,14 +55,6 @@ android {
         }
     }
 
-    /* Don't gzip the retail data archives -- they're effectively already
-       packed/compressed, and forcing AAPT to re-compress them blows up the
-       packaging time and produces marginal size savings. Keeping them stored
-       also lets the on-device extractor read them as plain InputStreams. */
-    aaptOptions {
-        noCompress 'big', 'wxd', 'vce'
-    }
-
     externalNativeBuild {
         cmake {
             path 'jni/CMakeLists.txt'
@@ -81,4 +73,7 @@ android {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
+    // Folder picker (Storage Access Framework) used by LauncherActivity to let
+    // the user point at the game-data folder and copy it into the app.
+    implementation 'androidx.documentfile:documentfile:1.0.1'
 }
