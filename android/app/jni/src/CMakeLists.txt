@@ -63,10 +63,11 @@ target_include_directories(main PRIVATE
 
 target_compile_definitions(main PRIVATE
     # HW_GAME_HOMEWORLD = full retail data (Homeworld.big, HW_Music.wxd,
-    # HW_comp.vce). Switch to HW_GAME_DEMO to build against the free demo
-    # data (HomeworldDL.big, DL_demo.vce, DL_Music.wxd) -- main.h:19 requires
-    # exactly one of HW_GAME_HOMEWORLD/HW_GAME_RAIDER_RETREAT/HW_GAME_DEMO.
-    HW_GAME_HOMEWORLD
+    # HW_comp.vce). HW_GAME_DEMO builds against the freely-redistributable demo
+    # data (HomeworldDL.big, DL_demo.vce, DL_Music.wxd, Update.big), which the
+    # Android CI fetches and bundles into the APK. main.h:19 requires exactly
+    # one of HW_GAME_HOMEWORLD/HW_GAME_RAIDER_RETREAT/HW_GAME_DEMO.
+    HW_GAME_DEMO
     ARM
     HW_PTR_64
     HW_PTR_64_FIX_ME
