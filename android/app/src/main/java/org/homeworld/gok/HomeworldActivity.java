@@ -85,14 +85,19 @@ public class HomeworldActivity extends SDLActivity {
         };
     }
 
-    /** Retail .big files bundled in the APK assets. The engine expects these
-     *  exact names (case-sensitive on Android) in the external files dir, which
-     *  is what SDL_AndroidGetExternalStoragePath() points the native side at.
+    /** Freely-redistributable demo data bundled in the APK assets (the Android
+     *  CI downloads these from the project's demo-assets archive at build time;
+     *  see .github/workflows/android.yml). The engine expects these exact names
+     *  (case-sensitive on Android) in the external files dir, which is what
+     *  SDL_AndroidGetExternalStoragePath() points the native side at. Matches
+     *  the HW_GAME_DEMO data set (BigFile.c / utility.c).
      *  Listed as {assetName -> destFilename}. */
     private static final String[][] BUNDLED_GAME_DATA = {
-        { "Homeworld.big", "Homeworld.big" },
-        { "HW_Music.wxd",  "HW_Music.wxd"  },
-        { "HW_comp.vce",   "HW_comp.vce"   },
+        { "HomeworldDL.big", "HomeworldDL.big" },
+        { "Update.big",      "Update.big"      },
+        { "DL_Music.wxd",    "DL_Music.wxd"    },
+        // The archive ships this lowercase; utility.c reads it as "DL_Demo.vce".
+        { "DL_demo.vce",     "DL_Demo.vce"     },
     };
 
     @Override
