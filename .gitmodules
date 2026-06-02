@@ -1,0 +1,10 @@
+# Native dependencies for the Android (NDK/CMake) build. These are checked out
+# at the exact commits recorded as gitlinks under android/app/jni/.
+[submodule "android/app/jni/SDL"]
+	path = android/app/jni/SDL
+	url = https://github.com/libsdl-org/SDL.git
+	branch = SDL2
+[submodule "android/app/jni/gl4es"]
+	path = android/app/jni/gl4es
+	url = https://github.com/ptitSeb/gl4es.git
+	branch = master
