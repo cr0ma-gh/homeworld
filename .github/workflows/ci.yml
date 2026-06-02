@@ -1,0 +1,84 @@
+name: CI
+
+# Continuous Integration: build the engine on every push and pull request so
+# that regressions are caught early. The canonical build system is Meson, as
+# documented in Linux/BUILD.md and documentation/contributors/compiling-from-source.md.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  # Allow running this workflow manually from the Actions tab.
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux (${{ matrix.cc }}, ${{ matrix.buildtype }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Don't cancel the whole matrix when a single combination fails: we want
+      # to see the status of every compiler/buildtype pair.
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+        buildtype: [debug, release]
+        include:
+          # Debug build with the default address+undefined sanitizers (matches
+          # the project default in meson.build).
+          - buildtype: debug
+            sanitize: "address,undefined"
+          # Optimised "distribution" build, no sanitizers (what we ship).
+          - buildtype: release
+            sanitize: "none"
+
+    env:
+      CC: ${{ matrix.cc }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            meson ninja-build pkg-config \
+            ${{ matrix.cc }} \
+            libsdl2-dev libsdl2-image-dev \
+            libgl1-mesa-dev libx11-dev \
+            libavcodec-dev libavformat-dev libavutil-dev libswscale-dev \
+            flex bison
+
+      - name: Configure (Meson)
+        run: |
+          meson setup build \
+            --buildtype=${{ matrix.buildtype }} \
+            -Db_sanitize=${{ matrix.sanitize }}
+
+      - name: Build
+        run: meson compile -C build
+
+      - name: Show binary info
+        run: |
+          file build/homeworld
+          ls -lh build/homeworld
+
+      # Publish the optimised binary so it can be downloaded from the run page.
+      - name: Upload artifact
+        if: matrix.buildtype == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: homeworld-linux-x86_64-${{ matrix.cc }}
+          path: build/homeworld
+          if-no-files-found: error
+
+# NOTE: there is intentionally no macOS job here. The Meson build's darwin path
+# links against X11 (src/SDL/utility.c uses XSendEvent/XKeysymToKeycode), but the
+# SDL2 available on hosted macOS runners is a Cocoa build without X11, so the
+# build cannot succeed there. The supported macOS build is the Xcode project
+# documented in Mac/BUILD.md.

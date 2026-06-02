@@ -19,14 +19,16 @@ android {
         }
     }
 
-    /* Self-signed key for personal-use release builds. Key + store password are
-       both 'gokgokgok' (rotate for any wider distribution). */
+    /* Self-signed key for personal-use release builds. Local builds fall back to
+       ../release.keystore with password 'gokgokgok'; CI provides the keystore
+       and credentials via environment variables / GitHub Secrets so the file is
+       never committed. (Rotate for any wider distribution.) */
     signingConfigs {
         release {
-            storeFile      file('../release.keystore')
-            storePassword  'gokgokgok'
-            keyAlias       'gok'
-            keyPassword    'gokgokgok'
+            storeFile      file(System.getenv('ANDROID_KEYSTORE_PATH') ?: '../release.keystore')
+            storePassword  System.getenv('ANDROID_KEYSTORE_PASSWORD') ?: 'gokgokgok'
+            keyAlias       System.getenv('ANDROID_KEY_ALIAS') ?: 'gok'
+            keyPassword    System.getenv('ANDROID_KEY_PASSWORD') ?: 'gokgokgok'
         }
     }
 

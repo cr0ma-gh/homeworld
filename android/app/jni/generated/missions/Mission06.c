@@ -10,7 +10,7 @@
 //
 
 
-#include "C:\Users\marco\Desktop\gardens-of-kadesh-master\android\app\jni\generated\missions\Mission06.h"  // prototypes and #includes for exposed game functions
+#include "Mission06.h"  // prototypes and #includes for exposed game functions
 
 extern AITeam *CurrentTeamP;
 #define kasThisTeamPtr CurrentTeamP

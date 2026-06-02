@@ -7,7 +7,7 @@
 //
 
 
-#include "C:\Users\marco\Desktop\gardens-of-kadesh-master\android\app\jni\generated\missions\Mission03.h"  // prototypes and #includes for exposed game functions
+#include "Mission03.h"  // prototypes and #includes for exposed game functions
 
 // FSM init/watch function pointers.
 const void* Mission03_FunctionPointers[] =
