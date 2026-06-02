@@ -176,7 +176,6 @@ bool32 selShipsInSelection(MaxSelection *dest, MaxSelection *list);
 
 //selections by mouse dragging
 void selRectDragFunction(Node *startNode, Camera *camera, rectangle *rect, SpaceObjRotImpTarg **destList, sdword *destCount, sdword playerSpecific, bool32 selectAnything, bool32 bAttack);
-void selLassoDragFunction(Node *startNode, sdword *screenX, sdword *screenY, sdword nPoly, SpaceObjRotImpTarg **destList, sdword *destCount, sdword playerSpecific, bool32 selectAnything, bool32 bAttack);
 void selRectDragAddFunction(Node *startNode, Camera *camera, rectangle *rect);
 
 //selection by mouse click (on release)
