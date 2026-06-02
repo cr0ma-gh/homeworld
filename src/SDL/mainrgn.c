@@ -1373,81 +1373,6 @@ void gokCameraFocusSelection(void)
     }
 }
 
-/*-----------------------------------------------------------------------------
-    Name        : gokLassoBegin
-    Description : Snapshot the current selection at the start of a one-finger drag
-                  so that, if the drag turns out to be an enemy-circling attack
-                  lasso, we still have the player's ships to attack WITH (the
-                  band-select that fires on release clobbers selSelected).
-----------------------------------------------------------------------------*/
-static MaxSelection gokLassoSavedSel;
-
-void gokLassoBegin(void)
-{
-    gokLassoSavedSel = selSelected;
-}
-
-/*-----------------------------------------------------------------------------
-    Name        : gokLassoApply
-    Description : Resolve a freehand loop ("lasso"). If it encloses the player's
-                  own ships -> select them. Otherwise, if it encloses attackable
-                  enemies and the player had ships selected when the drag began
-                  -> order those ships to attack the enclosed enemies. If nothing
-                  useful is enclosed, restore the pre-drag selection (so an empty
-                  loop doesn't deselect via the band-select rectangle).
-    Inputs      : screenX/screenY - loop vertices in SCREEN PIXELS, n of them
-    Return      : >0 own ships selected, <0 attack issued, 0 nothing
-----------------------------------------------------------------------------*/
-sdword gokLassoApply(sdword *screenX, sdword *screenY, sdword n)
-{
-    static MaxSelection tempSelection;
-
-    if (!gameIsRunning || n < 3)
-    {
-        return 0;
-    }
-
-    //Pass 1: own ships inside the loop -> select them (like selRectSelect).
-    selLassoDragFunction(universe.RenderList.head, screenX, screenY, n,
-                         (SpaceObjRotImpTarg **)selSelected.ShipPtr, &selSelected.numShips,
-                         TRUE, FALSE, FALSE);
-    if (selSelected.numShips > 0)
-    {
-        ioUpdateShipTotals();
-        return selSelected.numShips;
-    }
-
-    //Pass 2: attackable targets inside the loop -> attack them with the pre-drag
-    //selection (restored, since the band-select on release clobbered selSelected).
-    selLassoDragFunction(universe.RenderList.head, screenX, screenY, n,
-                         selSelecting.TargetPtr, &selSelecting.numTargets,
-                         FALSE, TRUE, TRUE);
-    if ((selSelecting.numTargets > 0) && (gokLassoSavedSel.numShips > 0))
-    {
-        selSelected = gokLassoSavedSel;
-        ioUpdateShipTotals();
-        MakeTargetsOnlyNonForceAttackTargets((SelectAnyCommand *)&selSelecting, universe.curPlayerPtr); //enemies only
-        MakeShipsNotIncludeTheseShips((SelectCommand *)&selSelecting, (SelectCommand *)&selSelected);
-        MakeShipsAttackCapable((SelectCommand *)&tempSelection, (SelectCommand *)&selSelected);
-        MakeShipMastersIncludeSlaves((SelectCommand *)&selSelecting);
-        if ((selSelecting.numTargets > 0) && (tempSelection.numShips > 0))
-        {
-            if (speechEventAttack())
-            {
-                clWrapAttack(&universe.mainCommandLayer,
-                             (SelectCommand *)&tempSelection, (AttackCommand *)&selSelecting);
-            }
-        }
-        selSelecting.numTargets = 0;
-        return -1;
-    }
-    selSelecting.numTargets = 0;
-
-    //Nothing useful enclosed: undo the band-select clobber, keep prior selection.
-    selSelected = gokLassoSavedSel;
-    ioUpdateShipTotals();
-    return 0;
-}
 
 /*-----------------------------------------------------------------------------
     Name        : mrKeyRelease
@@ -5670,36 +5595,7 @@ void mrRegionDraw(regionhandle reg)
     if (mrHoldLeft == mrSelectHold)                         //and then draw the current selection progress
     {
         selSelectingDraw();
-#ifdef __ANDROID__
-        {
-            /* On touch, draw the actual freehand path the finger is tracing (the
-               lasso outline) rather than the rubber-band rectangle, so what you
-               circle matches what gets selected. Falls back to the rectangle
-               before enough of a path exists. */
-            extern sdword gokTouchLassoPointCount(void);
-            extern void   gokTouchLassoPoint(sdword i, sdword *x, sdword *y);
-            sdword n = gokTouchLassoPointCount();
-            if (n >= 3)
-            {
-                sdword i, fx, fy, x0, y0, x1, y1;
-                gokTouchLassoPoint(0, &fx, &fy);
-                x0 = fx; y0 = fy;
-                for (i = 1; i < n; i++)
-                {
-                    gokTouchLassoPoint(i, &x1, &y1);
-                    primLineThick2(x0, y0, x1, y1, 3, TW_SELECT_BOX_COLOR);
-                    x0 = x1; y0 = y1;
-                }
-                primLineThick2(x0, y0, fx, fy, 3, TW_SELECT_BOX_COLOR);   //close the loop
-            }
-            else
-            {
-                primRectOutline2(&mrSelectionRect, 1, TW_SELECT_BOX_COLOR);
-            }
-        }
-#else
         primRectOutline2(&mrSelectionRect, 1, TW_SELECT_BOX_COLOR);
-#endif
     }
 
 #if SP_DEBUGKEYS

@@ -1765,80 +1765,12 @@ static int          gokTapCount = 0;             /* consecutive quick single-fin
 static Uint32       gokLastTapMs = 0;            /* timestamp of the previous tap         */
 static float        gokLastTapX = 0.0f;          /* normalized pos of the previous tap    */
 static float        gokLastTapY = 0.0f;
-#define GOK_LASSO_MAX 256
-static sdword       gokPathX[GOK_LASSO_MAX];     /* one-finger drag path (cursor px) for lasso */
-static sdword       gokPathY[GOK_LASSO_MAX];
-static int          gokPathN = 0;
-static bool32       gokLassoPending = FALSE;     /* deferred: run the lasso after this frame's tasks */
 
 /* Translate the viewpoint across space by a screen-pixel delta (Game side,
    src/Game/CameraCommand.c). real32 == float. */
 extern void gokCameraPanScreen(float dxPixels, float dyPixels);
 /* Focus the camera on the current ship selection (triple-tap; src/SDL/mainrgn.c). */
 extern void gokCameraFocusSelection(void);
-/* Freehand-loop (lasso) gesture (src/SDL/mainrgn.c): snapshot the selection at
-   drag start, then on release select enclosed own ships OR attack enclosed enemies. */
-extern void   gokLassoBegin(void);
-extern sdword gokLassoApply(sdword *screenX, sdword *screenY, sdword n);
-
-/* Append the current cursor position to the freehand drag path (throttled, with
-   decimation when the buffer fills so the whole loop is kept at lower res). */
-static void gokPathAppend(sdword x, sdword y)
-{
-    if (gokPathN > 0)
-    {
-        sdword dx = x - gokPathX[gokPathN - 1];
-        sdword dy = y - gokPathY[gokPathN - 1];
-        if ((dx * dx + dy * dy) < 25) return;        /* < 5px: skip */
-    }
-    if (gokPathN >= GOK_LASSO_MAX)
-    {                                                /* full: decimate to half, keep shape */
-        int k;
-        for (k = 0; k < GOK_LASSO_MAX / 2; k++)
-        {
-            gokPathX[k] = gokPathX[2 * k];
-            gokPathY[k] = gokPathY[2 * k];
-        }
-        gokPathN = GOK_LASSO_MAX / 2;
-    }
-    gokPathX[gokPathN] = x;
-    gokPathY[gokPathN] = y;
-    gokPathN++;
-}
-
-/* Run a pending lasso selection. Called once per frame AFTER the game tasks, so
-   it overwrites the band-select rectangle result the engine produced this frame
-   from the same finger release. */
-static void gokTouchLassoFlush(void)
-{
-    if (gokLassoPending)
-    {
-        gokLassoPending = FALSE;
-        gokLassoApply(gokPathX, gokPathY, gokPathN);
-    }
-}
-
-/* Expose the in-progress freehand drag path so the renderer (mainrgn.c) can draw
-   the actual outline the finger is tracing instead of the rubber-band rectangle.
-   Returns 0 (nothing to draw) unless a single-finger drag is active in gameplay. */
-sdword gokTouchLassoPointCount(void)
-{
-    /* GOK_IN_GAMEPLAY() is #defined further down; declare its inputs locally so
-       this accessor (placed above the macro) needs no forward reference. */
-    extern bool32 gameIsRunning;
-    extern sdword feMenuLevel;
-    extern sdword feStackIndex;
-    if (gokTouchCount == 1 && gameIsRunning && feMenuLevel == 0 && feStackIndex == 0)
-    {
-        return (sdword)gokPathN;
-    }
-    return 0;
-}
-void gokTouchLassoPoint(sdword i, sdword *x, sdword *y)
-{
-    if (i >= 0 && i < gokPathN) { *x = gokPathX[i]; *y = gokPathY[i]; }
-    else                        { *x = 0;            *y = 0;            }
-}
 
 /* Centroid (in screen pixels) of all fingers currently down on the device.
    Returns the finger count. Used for the 3-finger pan so it is robust to which
@@ -2057,12 +1989,6 @@ void HandleEvent(SDL_Event const* pEvent) {
                 gokCursorAtDownY  = mouseCursorY();
                 gokTrackX         = mouseCursorX();   /* sync authoritative pos to the real cursor */
                 gokTrackY         = mouseCursorY();
-                gokPathN          = 0;                /* start a fresh freehand path (lasso) */
-                gokPathAppend(mouseCursorX(), mouseCursorY());
-                if (GOK_IN_GAMEPLAY())
-                {
-                    gokLassoBegin();                  /* snapshot selection for a possible attack-lasso */
-                }
                 gokLongPressFired = FALSE;
                 gokFinger0LmbDown = FALSE;
                 gokMenuPointer    = FALSE;
@@ -2248,11 +2174,6 @@ void HandleEvent(SDL_Event const* pEvent) {
                 mouseCursorShow();
                 mouseClipToRect(NULL);
 
-                if (GOK_IN_GAMEPLAY())
-                {
-                    gokPathAppend(newX, newY);        /* record the freehand path for lasso */
-                }
-
                 gokLastFingerX = pEvent->tfinger.x;
                 gokLastFingerY = pEvent->tfinger.y;
             }
@@ -2397,35 +2318,6 @@ void HandleEvent(SDL_Event const* pEvent) {
                     else
                     {
                         gokTapCount = 0;                        /* held/dragged: not a tap */
-                    }
-                }
-                /* Freehand closed loop ("lasso"): if the in-game one-finger drag
-                   came back near where it started and enclosed a meaningful area,
-                   queue a lasso selection. It runs after this frame's tasks so it
-                   replaces the band-select rectangle the same release produced. */
-                if (GOK_IN_GAMEPLAY() && !gokLongPressFired && gokPathN >= 12)
-                {
-                    sdword minx = gokPathX[0], maxx = gokPathX[0];
-                    sdword miny = gokPathY[0], maxy = gokPathY[0];
-                    int    k;
-                    float  w, h, diag, ex, ey, closeDist;
-                    for (k = 1; k < gokPathN; k++)
-                    {
-                        if (gokPathX[k] < minx) minx = gokPathX[k];
-                        if (gokPathX[k] > maxx) maxx = gokPathX[k];
-                        if (gokPathY[k] < miny) miny = gokPathY[k];
-                        if (gokPathY[k] > maxy) maxy = gokPathY[k];
-                    }
-                    w = (float)(maxx - minx);
-                    h = (float)(maxy - miny);
-                    diag = SDL_sqrtf(w * w + h * h);
-                    ex = (float)(gokPathX[gokPathN - 1] - gokPathX[0]);
-                    ey = (float)(gokPathY[gokPathN - 1] - gokPathY[0]);
-                    closeDist = SDL_sqrtf(ex * ex + ey * ey);
-                    if (diag >= 0.10f * (float)MAIN_WindowWidth &&  /* deliberate size */
-                        closeDist <= 0.28f * diag)                  /* returned near the start */
-                    {
-                        gokLassoPending = TRUE;
                     }
                 }
                 gokLongPressFired = FALSE;
@@ -3101,9 +2993,6 @@ int main (int argc, char* argv[])
             uicTextEntrySyncSoftKeyboard(); // show/hide on-screen keyboard with text-entry focus
 
             utyTasksDispatch(); // execute all tasks
-#ifdef __ANDROID__
-            gokTouchLassoFlush(); // apply a queued freehand-loop (lasso) selection after tasks
-#endif
 
             if (opTimerActive) {
                 if (taskTimeElapsed > (opTimerStart + opTimerLength)) {
