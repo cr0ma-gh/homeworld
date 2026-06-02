@@ -13,9 +13,24 @@ android {
         versionName '0.3-touch-ui'
         externalNativeBuild {
             cmake {
-                arguments '-DANDROID_STL=c++_shared'
+                // ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES makes the NDK link the
+                // native libraries with a 16 KB max-page-size. Recent Pixels
+                // (and GrapheneOS on them) run with 16 KB memory pages, and a
+                // package whose .so files are only 4 KB-aligned is rejected at
+                // install time / fails to load. This builds them 16 KB-aligned.
+                arguments '-DANDROID_STL=c++_shared',
+                          '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
                 abiFilters 'arm64-v8a'
             }
+        }
+    }
+
+    // Keep the native libraries uncompressed and page-aligned inside the APK
+    // (the default with modern AGP) so the 16 KB-aligned .so files above can be
+    // mapped directly on 16 KB-page devices.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
 
