@@ -71,25 +71,13 @@ c_base_args = [
 	'-Wno-unused-result',
 ]
 
-if host_machine.system() == 'emscripten'
-	c_base_args += [
-		# TODO: fix warnings
-		'-Wno-unknown-warning-option',
-		'-Wno-constant-logical-operand',
-		'-Wno-deprecated-non-prototype',
-		'-Wno-pointer-sign',
-		'-Wno-invalid-source-encoding',
-		'-Wno-uninitialized',
-		'-Wno-sometimes-uninitialized',
-		'-Wno-non-literal-null-conversion', # 1 occurrence
-	]
-endif
-
-# The big -Wno-* list above is tuned for GCC. Clang (including Apple clang on
-# macOS) errors out on GCC-only warning flags and diagnoses a few things GCC
-# doesn't. emcc is clang-based and the emscripten branch above already enumerates
-# the suppressions clang needs; desktop clang needs the same set.
-if meson.get_compiler('c').get_id() == 'clang'
+# The big -Wno-* list above is tuned for GCC. Clang errors out on GCC-only
+# warning flags (because of -Werror -Wunknown-warning-option) and diagnoses a
+# few things GCC doesn't, so it needs its own suppression set. This covers
+# desktop clang (Linux) and emscripten's emcc (clang-based, reported by meson as
+# the 'emscripten' compiler), which previously had its own narrower list.
+# TODO: fix these warnings one by one instead of suppressing them.
+if meson.get_compiler('c').get_id() in ['clang', 'emscripten']
 	c_base_args += [
 		'-Wno-unknown-warning-option', # ignore the GCC-only -W flags listed above
 		'-Wno-pointer-sign',

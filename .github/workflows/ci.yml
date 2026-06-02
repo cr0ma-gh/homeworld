@@ -77,28 +77,8 @@ jobs:
           path: build/homeworld
           if-no-files-found: error
 
-  macos:
-    name: macOS (best-effort Meson build)
-    runs-on: macos-latest
-    # The supported macOS build uses the Xcode project (see Mac/BUILD.md); the
-    # Meson path additionally needs X11 (XQuartz) which is awkward on hosted
-    # runners. We still attempt it for early signal, but don't block CI on it.
-    continue-on-error: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install build dependencies (Homebrew)
-        run: |
-          brew update
-          brew install meson ninja pkg-config sdl2 sdl2_image ffmpeg flex bison
-          # XQuartz provides the X11 headers/libs the darwin branch of meson.build expects.
-          brew install --cask xquartz || true
-
-      - name: Configure (Meson)
-        run: |
-          export PKG_CONFIG_PATH="/opt/X11/lib/pkgconfig:$PKG_CONFIG_PATH"
-          meson setup build --buildtype=release -Db_sanitize=none
-
-      - name: Build
-        run: meson compile -C build
+# NOTE: there is intentionally no macOS job here. The Meson build's darwin path
+# links against X11 (src/SDL/utility.c uses XSendEvent/XKeysymToKeycode), but the
+# SDL2 available on hosted macOS runners is a Cocoa build without X11, so the
+# build cannot succeed there. The supported macOS build is the Xcode project
+# documented in Mac/BUILD.md.

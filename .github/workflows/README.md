@@ -7,7 +7,7 @@ project with [Meson] — the canonical build system documented in
 
 | Workflow | File | Triggers | What it does |
 | --- | --- | --- | --- |
-| **CI** | [`ci.yml`](ci.yml) | push to `main`, pull requests, manual | Builds on Linux with **gcc** and **clang**, in both `debug` (address+undefined sanitizers, the project default) and `release` profiles. Uploads the optimised Linux binary as an artifact. Also runs a best-effort macOS Meson build (non-blocking). |
+| **CI** | [`ci.yml`](ci.yml) | push to `main`, pull requests, manual | Builds on Linux with **gcc** and **clang**, in both `debug` (address+undefined sanitizers, the project default) and `release` profiles. Uploads the optimised Linux binary as an artifact. (No macOS job: the Meson build's darwin path needs an X11-enabled SDL2 that hosted runners don't provide — the supported macOS build is the Xcode project in `Mac/BUILD.md`.) |
 | **WebAssembly** | [`wasm.yml`](wasm.yml) | push to `main`, tags, pull requests, manual | Cross-compiles to `wasm32` with Emscripten (`-Ddemo=true -Dmovies=false`) and deploys the playable demo to **GitHub Pages**. Mirrors the legacy GitLab `pages` job. |
 | **Android** | [`android.yml`](android.yml) | push to `main`, tags, pull requests, manual | Builds the Android port (Gradle + NDK/CMake, `arm64-v8a`). Always builds the debug APK; builds the **signed release APK** when the signing secrets are present, and attaches it to the GitHub Release on tags. |
 | **Release** | [`release.yml`](release.yml) | push of a `v*` tag, manual | Builds an optimised Linux binary, packages it as a `.tar.gz` with a SHA-256 checksum, and publishes a **GitHub Release** with auto-generated notes. |
