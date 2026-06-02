@@ -26,8 +26,14 @@ jobs:
       - name: Install host tools
         run: |
           sudo apt-get update
+          # libsdl2-dev is needed on the *host*: meson.build calls
+          # dependency('sdl2') unconditionally (line 10), even though the
+          # emscripten build actually links SDL via `--use-port=sdl2`. The
+          # GitLab CI image satisfied this the same way (PKG_CONFIG_PATH to a
+          # host SDL2). The pkg-config entry is only used to satisfy the
+          # configure check; it is not linked into the wasm output.
           sudo apt-get install -y --no-install-recommends \
-            meson ninja-build pkg-config flex bison
+            meson ninja-build pkg-config flex bison libsdl2-dev
 
       - name: Set up Emscripten
         uses: mymindstorm/setup-emsdk@v14

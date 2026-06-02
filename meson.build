@@ -85,6 +85,27 @@ if host_machine.system() == 'emscripten'
 	]
 endif
 
+# The big -Wno-* list above is tuned for GCC. Clang (including Apple clang on
+# macOS) errors out on GCC-only warning flags and diagnoses a few things GCC
+# doesn't. emcc is clang-based and the emscripten branch above already enumerates
+# the suppressions clang needs; desktop clang needs the same set.
+if meson.get_compiler('c').get_id() == 'clang'
+	c_base_args += [
+		'-Wno-unknown-warning-option', # ignore the GCC-only -W flags listed above
+		'-Wno-pointer-sign',
+		'-Wno-constant-logical-operand',
+		'-Wno-deprecated-non-prototype',
+		'-Wno-invalid-source-encoding',
+		'-Wno-uninitialized',
+		'-Wno-sometimes-uninitialized',
+		'-Wno-non-literal-null-conversion',
+		# clang's equivalents of the GCC -Wno-*-qualifiers / pointer-type flags
+		'-Wno-incompatible-pointer-types-discards-qualifiers',
+		'-Wno-incompatible-pointer-types',
+		'-Wno-incompatible-function-pointer-types',
+	]
+endif
+
 if host_machine.cpu_family() != 'x86'
 	c_base_args += ['-DGENERIC_ETGCALLFUNCTION']
 endif
