@@ -105,10 +105,23 @@ jobs:
           path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
-      # On a version tag, attach the signed release APK to the GitHub Release
-      # created by the Release workflow (action-gh-release updates it in place).
-      - name: Attach release APK to GitHub Release
+      # On a version tag, publish a GitHub Release whose only asset is the
+      # signed APK. softprops/action-gh-release creates the release if it does
+      # not exist yet, so this workflow alone owns the release.
+      - name: Stage release APK
+        id: stage
+        if: ${{ startsWith(github.ref, 'refs/tags/') && steps.keystore.outputs.path != '' }}
+        run: |
+          set -euo pipefail
+          apk="$(ls android/app/build/outputs/apk/release/*.apk | head -1)"
+          mkdir -p release-assets
+          cp "$apk" "release-assets/Homeworld-${GITHUB_REF_NAME}.apk"
+          ls -lh release-assets
+
+      - name: Publish GitHub Release (signed APK)
         if: ${{ startsWith(github.ref, 'refs/tags/') && steps.keystore.outputs.path != '' }}
         uses: softprops/action-gh-release@v2
         with:
-          files: android/app/build/outputs/apk/release/*.apk
+          files: release-assets/Homeworld-*.apk
+          generate_release_notes: true
+          fail_on_unmatched_files: true
