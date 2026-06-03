@@ -66,7 +66,7 @@ public class LauncherActivity extends Activity {
         root.setPadding(pad, pad, pad, pad);
 
         TextView title = new TextView(this);
-        title.setText("Gardens of Kadesh");
+        title.setText("Homeworld");
         title.setTextColor(Color.WHITE);
         title.setTextSize(22);
         title.setGravity(Gravity.CENTER);

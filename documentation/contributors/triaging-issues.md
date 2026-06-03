@@ -22,7 +22,7 @@ You need to understand the needs and constraints of both sides to help things go
 Having a clear vision of where we want things to go helps a lot in taking decisions.
 Having a single person in charge of that vision, a "Benevolant Dictator for Life" (BDfL) is a very simple solution to that problem, but one that is fundamentally incompatible with a community-run project.
 
-We want the Gardens of Kadesh project to be owned by the people who make it.
+We want the Homeworld project to be owned by the people who make it.
 As such, the rules presented here MUST be discussed when contributors come and go (and from time to time), and MUST evolve to reflect the general direction that we collectively want to take.
 
 1. Retain the look & feel of the original game from 1999

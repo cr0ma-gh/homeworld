@@ -26,7 +26,7 @@ import java.io.OutputStream;
 import org.libsdl.app.SDLActivity;
 
 /**
- * Gardens of Kadesh Android launcher. Subclasses SDLActivity to load our native
+ * Homeworld Android launcher. Subclasses SDLActivity to load our native
  * libraries and to overlay a small bar of on-screen control buttons (F, ESC, Shift,
  * Tab, Z, right-click) that inject SDL events into the engine, so common Homeworld
  * keyboard/mouse controls are reachable on a touch device.

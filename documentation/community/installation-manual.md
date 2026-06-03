@@ -1,4 +1,4 @@
-# Gardens of Kadesh's Installation Manual
+# Homeworld's Installation Manual
 
 To play the full *Homeworld* game using this project, **you must have bought a copy of the game** to [get the original assets](#setting-up-the-assets-folder) (models, textures, sounds, movies etc.). 
 

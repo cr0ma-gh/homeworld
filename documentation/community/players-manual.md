@@ -1,4 +1,4 @@
-# Gardens of Kadesh's Player Manual
+# Homeworld's Player Manual
 
 ## Demo
 
