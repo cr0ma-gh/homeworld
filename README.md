@@ -1,10 +1,10 @@
-# Welcome to the Gardens of Kadesh
+# Welcome to Homeworld
 
 [![CI](https://github.com/cr0ma-gh/homeworld/actions/workflows/ci.yml/badge.svg)](https://github.com/cr0ma-gh/homeworld/actions/workflows/ci.yml)
 [![WebAssembly](https://github.com/cr0ma-gh/homeworld/actions/workflows/wasm.yml/badge.svg)](https://github.com/cr0ma-gh/homeworld/actions/workflows/wasm.yml)
 [![Android](https://github.com/cr0ma-gh/homeworld/actions/workflows/android.yml/badge.svg)](https://github.com/cr0ma-gh/homeworld/actions/workflows/android.yml)
 
-Gardens of Kadesh (GoK) is a fan project to maintain and improve the 1999 classics RTS game [Homeworld].
+Homeworld is a fan project to maintain and improve the 1999 classic real-time strategy game [Homeworld].
 
 - [How do I play it?](/documentation/community/players-manual.md)
 - [How do I help?](/CONTRIBUTING.md)
@@ -31,7 +31,7 @@ The project is named "Homeworld SDL".
 - 2016: Efforts on Homeworld SDL have died off, [the website goes dark][homeworldsdl.org].
 
 - 2019: The project is picked up from the 2012 GitHub export (last publicly available copy of the code) by a couple of volunteers.
-They decide to rename the project "Gardens of Kadesh" after [Mission 07] of the single-player campaign.
+They pick the project back up and continue developing it.
 
 [Homeworld]: https://en.wikipedia.org/wiki/Homeworld
 [Relic Entertainment]: https://www.relic.com/

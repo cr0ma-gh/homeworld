@@ -1,7 +1,6 @@
 package org.homeworld.gok;
 
 import android.content.Context;
-import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.net.wifi.WifiManager;
@@ -27,7 +26,7 @@ import java.io.OutputStream;
 import org.libsdl.app.SDLActivity;
 
 /**
- * Gardens of Kadesh Android launcher. Subclasses SDLActivity to load our native
+ * Homeworld Android launcher. Subclasses SDLActivity to load our native
  * libraries and to overlay a small bar of on-screen control buttons (F, ESC, Shift,
  * Tab, Z, right-click) that inject SDL events into the engine, so common Homeworld
  * keyboard/mouse controls are reachable on a touch device.
@@ -85,32 +84,11 @@ public class HomeworldActivity extends SDLActivity {
         };
     }
 
-    /** Freely-redistributable demo data bundled in the APK assets (the Android
-     *  CI downloads these from the project's demo-assets archive at build time;
-     *  see .github/workflows/android.yml). The engine expects these exact names
-     *  (case-sensitive on Android) in the external files dir, which is what
-     *  SDL_AndroidGetExternalStoragePath() points the native side at. Matches
-     *  the HW_GAME_DEMO data set (BigFile.c / utility.c).
-     *  Listed as {assetName -> destFilename}. */
-    private static final String[][] BUNDLED_GAME_DATA = {
-        { "HomeworldDL.big", "HomeworldDL.big" },
-        { "Update.big",      "Update.big"      },
-        { "DL_Music.wxd",    "DL_Music.wxd"    },
-        // The archive ships this lowercase; utility.c reads it as "DL_Demo.vce".
-        { "DL_demo.vce",     "DL_Demo.vce"     },
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        /* Extract the bundled retail data into the external files dir BEFORE
-           calling super.onCreate() -- SDLActivity starts the native thread
-           inside its own onCreate (via the surface lifecycle), and the engine
-           reads Homeworld.big right away. Doing the copy first guarantees the
-           data is in place before any native code runs. Only happens on first
-           launch (or after a re-install): subsequent runs see the files
-           already on disk and the copy is a no-op. */
-        extractBundledGameData();
-
+        /* The game data is installed by LauncherActivity (which runs first and
+           copies it into getExternalFilesDir, where the engine reads it), so by
+           the time we get here the data is already in place. */
         super.onCreate(savedInstanceState);
 
         /* Draw edge-to-edge across the full physical display, including under
@@ -222,52 +200,6 @@ public class HomeworldActivity extends SDLActivity {
             multicastLock.release();
         }
         super.onDestroy();
-    }
-
-    /** Copy each entry in BUNDLED_GAME_DATA from the APK assets into the
-     *  external files dir, but only if it isn't already there (matched by
-     *  filename + size -- the file is rewritten if the size differs, which
-     *  catches a stale partial copy from a previous failed extract). */
-    private void extractBundledGameData() {
-        File outDir = getExternalFilesDir(null);
-        if (outDir == null) {
-            Log.e("GoK", "getExternalFilesDir(null) returned null; cannot extract data");
-            return;
-        }
-        outDir.mkdirs();
-
-        AssetManager am = getAssets();
-        for (String[] pair : BUNDLED_GAME_DATA) {
-            String assetName = pair[0];
-            String destName  = pair[1];
-            File   dest      = new File(outDir, destName);
-
-            long assetSize = -1;
-            try {
-                assetSize = am.openFd(assetName).getLength();
-            } catch (IOException ignored) {
-                /* openFd fails for compressed assets; fall back to streaming
-                   the whole asset to /dev/null just to size it. We mark these
-                   noCompress in build.gradle so openFd should succeed. */
-            }
-
-            if (dest.exists() && (assetSize < 0 || dest.length() == assetSize)) {
-                continue;   /* already extracted, sizes match -- skip */
-            }
-
-            Log.i("GoK", "Extracting " + assetName + " (" + assetSize + " bytes)");
-            try (InputStream in = am.open(assetName);
-                 OutputStream out = new FileOutputStream(dest)) {
-                byte[] buf = new byte[1 << 16];
-                int n;
-                while ((n = in.read(buf)) > 0) {
-                    out.write(buf, 0, n);
-                }
-            } catch (IOException e) {
-                Log.e("GoK", "Failed to extract " + assetName, e);
-                dest.delete();   /* don't leave a partial file behind */
-            }
-        }
     }
 
     /** Hide the status and navigation bars in IMMERSIVE_STICKY mode, with

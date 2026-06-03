@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(GardensOfKadesh C CXX)
+project(Homeworld C CXX)
 
 # SDL2 (full source tree cloned into jni/SDL). Builds target "SDL2".
 add_subdirectory(SDL)

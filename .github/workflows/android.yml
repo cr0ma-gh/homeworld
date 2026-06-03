@@ -62,28 +62,9 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle', 'android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      # Bundle the freely-redistributable demo data into the APK so it ships
-      # playable. We fetch it from the project's demo-assets archive (the same
-      # source the WASM build's subprojects/demo-assets.wrap uses) and verify
-      # the pinned checksum, rather than committing ~67 MB of binaries to git.
-      # The destination (android/app/src/main/assets/) is gitignored.
-      - name: Fetch and bundle demo game data
-        env:
-          DEMO_URL: https://gitlab.com/gardens-of-kadesh/demo-assets/-/archive/1.05/demo-assets-1.05.tar.gz
-          DEMO_SHA256: aa4df87ab95688970d91eb37b6a7ce8b69c5bf6f7ee963f75c098a4c1fb1f03d
-        run: |
-          set -euo pipefail
-          curl -fsSL -o demo-assets.tar.gz "$DEMO_URL"
-          echo "$DEMO_SHA256  demo-assets.tar.gz" | sha256sum -c -
-          tar xzf demo-assets.tar.gz
-          mkdir -p android/app/src/main/assets
-          cp demo-assets-1.05/assets/HomeworldDL.big \
-             demo-assets-1.05/assets/Update.big \
-             demo-assets-1.05/assets/DL_Music.wxd \
-             demo-assets-1.05/assets/DL_demo.vce \
-             android/app/src/main/assets/
-          ls -lh android/app/src/main/assets/
-
+      # The game data is NOT bundled in the APK: the player installs it on the
+      # device and LauncherActivity copies it in on first run. So the APK is
+      # engine-only here.
       - name: Build debug APK
         working-directory: android
         run: |
