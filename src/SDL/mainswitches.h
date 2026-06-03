@@ -61,6 +61,7 @@ extern char versionString[];
 extern char networkVersion[];
 extern char languageVersion[];
 extern char minorBuildVersion[];
+extern char buildVersionString[];
 
 extern bool32 autoSaveDebug;
 

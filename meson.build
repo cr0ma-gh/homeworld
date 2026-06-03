@@ -133,6 +133,15 @@ else
 	c_base_args += ['-DHW_GAME_HOMEWORLD']
 endif
 
+# Stamp the build with the short git commit it was built from, shown in the
+# in-game menus (see buildVersionString in src/SDL/main.c). Falls back to 'dev'
+# when git isn't available (e.g. a source tarball).
+git_commit = run_command('git', 'rev-parse', '--short', 'HEAD', check: false).stdout().strip()
+if git_commit == ''
+	git_commit = 'dev'
+endif
+c_base_args += ['-DHW_BUILD_COMMIT="' + git_commit + '"']
+
 if get_option('debug') and get_option('debug_asserts')
 	c_args = c_base_args + '-DHW_BUILD_FOR_DEBUGGING'
 else

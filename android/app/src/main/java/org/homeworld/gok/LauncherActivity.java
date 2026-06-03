@@ -90,7 +90,15 @@ public class LauncherActivity extends Activity {
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         root.addView(statusView, new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        TextView versionView = new TextView(this);
+        versionView.setText("build " + getString(R.string.build_commit));
+        versionView.setTextColor(Color.DKGRAY);
+        versionView.setGravity(Gravity.CENTER);
+        versionView.setPadding(0, pad, 0, 0);
+
         root.addView(pickButton, new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        root.addView(versionView, new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         setContentView(root);
     }

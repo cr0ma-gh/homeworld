@@ -1,5 +1,17 @@
 apply plugin: 'com.android.application'
 
+// Short git commit this build was made from, surfaced in the launcher UI (and
+// stamped into the native engine via jni/src/CMakeLists.txt). Falls back to
+// "dev" when git isn't available.
+def gitCommit = "dev"
+try {
+    def out = providers.exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        workingDir rootProject.projectDir
+    }.standardOutput.asText.get().trim()
+    if (out) { gitCommit = out }
+} catch (Exception ignored) { }
+
 android {
     namespace 'org.homeworld.gok'
     compileSdkVersion 34
@@ -11,6 +23,8 @@ android {
         targetSdkVersion 34
         versionCode 3
         versionName '0.3-touch-ui'
+        // Exposed to the launcher UI as @string/build_commit.
+        resValue "string", "build_commit", gitCommit
         externalNativeBuild {
             cmake {
                 // ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES makes the NDK link the
