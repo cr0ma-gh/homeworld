@@ -246,6 +246,16 @@ char networkVersion[MAX_NETWORKVERSION_STRING_LEN] = "HomeworldSDL";
 
 char minorBuildVersion[] = "1.2.0";
 
+/* Build identity shown in the menus in place of the old "HomeworldSDL" label,
+   stamped with the short git commit the binary was built from (injected as
+   -DHW_BUILD_COMMIT by the build system; falls back to "dev" for ad-hoc builds).
+   Display-only -- networkVersion above is the multiplayer-protocol string and
+   must stay unchanged. */
+#ifndef HW_BUILD_COMMIT
+#define HW_BUILD_COMMIT "dev"
+#endif
+char buildVersionString[] = "Homeworld " HW_BUILD_COMMIT;
+
 char languageVersion[50] = "";    // constructed at beginning of program
 
 // The version string is now constructed as follows:

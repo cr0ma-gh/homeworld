@@ -4009,7 +4009,7 @@ DEFINE_TASK(rndRenderTask)
         {
             fontMakeCurrent(selGroupFont2);
         	fontPrint(MAIN_WindowWidth - fontWidth(minorBuildVersion) - 2, MAIN_WindowHeight - fontHeight(" ") - 2, colWhite, minorBuildVersion);
-            fontPrint(MAIN_WindowWidth - fontWidth(networkVersion) - fontWidth(minorBuildVersion) - 8, MAIN_WindowHeight - fontHeight(" ") - 2, colWhite, networkVersion);
+            fontPrint(MAIN_WindowWidth - fontWidth(buildVersionString) - fontWidth(minorBuildVersion) - 8, MAIN_WindowHeight - fontHeight(" ") - 2, colWhite, buildVersionString);
         }
 
         //take a screenshot or sequence thereof

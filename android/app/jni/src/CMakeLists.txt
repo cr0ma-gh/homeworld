@@ -61,7 +61,20 @@ target_include_directories(main PRIVATE
     ${SDL_NET_DIR}
     ${GL4ES_INC})
 
+# Short git commit this APK was built from, stamped into the engine (shown in
+# the menus) and the launcher. Falls back to "dev" outside a git checkout.
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE HW_GIT_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+if(NOT HW_GIT_COMMIT)
+    set(HW_GIT_COMMIT "dev")
+endif()
+
 target_compile_definitions(main PRIVATE
+    HW_BUILD_COMMIT="${HW_GIT_COMMIT}"
     # HW_GAME_HOMEWORLD = full retail data (Homeworld.big, HW_Music.wxd,
     # HW_comp.vce, optional Update.big). The player installs this data themselves
     # via LauncherActivity (it is no longer bundled in the APK). main.h:19
